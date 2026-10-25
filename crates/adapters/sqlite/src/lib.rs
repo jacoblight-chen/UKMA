@@ -191,6 +191,59 @@ impl SqliteStore {
     }
 }
 
+const SCHEMA_META_DDL: &str = "
+CREATE TABLE IF NOT EXISTS canonical_schema (
+    id      INTEGER PRIMARY KEY CHECK (id = 1),
+    version INTEGER NOT NULL
+);
+";
+
+impl storage_ports::SchemaVersionPort for SqliteStore {
+    fn schema_version(&self) -> PortResult<u32> {
+        let connection = self.connection.lock().map_err(|_| lock_error())?;
+        connection
+            .execute_batch(SCHEMA_META_DDL)
+            .map_err(to_internal)?;
+        let mut statement = connection
+            .prepare("SELECT version FROM canonical_schema WHERE id = 1")
+            .map_err(to_internal)?;
+        let found: Option<i64> = statement
+            .query_row([], |row| row.get(0))
+            .optional()
+            .map_err(to_internal)?;
+        match found {
+            Some(version) if version > 0 => Ok(u32::try_from(version).map_err(|_| {
+                StorageError::Internal(format!(
+                    "canonical schema version {version} is out of range"
+                ))
+            })?),
+            // No row yet: a database created before versioning existed is v1.
+            _ => Ok(storage_ports::migrations::legacy_canonical_version()),
+        }
+    }
+
+    fn set_schema_version(&self, version: u32) -> PortResult<()> {
+        let connection = self.connection.lock().map_err(|_| lock_error())?;
+        connection
+            .execute_batch(SCHEMA_META_DDL)
+            .map_err(to_internal)?;
+        connection
+            .execute(
+                "INSERT INTO canonical_schema (id, version) VALUES (1, ?1)
+                 ON CONFLICT(id) DO UPDATE SET version = excluded.version",
+                rusqlite::params![i64::from(version)],
+            )
+            .map_err(to_internal)?;
+        Ok(())
+    }
+}
+
+impl storage_ports::MigrationStore for SqliteStore {
+    fn metadata(&self) -> &dyn MetadataPort {
+        self
+    }
+}
+
 impl CapabilityProbe for SqliteStore {
     fn capabilities(&self) -> AdapterCapabilities {
         AdapterCapabilities {

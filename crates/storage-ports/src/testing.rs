@@ -4,6 +4,7 @@
 //! production backends (no durability, no cross-process safety).
 
 use std::collections::{BTreeMap, HashMap, HashSet};
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Mutex;
 
 use sha2::{Digest, Sha256};
@@ -11,6 +12,7 @@ use ukma_contracts::ScopeRef;
 
 use crate::capabilities::{AdapterCapabilities, BackendKind, CapabilityProbe, TransactionScope};
 use crate::error::{PortResult, StorageError};
+use crate::migration::{MigrationStore, SchemaVersionPort};
 use crate::ports::{
     validate_scope, ArtifactPort, ArtifactRecord, EmbeddingProfile, FullTextDoc, FullTextHit,
     FullTextPort, MetadataEntry, MetadataPort, Metric, OutboxEvent, OutboxPort, Retention,
@@ -128,11 +130,41 @@ impl ArtifactPort for InMemoryArtifact {
 // ---------------------------------------------------------------------------
 
 /// Authoritative in-memory metadata store with CAS + manifests + fencing.
-#[derive(Default)]
 pub struct InMemoryMetadata {
     entries: Mutex<HashMap<(String, String), MetadataEntry>>,
     manifests: Mutex<HashMap<(String, String), String>>,
     writers: Mutex<HashMap<(String, String), String>>,
+    schema_version: AtomicU32,
+}
+
+impl Default for InMemoryMetadata {
+    fn default() -> Self {
+        Self {
+            entries: Mutex::new(HashMap::new()),
+            manifests: Mutex::new(HashMap::new()),
+            writers: Mutex::new(HashMap::new()),
+            // A fresh store is a v1 canonical store.
+            schema_version: AtomicU32::new(1),
+        }
+    }
+}
+
+impl SchemaVersionPort for InMemoryMetadata {
+    fn schema_version(&self) -> PortResult<u32> {
+        Ok(self.schema_version.load(Ordering::SeqCst))
+    }
+
+    fn set_schema_version(&self, version: u32) -> PortResult<()> {
+        // 0 is the legitimate "pre-versioning" state of a legacy file.
+        self.schema_version.store(version, Ordering::SeqCst);
+        Ok(())
+    }
+}
+
+impl MigrationStore for InMemoryMetadata {
+    fn metadata(&self) -> &dyn MetadataPort {
+        self
+    }
 }
 
 impl InMemoryMetadata {

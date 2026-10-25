@@ -2,6 +2,8 @@
 //! Resolve → Graph Commit → Index Publish`, the job FSM (§32.2) and the
 //! generation pointer.
 
+#![cfg(feature = "parser-rust")]
+
 use std::sync::Arc;
 
 use code_intelligence::domain::{

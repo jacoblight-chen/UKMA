@@ -31,6 +31,11 @@ use ukma_contracts::ScopeRef;
 
 const SNAPSHOT_FORMAT: u32 = 1;
 
+/// Canonical schema version of a snapshot written before FM-006 existed.
+fn legacy_schema_version() -> u32 {
+    1
+}
+
 fn scope_key(scope: &ScopeRef) -> String {
     format!(
         "{}\u{1f}{}\u{1f}{}",
@@ -56,6 +61,10 @@ fn etag_of(key: &str, revision: u64, value: &serde_json::Value) -> String {
 #[derive(Debug, Default, Serialize, Deserialize)]
 struct PersistedState {
     format: u32,
+    /// Canonical schema version (FM-006). Snapshots written before versioning
+    /// existed carry no field, so they load as v1 and are migrated explicitly.
+    #[serde(default = "legacy_schema_version")]
+    schema_version: u32,
     /// scope -> key -> entry
     entries: BTreeMap<String, BTreeMap<String, MetadataEntry>>,
     /// scope -> manifest name -> generation
@@ -98,6 +107,8 @@ impl EmbeddedStore {
         } else {
             PersistedState {
                 format: SNAPSHOT_FORMAT,
+                // A brand new store already conforms to the current schema.
+                schema_version: storage_ports::CANONICAL_SCHEMA_VERSION,
                 ..Default::default()
             }
         };
@@ -122,6 +133,7 @@ impl EmbeddedStore {
             .map_err(|_| StorageError::Internal("embedded lock poisoned".into()))?;
         let mut snapshot = PersistedState {
             format: SNAPSHOT_FORMAT,
+            schema_version: guard.schema_version,
             entries: guard.entries.clone(),
             manifests: guard.manifests.clone(),
             writers: guard.writers.clone(),
@@ -444,6 +456,33 @@ impl VectorPort for EmbeddedStore {
         filter: Option<&std::collections::BTreeMap<String, String>>,
     ) -> PortResult<Vec<VectorHit>> {
         self.vector.search(scope, profile_id, query, k, filter)
+    }
+}
+
+impl storage_ports::SchemaVersionPort for EmbeddedStore {
+    fn schema_version(&self) -> PortResult<u32> {
+        let guard = self
+            .state
+            .lock()
+            .map_err(|_| StorageError::Internal("embedded lock poisoned".into()))?;
+        Ok(guard.schema_version)
+    }
+
+    fn set_schema_version(&self, version: u32) -> PortResult<()> {
+        {
+            let mut guard = self
+                .state
+                .lock()
+                .map_err(|_| StorageError::Internal("embedded lock poisoned".into()))?;
+            guard.schema_version = version;
+        }
+        self.flush()
+    }
+}
+
+impl storage_ports::MigrationStore for EmbeddedStore {
+    fn metadata(&self) -> &dyn MetadataPort {
+        self
     }
 }
 

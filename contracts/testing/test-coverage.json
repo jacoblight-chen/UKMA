@@ -505,8 +505,34 @@
     {
       "id": "FM-006",
       "source": "29.4",
-      "disposition": "gap",
-      "reason": "canonical schema versioning/migration is not implemented: the embedded snapshot carries a format number and refuses unknown versions, but no migration exists"
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/storage-ports/src/migration.rs",
+          "test": "a_run_from_an_old_version_applies_every_step_in_order"
+        },
+        {
+          "file": "crates/storage-ports/src/migration.rs",
+          "test": "a_missing_step_breaks_the_chain"
+        },
+        {
+          "file": "crates/ukma-integration/tests/schema_migration.rs",
+          "test": "the_embedded_store_migrates_and_keeps_the_version_across_reopen"
+        },
+        {
+          "file": "crates/ukma-integration/tests/schema_migration.rs",
+          "test": "the_sqlite_store_migrates_through_the_same_contract"
+        },
+        {
+          "file": "crates/ukma-integration/tests/schema_migration.rs",
+          "test": "a_newer_store_is_refused_and_left_untouched"
+        },
+        {
+          "file": "crates/ukma-integration/tests/schema_migration.rs",
+          "test": "migration_only_touches_the_requested_scope"
+        }
+      ],
+      "note": "forward-only chain from the stored version to CANONICAL_SCHEMA_VERSION: v1 baseline plus a v2 stamp, applied through MetadataPort only, with the version advanced after each successful step. Proven on both the embedded JSON and SQLite adapters: the version survives reopen, a newer store is refused instead of downgraded, a missing step fails closed, and a foreign scope is not rewritten"
     },
     {
       "id": "FM-007",

@@ -19,11 +19,18 @@
 
 pub mod capabilities;
 pub mod error;
+pub mod migration;
+pub mod migrations;
 pub mod ports;
 pub mod testing;
 
 pub use capabilities::{AdapterCapabilities, BackendKind, CapabilityProbe, TransactionScope};
 pub use error::{io_error, PortResult, StorageError};
+pub use migration::{
+    migrate, Migration, MigrationReport, MigrationStore, SchemaVersionPort,
+    CANONICAL_SCHEMA_VERSION,
+};
+pub use migrations::canonical_migrations;
 pub use ports::{
     validate_scope, ArtifactPort, ArtifactRecord, EmbeddingProfile, FullTextDoc, FullTextHit,
     FullTextPort, GraphPort, MetadataEntry, MetadataPort, Metric, OutboxEvent, OutboxPort,

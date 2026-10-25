@@ -1113,6 +1113,9 @@ pub fn grammar_for(language: &str) -> Option<tree_sitter::Language> {
         "swift" => Some(tree_sitter_swift::LANGUAGE.into()),
         #[cfg(feature = "parser-s2-batch2")]
         "solidity" => Some(tree_sitter_solidity::LANGUAGE.into()),
+        // deviation (ADR-049 O-08): the fork exposes the grammar as a
+        // `tree_sitter_language::LanguageFn` const named `LANGUAGE`; the
+        // baseline `tree-sitter-kotlin` 0.3.5 exposes `language()` instead.
         #[cfg(feature = "parser-s2-batch2")]
         "kotlin" => Some(tree_sitter_kotlin_ng::LANGUAGE.into()),
         #[cfg(feature = "parser-s2-batch2")]

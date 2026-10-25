@@ -334,6 +334,7 @@ flowchart LR
 | DOC-01..04 | 65 ops 唯一、ErrorCode 封閉、單一 budget 演算法、狀態分離 | P0 | 🟢 **已達**（checker 實際執行驗證） |
 | SCHEMA-01/02 | 69×2 schemas + 事件 envelope/payload | P0 | 🟢 **已達**（138 + 35 payload schemas） |
 | SCHEMA-03 | payload closure: every operation payload is a typed schema generated from the Rust wire types (184 $defs, 65 operations, drift test) | P0 + P11 | DONE (ADR-058; 5411 contract checks, 0 failed) |
+| FM-006 | canonical schema versioning + migration across adapters | P10 + P11 | DONE (ADR-059; 13 tests over embedded and SQLite, fail-closed chain) |
 | TEST-01 | CAPI/DAPI/MAPI/TAPI/SYS 實際通過 | P3–P8 | 🟢 **已達**（`cargo test --workspace --all-targets` 實際執行；evidence 見 implementation-status.yaml） |
 | DB-01 | ≥2 production backend（禁只用 in-memory） | P10 | 🟢 **已達**（embedded JSON + SQLite 兩個 production-capable 後端跑同一份契約且寫入結果一致；profile C 仍需 PostgreSQL/Qdrant/Neo4j，記於 ADR-057） |
 | MIG-01 | 上游 SHA + golden fixtures + ledger | S0/S1 已達；S2..S7 缺 | 🟡 |

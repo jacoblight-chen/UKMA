@@ -10,6 +10,12 @@
 //! resolutions. Cross-file resolution, macro expansion and type inference are out
 //! of scope, so call edges are never `static_exact`.
 
+#![cfg(any(
+    feature = "parser-s2-batch1",
+    feature = "parser-s2-batch2",
+    feature = "parser-s2-batch4"
+))]
+
 use std::path::PathBuf;
 
 use code_intelligence::parsers::engine::UnifiedParser;

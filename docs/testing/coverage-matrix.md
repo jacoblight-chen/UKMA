@@ -12,14 +12,13 @@
 | `partial` | 有實際測試覆蓋核心語意，但有具體未覆蓋面（見 note） |
 | `gap` | 尚無測試；必須寫明原因，不得省略 |
 
-**合計 69 項，100% 已分類**：`covered` **63**、`partial` **5**、`gap` **1**（ADR-057 之後）。
+**合計 69 項，100% 已分類**：`covered` **64**、`partial` **5**、`gap` **0**（ADR-057 之後）。
 （「100% disposition」指每一項都有處置，**不等於**全部通過。）
 
 ## 缺口（不得宣稱完成）
 
 | ID | 原因 |
 |---|---|
-| FM-006 | 無 canonical schema 版本/migration（snapshot 只拒絕未知 format 號） |
 
 ## 部分覆蓋（有測試，但有已知未覆蓋面）
 
@@ -37,6 +36,7 @@
 |---|---|---|---|
 | REP-003 | gap | **covered** | `LICENSE` ＋ `NOTICE` ＋ `contracts/testing/third-party-inventory.json` ＋ `release_evidence.rs`（ADR-056） |
 | OPS-001 | gap | **covered** | `disaster_recovery.rs`：backup / restore / re-index / rollback ＋ 排程備份（ADR-057） |
+| FM-006 | gap | **covered** | `storage-ports` migration runner （流程式鏈、fail-closed、版本後寫）＋`ukma-integration/tests/schema_migration.rs` 對 embedded 與 SQLite 同一契約（ADR-059） |
 | FM-010 | gap→partial | **covered** | `ukma-bench` 三份報告；**1M episodes 實測 0 失敗**（ADR-057） |
 | SR-004 | gap | **covered** | `ukma-adapter-sqlite` 跑同一契約＋兩後端等價（ADR-057） |
 | DB-002 | covered | covered（範圍擴大） | 兩個 canonical 後端 ＋ 兩個 graph store 跑同一契約 |

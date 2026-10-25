@@ -2,6 +2,7 @@
 members = [
     "crates/ukma-contract-check",
     "tools/wire-schema",
+    "tools/release-evidence",
     "apps/ukma-server",
     "crates/adapters/filesystem",
     "crates/adapters/postgres",

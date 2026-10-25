@@ -360,6 +360,50 @@ fn the_sbom_digest_matches_the_file() {
 }
 
 #[test]
+fn a_present_sbom_signature_must_match_the_current_sbom() {
+    // Signing is a release step with a key held outside the repository, so the
+    // file is optional. When it exists it may not be stale: a signature that
+    // names an older SBOM would look like provenance while proving nothing.
+    let path = root().join("contracts/testing/sbom.signature.json");
+    if !path.is_file() {
+        return;
+    }
+    let signature: Value = serde_json::from_str(
+        &std::fs::read_to_string(&path).expect("the signature file is readable"),
+    )
+    .expect("the signature file is JSON");
+    assert_eq!(signature["algorithm"], "ed25519");
+    let payload = read("contracts/testing/sbom.cyclonedx.json");
+    let actual = {
+        use sha2::{Digest, Sha256};
+        let digest = Sha256::digest(payload.as_bytes());
+        digest
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>()
+    };
+    assert_eq!(
+        signature["sha256"].as_str(),
+        Some(actual.as_str()),
+        "the committed signature covers an older SBOM"
+    );
+    assert_eq!(
+        signature["signed_file"].as_str(),
+        Some("contracts/testing/sbom.cyclonedx.json")
+    );
+    assert_eq!(
+        signature["public_key"].as_str().map(str::len),
+        Some(64),
+        "an Ed25519 public key is 32 bytes of hex"
+    );
+    assert_eq!(
+        signature["signature"].as_str().map(str::len),
+        Some(128),
+        "an Ed25519 signature is 64 bytes of hex"
+    );
+}
+
+#[test]
 fn the_release_evidence_pack_is_complete() {
     // The R8 evidence pack: every gate has an artefact a reviewer can open.
     for artefact in [
@@ -377,9 +421,11 @@ fn the_release_evidence_pack_is_complete() {
         "docs/adr/ADR-056.md",
         "docs/adr/ADR-057.md",
         "docs/adr/ADR-058.md",
+        "docs/adr/ADR-059.md",
         "contracts/schema/v1/wire.schema.json",
         "contracts/testing/sbom.cyclonedx.json",
         "contracts/testing/sbom.digest.json",
+        "tools/release-evidence/src/main.rs",
     ] {
         let path = root().join(artefact);
         assert!(

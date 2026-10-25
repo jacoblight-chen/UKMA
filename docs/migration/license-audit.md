@@ -99,14 +99,14 @@ the elected option is recorded in the entry's `reason`.
 
 | Measurement | Value |
 |---|---|
-| External / transitive packages | **307** |
-| Workspace packages | **29** |
+| External / transitive packages | **321** |
+| Workspace packages | **30** |
 | Packages without a declared licence | **0** |
 | Blocked licences | **0** |
 | Backend SDK packages (rocksdb, sqlx, qdrant-client, neo4j, …) | **0** |
-| CycloneDX components | **336** |
+| CycloneDX components | **351** |
 
-The counts were refreshed with the schema-closure work (ADR-058): `schemars`,
+The counts were refreshed by `cargo run -p ukma-release-evidence` after ADR-058 and ADR-059: `schemars`,
 `schemars_derive`, `serde_derive_internals` and `dyn-clone` are MIT-licensed build
 dependencies used only behind the opt-in `schema` feature that generates the wire
 payload schemas.
@@ -123,6 +123,30 @@ is elected, so the LGPL option is never taken. No package is copyleft-only.
   and `no_copyleft_or_backend_sdk_reaches_the_build` permanently.
 - `NOTICE` is checked against `docs/migration/upstream-lock.yaml`, so the upstream
   attribution cannot drift from the pinned commit.
+
+
+### 4.6 Signing the SBOM
+
+The digest manifest records `signature: null` because no release key is held by the build.
+The mechanism is implemented and gated (`tools/release-evidence`, ADR-059):
+
+```powershell
+# once per release key, outside the repository
+cargo run -p ukma-release-evidence -- generate-key --out $HOME\ukma-release.key
+
+# regenerate the derived evidence, then sign the SBOM digest
+cargo run -p ukma-release-evidence
+cargo run -p ukma-release-evidence -- sign --key $HOME\ukma-release.key
+
+# anyone can verify without the private key
+cargo run -p ukma-release-evidence -- verify
+```
+
+`contracts/testing/sbom.signature.json` records the algorithm, the signed file, the SHA-256 it
+covers, the Ed25519 public key and the signature. The gate
+`a_present_sbom_signature_must_match_the_current_sbom` refuses a signature that covers an older
+SBOM, so a stale signature cannot pass as provenance. **A digest is integrity; a signature with
+a key is provenance — do not claim the latter before a release key exists.**
 
 ### 4.5 Remaining limitation
 

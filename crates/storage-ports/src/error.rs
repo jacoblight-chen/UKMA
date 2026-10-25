@@ -46,6 +46,22 @@ pub enum StorageError {
         /// Human-readable mismatch detail.
         detail: String,
     },
+    /// The store's canonical schema version is newer than this build supports
+    /// (FM-006). Downgrading would corrupt data, so the run is refused.
+    SchemaVersionUnsupported {
+        /// Version found in the store.
+        found: u32,
+        /// Highest version this build can migrate to.
+        supported: u32,
+    },
+    /// A migration step is missing from the chain, so applying the rest would
+    /// skip data (FM-006).
+    MigrationChainBroken {
+        /// Version the store is at.
+        from: u32,
+        /// Version the chain expected next.
+        next: u32,
+    },
     /// Underlying I/O or serialization failure.
     Internal(String),
 }
@@ -60,6 +76,8 @@ impl StorageError {
             StorageError::InvalidArgument { .. } => "INVALID_ARGUMENT",
             StorageError::ResourceLimit { .. } => "RESOURCE_LIMIT",
             StorageError::ModelProfileMismatch { .. } => "MODEL_PROFILE_MISMATCH",
+            StorageError::SchemaVersionUnsupported { .. }
+            | StorageError::MigrationChainBroken { .. } => "INVALID_SCHEMA",
             StorageError::Internal(_) => "INTERNAL",
         }
     }
@@ -89,6 +107,12 @@ impl StorageError {
             StorageError::InvalidArgument { field, reason } => format!("{field}: {reason}"),
             StorageError::ResourceLimit { limit } => format!("bound {limit} exceeded"),
             StorageError::ModelProfileMismatch { detail } => format!("model profile: {detail}"),
+            StorageError::SchemaVersionUnsupported { found, supported } => format!(
+                "canonical schema version {found} is newer than the supported version {supported}"
+            ),
+            StorageError::MigrationChainBroken { from, next } => {
+                format!("no migration step from version {from} to version {next}")
+            }
             StorageError::Internal(message) => message.clone(),
         }
     }

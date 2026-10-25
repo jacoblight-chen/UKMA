@@ -9,6 +9,8 @@
 //! grammar version as the locked upstream baseline. This is **not** a claim of
 //! cross-file name resolution — call edges are never `static_exact`.
 
+#![cfg(feature = "parser-rust")]
+
 use std::path::PathBuf;
 
 use code_intelligence::parsers::rust::RustParser;

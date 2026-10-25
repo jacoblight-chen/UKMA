@@ -5,6 +5,8 @@
 //! `idempotent_retry`, `capability_missing`, `generation_staleness`,
 //! `pagination` — each used where it applies to the operation.
 
+#![cfg(feature = "parser-rust")]
+
 use std::sync::Arc;
 
 use code_intelligence::domain::{
