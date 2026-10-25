@@ -1283,9 +1283,9 @@ operations:
   source_events: none (management API)
   events: []
   closure_status: provisional
-  blockers:
-  - system_api_shape_pending_adr_047_approval
+  blockers: []
   source_text_status: authored_for_system_api
+  system_api_decision: ADR-047 ACCEPTED (2026-10-25)
 - operation_id: system.get_operation
   api_major: 1
   test_id: SYS-02
@@ -1300,9 +1300,9 @@ operations:
   source_events: none (management API)
   events: []
   closure_status: provisional
-  blockers:
-  - system_api_shape_pending_adr_047_approval
+  blockers: []
   source_text_status: authored_for_system_api
+  system_api_decision: ADR-047 ACCEPTED (2026-10-25)
 - operation_id: system.get_job
   api_major: 1
   test_id: SYS-03
@@ -1317,9 +1317,9 @@ operations:
   source_events: none (management API)
   events: []
   closure_status: provisional
-  blockers:
-  - system_api_shape_pending_adr_047_approval
+  blockers: []
   source_text_status: authored_for_system_api
+  system_api_decision: ADR-047 ACCEPTED (2026-10-25)
 - operation_id: system.cancel_job
   api_major: 1
   test_id: SYS-04
@@ -1334,6 +1334,6 @@ operations:
   source_events: none (management API)
   events: []
   closure_status: provisional
-  blockers:
-  - system_api_shape_pending_adr_047_approval
+  blockers: []
   source_text_status: authored_for_system_api
+  system_api_decision: ADR-047 ACCEPTED (2026-10-25)

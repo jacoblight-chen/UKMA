@@ -1,5 +1,15 @@
 //! Phase 6 executable-target prototype. No assertion of full CAPI closure.
 //! Filesystem adapter is a working development backend, not production durability proof.
+//!
+//! **DEPRECATED (ADR-048, O-07, 2026-10-25).** This crate is superseded by
+//! `crates/code-intelligence` (parsing/indexing) and `crates/adapters/*`
+//! (persistence). It MUST NOT gain new functionality, and MUST be removed once
+//! phase P3 completes. Its tests are NOT evidence for any release gate.
+//!
+//! Note: a crate-level `#![deprecated]` is intentionally NOT used because it
+//! would also flag this crate's own internal use sites and break
+//! `clippy -D warnings`; deprecation is recorded in `Cargo.toml`,
+//! `docs/adr/ADR-048.md` and `docs/implementation-status.yaml` instead.
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,

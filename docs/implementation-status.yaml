@@ -1,31 +1,47 @@
-﻿# UKMA v1.2.3 實作進度追蹤（machine-readable）
-# 唯一進度來源。人類可讀鏡像：docs/UKMA_v1.2.3_IMPLEMENTATION_PLAN.md
-# 更新規則見計畫 §8.2。status ∈ {not_started, in_progress, blocked, done, deferred}
-
 meta:
   plan_version: plan-1.0
-  spec_version: "1.2.3"
+  spec_version: 1.2.3
   spec_file: docs/UKMA_v1.2.3_Full_Spec.md
   api_major: 1
-  last_updated: "2026-10-25"
-
-# 能力階級（§31.1 / ADR-040）。未達前一級不得宣稱下一級。
+  last_updated: '2026-10-25'
 claim_level:
-  catalog_defined: true          # 65 Domain + 4 System 已登記
-  schema_closed: false           # 69x2 JSON Schema 尚未依 §41.2 閉合
+  catalog_defined: true
+  schema_closed: false
   implementation_compliant: false
   production_ready: false
-
 baseline:
-  rust_workspace_gate: pass      # fmt/check/clippy(-D warnings)/test = 66/66
-  crates_present: [ukma-types, ukma-contracts, ukma-code-runtime, ukma-security, intelligence-core, graph-engine, retrieval-engine, indexing-engine, embedding-engine, context-engine, code-intelligence, document-intelligence, memory-domain, traceability-engine, storage-ports, storage-router, ukma-mcp, ukma-cli, ukma-adapter-filesystem, ukma-adapter-sqlite, ukma-adapter-postgres]
-  crates_skeleton_only: 19       # ADR-045 §3.1 骨架；僅 graph-engine / ukma-contracts / ukma-code-runtime 有實作
-  apps_present: [ukma-server]
+  rust_workspace_gate: pass
+  crates_present:
+  - ukma-types
+  - ukma-contracts
+  - ukma-code-runtime
+  - ukma-security
+  - intelligence-core
+  - graph-engine
+  - retrieval-engine
+  - indexing-engine
+  - embedding-engine
+  - context-engine
+  - code-intelligence
+  - document-intelligence
+  - memory-domain
+  - traceability-engine
+  - storage-ports
+  - storage-router
+  - ukma-mcp
+  - ukma-cli
+  - ukma-adapter-filesystem
+  - ukma-adapter-sqlite
+  - ukma-adapter-postgres
+  crates_skeleton_only: 19
+  apps_present:
+  - ukma-server
   s0_upstream_baseline: done
-  s1_graph_slice: done           # 53 contract tests
-  schemas_total: 139             # 65x2 + 4x2 system + shared
-  system_schemas: 8              # 4 ops x request/response (ADR-047 provisional)
-
+  s1_graph_slice: done
+  schemas_total: 139
+  system_schemas: 8
+  crates_deprecated:
+  - ukma-code-runtime
 gates:
   G0_specification: partial
   G1_upstream_baseline: passed
@@ -35,257 +51,970 @@ gates:
   G5_memory: not_started
   G6_integration: not_started
   G7_production: not_started
-  DOC-01: not_started    # 13+14+25+13=65 唯一
-  DOC-02: partial        # error-registry.yaml closed set (37 codes); CI cross-check pending (WP5)
-  DOC-03: not_started    # 無第二套 budget / memory API
-  DOC-04: not_started    # source authority / projection / commit 分離
-  SCHEMA-01: partial     # 138 op schemas exist; shared $defs added; per-op constraint closure pending
-  SCHEMA-02: not_started # event envelope + payload schemas
-  TEST-01: not_started   # CAPI/DAPI/MAPI/TAPI/SYS 實際通過
-  DB-01: not_started     # >=2 production-capable backend（禁 only in-memory）
-  MIG-01: partial        # S0/S1 有 ledger；S2..S7 缺
+  DOC-01: not_started
+  DOC-02: partial
+  DOC-03: not_started
+  DOC-04: not_started
+  SCHEMA-01: partial
+  SCHEMA-02: not_started
+  TEST-01: not_started
+  DB-01: not_started
+  MIG-01: partial
   SECURITY-01: not_started
-
 phases:
-  - id: P0
-    name: 契約閉環基礎與治理
+- id: P0
+  name: 契約閉環基礎與治理
+  status: not_started
+  work_packages:
+  - id: P0-WP1
     status: not_started
-    work_packages:
-      - {id: P0-WP1, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P0-WP2, status: in_progress, evidence: "contracts/api/error-registry.yaml (37 closed codes) + scope-registry.yaml (24 scopes) done; event-registry 11-field expansion pending", blocked_reason: null}
-      - {id: P0-WP3, status: in_progress, evidence: "shared.schema.json $defs 45 types added (was empty -> 21 dangling refs resolved, 138 schemas 0 dangling); 8 system schemas added; per-operation constraint closure pending", blocked_reason: null}
-      - {id: P0-WP4, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P0-WP5, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P0-WP6, status: done, evidence: "docs/adr/ADR-021..046 (27 files) + README index; ADR-031 renamed to ADR-031a; commit for WP6", blocked_reason: null}
-      - {id: P0-WP7, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P0-WP8, status: done, evidence: "22 workspace crates + apps/ukma-server skeleton; cargo check --workspace --all-targets exit 0", blocked_reason: null}
-      - {id: P0-WP9, status: done, evidence: "B-01 source_file+sha256 fixed (docs/UKMA_v1.2.3_Full_Spec.md, sha256 d556bf27...); B-02 mojibake replaced by auditable spec pointers; B-03 4 system ops + 8 schemas added (ADR-047 provisional); B-09 shared.schema.json had no $defs -> 45 defs added", blocked_reason: null}
-  - id: P1
-    name: Storage Ports + 雙 Adapter
+    evidence: null
+    blocked_reason: null
+  - id: P0-WP2
+    status: in_progress
+    evidence: contracts/api/error-registry.yaml (37 closed codes) + scope-registry.yaml (24 scopes) done; event-registry 11-field expansion pending
+    blocked_reason: null
+  - id: P0-WP3
+    status: in_progress
+    evidence: shared.schema.json $defs 45 types added (was empty -> 21 dangling refs resolved, 138 schemas 0 dangling); 8 system schemas added; per-operation constraint closure pending
+    blocked_reason: null
+  - id: P0-WP4
     status: not_started
-    work_packages:
-      - {id: P1-WP1, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P1-WP2, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P1-WP3, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P1-WP4, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P1-WP5, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P1-WP6, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P1-WP7, status: not_started, evidence: null, blocked_reason: null}
-  - id: P2
-    name: Shared Core 引擎
+    evidence: null
+    blocked_reason: null
+  - id: P0-WP5
     status: not_started
-    work_packages:
-      - {id: P2-WP1, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P2-WP2, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P2-WP3, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P2-WP4, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P2-WP5, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P2-WP6, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P2-WP7, status: not_started, evidence: null, blocked_reason: "演算法規格已明確；待 P1 完成"}
-  - id: P3
-    name: Code Intelligence 13 ops
+    evidence: null
+    blocked_reason: null
+  - id: P0-WP6
+    status: done
+    evidence: docs/adr/ADR-021..046 (27 files) + README index; ADR-031 renamed to ADR-031a; commit for WP6
+    blocked_reason: null
+  - id: P0-WP7
     status: not_started
-    work_packages:
-      - {id: P3-WP1, status: blocked, evidence: null, blocked_reason: "需決策 O-01 首發語言集"}
-      - {id: P3-WP2, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P3-WP3, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P3-WP4, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P3-WP5, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P3-WP6, status: not_started, evidence: null, blocked_reason: null}
-  - id: P4
-    name: Document Intelligence 14 ops
+    evidence: null
+    blocked_reason: null
+  - id: P0-WP8
+    status: done
+    evidence: 22 workspace crates + apps/ukma-server skeleton; cargo check --workspace --all-targets exit 0
+    blocked_reason: null
+  - id: P0-WP9
+    status: done
+    evidence: B-01 source_file+sha256 fixed (docs/UKMA_v1.2.3_Full_Spec.md, sha256 d556bf27...); B-02 mojibake replaced by auditable spec pointers; B-03 4 system ops + 8 schemas added (ADR-047 provisional); B-09 shared.schema.json had no $defs -> 45 defs added
+    blocked_reason: null
+- id: P1
+  name: Storage Ports + 雙 Adapter
+  status: not_started
+  work_packages:
+  - id: P1-WP1
     status: not_started
-    work_packages:
-      - {id: P4-WP1, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P4-WP2, status: blocked, evidence: null, blocked_reason: "需決策 O-02 PDF/OCR 覆蓋率"}
-      - {id: P4-WP3, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P4-WP4, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P4-WP5, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P4-WP6, status: not_started, evidence: null, blocked_reason: null}
-  - id: P5
-    name: Memory Domain Core
+    evidence: null
+    blocked_reason: null
+  - id: P1-WP2
     status: not_started
-    work_packages:
-      - {id: P5-WP1, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P5-WP2, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P5-WP3, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P5-WP4, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P5-WP5, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P5-WP6, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P5-WP7, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P5-WP8, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P5-WP9, status: not_started, evidence: null, blocked_reason: null}
-  - id: P6
-    name: Memory Advanced
+    evidence: null
+    blocked_reason: null
+  - id: P1-WP3
     status: not_started
-    work_packages:
-      - {id: P6-WP1, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P6-WP2, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P6-WP3, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P6-WP4, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P6-WP5, status: blocked, evidence: null, blocked_reason: "需決策 O-04 embedding profile / SLA"}
-      - {id: P6-WP6, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P6-WP7, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P6-WP8, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P6-WP9, status: not_started, evidence: null, blocked_reason: null}
-  - id: P7
-    name: Traceability 13 ops
+    evidence: null
+    blocked_reason: null
+  - id: P1-WP4
     status: not_started
-    work_packages:
-      - {id: P7-WP1, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P7-WP2, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P7-WP3, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P7-WP4, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P7-WP5, status: not_started, evidence: null, blocked_reason: null}
-  - id: P8
-    name: Gateway MCP/REST/SDK/CLI/Server
+    evidence: null
+    blocked_reason: null
+  - id: P1-WP5
     status: not_started
-    work_packages:
-      - {id: P8-WP1, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P8-WP2, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P8-WP3, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P8-WP4, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P8-WP5, status: not_started, evidence: null, blocked_reason: null}
-  - id: P9
-    name: 跨域 E2E + Security + Chaos
+    evidence: null
+    blocked_reason: null
+  - id: P1-WP6
     status: not_started
-    work_packages:
-      - {id: P9-WP1, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P9-WP2, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P9-WP3, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P9-WP4, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P9-WP5, status: not_started, evidence: null, blocked_reason: null}
-  - id: P10
-    name: Production Readiness
+    evidence: null
+    blocked_reason: null
+  - id: P1-WP7
     status: not_started
-    work_packages:
-      - {id: P10-WP1, status: blocked, evidence: null, blocked_reason: "需決策 O-03 首組 DB Adapter"}
-      - {id: P10-WP2, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P10-WP3, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P10-WP4, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P10-WP5, status: not_started, evidence: null, blocked_reason: null}
-
-# 每個 operation 四維獨立記錄：schema / rust_types / impl / tests
-# 值域：schema ∈ {provisional, closed, validated}; rust_types ∈ {absent, generated, drift_tested};
-#       impl ∈ {absent, partial, e2e}; tests ∈ {absent, partial, passing}
+    evidence: null
+    blocked_reason: null
+- id: P2
+  name: Shared Core 引擎
+  status: not_started
+  work_packages:
+  - id: P2-WP1
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P2-WP2
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P2-WP3
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P2-WP4
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P2-WP5
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P2-WP6
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P2-WP7
+    status: not_started
+    evidence: null
+    blocked_reason: 演算法規格已明確；待 P1 完成
+- id: P3
+  name: Code Intelligence 13 ops
+  status: not_started
+  work_packages:
+  - id: P3-WP1
+    status: not_started
+    evidence: ADR-048 O-01：38 語言範圍已定；可開工
+    blocked_reason: null
+  - id: P3-WP2
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P3-WP3
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P3-WP4
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P3-WP5
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P3-WP6
+    status: not_started
+    evidence: null
+    blocked_reason: null
+- id: P4
+  name: Document Intelligence 14 ops
+  status: not_started
+  work_packages:
+  - id: P4-WP1
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P4-WP2
+    status: not_started
+    evidence: ADR-048 O-02：PDF 文字層 + DOCX、OCR 排除；可開工
+    blocked_reason: null
+  - id: P4-WP3
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P4-WP4
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P4-WP5
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P4-WP6
+    status: not_started
+    evidence: null
+    blocked_reason: null
+- id: P5
+  name: Memory Domain Core
+  status: not_started
+  work_packages:
+  - id: P5-WP1
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P5-WP2
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P5-WP3
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P5-WP4
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P5-WP5
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P5-WP6
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P5-WP7
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P5-WP8
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P5-WP9
+    status: not_started
+    evidence: null
+    blocked_reason: null
+- id: P6
+  name: Memory Advanced
+  status: not_started
+  work_packages:
+  - id: P6-WP1
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P6-WP2
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P6-WP3
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P6-WP4
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P6-WP5
+    status: not_started
+    evidence: ADR-048 O-04：BGE-M3 1024d；截斷須品質測試核准；可開工
+    blocked_reason: null
+  - id: P6-WP6
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P6-WP7
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P6-WP8
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P6-WP9
+    status: not_started
+    evidence: null
+    blocked_reason: null
+- id: P7
+  name: Traceability 13 ops
+  status: not_started
+  work_packages:
+  - id: P7-WP1
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P7-WP2
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P7-WP3
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P7-WP4
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P7-WP5
+    status: not_started
+    evidence: null
+    blocked_reason: null
+- id: P8
+  name: Gateway MCP/REST/SDK/CLI/Server
+  status: not_started
+  work_packages:
+  - id: P8-WP1
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P8-WP2
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P8-WP3
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P8-WP4
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P8-WP5
+    status: not_started
+    evidence: null
+    blocked_reason: null
+- id: P9
+  name: 跨域 E2E + Security + Chaos
+  status: not_started
+  work_packages:
+  - id: P9-WP1
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P9-WP2
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P9-WP3
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P9-WP4
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P9-WP5
+    status: not_started
+    evidence: null
+    blocked_reason: null
+- id: P10
+  name: Production Readiness
+  status: not_started
+  work_packages:
+  - id: P10-WP1
+    status: not_started
+    evidence: ADR-048 O-03：hybrid 三 adapter；可開工
+    blocked_reason: null
+  - id: P10-WP2
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P10-WP3
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P10-WP4
+    status: not_started
+    evidence: null
+    blocked_reason: null
+  - id: P10-WP5
+    status: not_started
+    evidence: null
+    blocked_reason: null
 operations:
-  - {id: code.analyze_repository, test_id: CAPI-01, domain: code, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: code.get_analysis_job, test_id: CAPI-02, domain: code, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: code.cancel_analysis_job, test_id: CAPI-03, domain: code, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: code.get_symbol, test_id: CAPI-04, domain: code, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: code.find_symbols, test_id: CAPI-05, domain: code, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: code.find_references, test_id: CAPI-06, domain: code, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: code.query_callers, test_id: CAPI-07, domain: code, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: code.query_callees, test_id: CAPI-08, domain: code, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: code.query_dependencies, test_id: CAPI-09, domain: code, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: code.analyze_impact, test_id: CAPI-10, domain: code, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: code.get_edit_context, test_id: CAPI-11, domain: code, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: code.compare_revisions, test_id: CAPI-12, domain: code, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: code.invalidate_revision, test_id: CAPI-13, domain: code, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: document.ingest, test_id: DAPI-01, domain: document, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: document.get_ingest_job, test_id: DAPI-02, domain: document, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: document.cancel_ingest_job, test_id: DAPI-03, domain: document, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: document.get_document, test_id: DAPI-04, domain: document, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: document.parse_preview, test_id: DAPI-05, domain: document, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: document.search, test_id: DAPI-06, domain: document, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: document.extract_requirements, test_id: DAPI-07, domain: document, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: document.extract_relations, test_id: DAPI-08, domain: document, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: document.review_requirement, test_id: DAPI-09, domain: document, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: document.list_requirements, test_id: DAPI-10, domain: document, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: document.verify_consistency, test_id: DAPI-11, domain: document, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: document.compare_revisions, test_id: DAPI-12, domain: document, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: document.invalidate_revision, test_id: DAPI-13, domain: document, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: document.get_source_span, test_id: DAPI-14, domain: document, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.open_agent_scope, test_id: MAPI-01, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.close_agent_scope, test_id: MAPI-02, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.put_working_block, test_id: MAPI-03, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.list_working_blocks, test_id: MAPI-04, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.remove_working_block, test_id: MAPI-05, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.store_episode, test_id: MAPI-06, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.search, test_id: MAPI-07, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.retrieve, test_id: MAPI-08, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.update_revision, test_id: MAPI-09, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.propose_fact, test_id: MAPI-10, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.verify_fact, test_id: MAPI-11, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.find_conflicts, test_id: MAPI-12, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.fold, test_id: MAPI-13, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.page_out, test_id: MAPI-14, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.page_in, test_id: MAPI-15, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.begin_reconsolidation, test_id: MAPI-16, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.commit_reconsolidation, test_id: MAPI-17, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.consolidate, test_id: MAPI-18, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.get_consolidation_job, test_id: MAPI-19, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.register_procedure_candidate, test_id: MAPI-20, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.review_procedure, test_id: MAPI-21, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.record_procedure_outcome, test_id: MAPI-22, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.forget, test_id: MAPI-23, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.evaluate_eviction, test_id: MAPI-24, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: memory.get_budget, test_id: MAPI-25, domain: memory, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: traceability.propose_link, test_id: TAPI-01, domain: traceability, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: traceability.validate_link, test_id: TAPI-02, domain: traceability, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: traceability.accept_link, test_id: TAPI-03, domain: traceability, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: traceability.revoke_link, test_id: TAPI-04, domain: traceability, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: traceability.get_link, test_id: TAPI-05, domain: traceability, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: traceability.list_links, test_id: TAPI-06, domain: traceability, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: traceability.query_coverage, test_id: TAPI-07, domain: traceability, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: traceability.analyze_change_impact, test_id: TAPI-08, domain: traceability, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: traceability.find_design_gaps, test_id: TAPI-09, domain: traceability, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: traceability.compare_revisions, test_id: TAPI-10, domain: traceability, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: traceability.explain_with_evidence, test_id: TAPI-11, domain: traceability, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: traceability.revalidate_stale, test_id: TAPI-12, domain: traceability, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: traceability.get_revalidation_job, test_id: TAPI-13, domain: traceability, schema: provisional, rust_types: absent, impl: absent, tests: absent}
-  - {id: system.capabilities, test_id: SYS-01, domain: system, schema: absent, rust_types: absent, impl: absent, tests: absent}
-  - {id: system.get_operation, test_id: SYS-02, domain: system, schema: absent, rust_types: absent, impl: absent, tests: absent}
-  - {id: system.get_job, test_id: SYS-03, domain: system, schema: absent, rust_types: absent, impl: absent, tests: absent}
-  - {id: system.cancel_job, test_id: SYS-04, domain: system, schema: absent, rust_types: absent, impl: absent, tests: absent}
-
+- id: code.analyze_repository
+  test_id: CAPI-01
+  domain: code
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: code.get_analysis_job
+  test_id: CAPI-02
+  domain: code
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: code.cancel_analysis_job
+  test_id: CAPI-03
+  domain: code
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: code.get_symbol
+  test_id: CAPI-04
+  domain: code
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: code.find_symbols
+  test_id: CAPI-05
+  domain: code
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: code.find_references
+  test_id: CAPI-06
+  domain: code
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: code.query_callers
+  test_id: CAPI-07
+  domain: code
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: code.query_callees
+  test_id: CAPI-08
+  domain: code
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: code.query_dependencies
+  test_id: CAPI-09
+  domain: code
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: code.analyze_impact
+  test_id: CAPI-10
+  domain: code
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: code.get_edit_context
+  test_id: CAPI-11
+  domain: code
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: code.compare_revisions
+  test_id: CAPI-12
+  domain: code
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: code.invalidate_revision
+  test_id: CAPI-13
+  domain: code
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: document.ingest
+  test_id: DAPI-01
+  domain: document
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: document.get_ingest_job
+  test_id: DAPI-02
+  domain: document
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: document.cancel_ingest_job
+  test_id: DAPI-03
+  domain: document
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: document.get_document
+  test_id: DAPI-04
+  domain: document
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: document.parse_preview
+  test_id: DAPI-05
+  domain: document
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: document.search
+  test_id: DAPI-06
+  domain: document
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: document.extract_requirements
+  test_id: DAPI-07
+  domain: document
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: document.extract_relations
+  test_id: DAPI-08
+  domain: document
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: document.review_requirement
+  test_id: DAPI-09
+  domain: document
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: document.list_requirements
+  test_id: DAPI-10
+  domain: document
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: document.verify_consistency
+  test_id: DAPI-11
+  domain: document
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: document.compare_revisions
+  test_id: DAPI-12
+  domain: document
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: document.invalidate_revision
+  test_id: DAPI-13
+  domain: document
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: document.get_source_span
+  test_id: DAPI-14
+  domain: document
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.open_agent_scope
+  test_id: MAPI-01
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.close_agent_scope
+  test_id: MAPI-02
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.put_working_block
+  test_id: MAPI-03
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.list_working_blocks
+  test_id: MAPI-04
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.remove_working_block
+  test_id: MAPI-05
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.store_episode
+  test_id: MAPI-06
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.search
+  test_id: MAPI-07
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.retrieve
+  test_id: MAPI-08
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.update_revision
+  test_id: MAPI-09
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.propose_fact
+  test_id: MAPI-10
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.verify_fact
+  test_id: MAPI-11
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.find_conflicts
+  test_id: MAPI-12
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.fold
+  test_id: MAPI-13
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.page_out
+  test_id: MAPI-14
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.page_in
+  test_id: MAPI-15
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.begin_reconsolidation
+  test_id: MAPI-16
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.commit_reconsolidation
+  test_id: MAPI-17
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.consolidate
+  test_id: MAPI-18
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.get_consolidation_job
+  test_id: MAPI-19
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.register_procedure_candidate
+  test_id: MAPI-20
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.review_procedure
+  test_id: MAPI-21
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.record_procedure_outcome
+  test_id: MAPI-22
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.forget
+  test_id: MAPI-23
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.evaluate_eviction
+  test_id: MAPI-24
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: memory.get_budget
+  test_id: MAPI-25
+  domain: memory
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: traceability.propose_link
+  test_id: TAPI-01
+  domain: traceability
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: traceability.validate_link
+  test_id: TAPI-02
+  domain: traceability
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: traceability.accept_link
+  test_id: TAPI-03
+  domain: traceability
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: traceability.revoke_link
+  test_id: TAPI-04
+  domain: traceability
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: traceability.get_link
+  test_id: TAPI-05
+  domain: traceability
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: traceability.list_links
+  test_id: TAPI-06
+  domain: traceability
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: traceability.query_coverage
+  test_id: TAPI-07
+  domain: traceability
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: traceability.analyze_change_impact
+  test_id: TAPI-08
+  domain: traceability
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: traceability.find_design_gaps
+  test_id: TAPI-09
+  domain: traceability
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: traceability.compare_revisions
+  test_id: TAPI-10
+  domain: traceability
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: traceability.explain_with_evidence
+  test_id: TAPI-11
+  domain: traceability
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: traceability.revalidate_stale
+  test_id: TAPI-12
+  domain: traceability
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: traceability.get_revalidation_job
+  test_id: TAPI-13
+  domain: traceability
+  schema: provisional
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: system.capabilities
+  test_id: SYS-01
+  domain: system
+  schema: absent
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: system.get_operation
+  test_id: SYS-02
+  domain: system
+  schema: absent
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: system.get_job
+  test_id: SYS-03
+  domain: system
+  schema: absent
+  rust_types: absent
+  impl: absent
+  tests: absent
+- id: system.cancel_job
+  test_id: SYS-04
+  domain: system
+  schema: absent
+  rust_types: absent
+  impl: absent
+  tests: absent
 tests:
   properties:
-    {PROP-01: not_started, PROP-02: not_started, PROP-03: not_started, PROP-04: not_started,
-     PROP-05: not_started, PROP-06: not_started, PROP-07: not_started, PROP-08: not_started,
-     PROP-09: not_started, PROP-10: not_started}
+    PROP-01: not_started
+    PROP-02: not_started
+    PROP-03: not_started
+    PROP-04: not_started
+    PROP-05: not_started
+    PROP-06: not_started
+    PROP-07: not_started
+    PROP-08: not_started
+    PROP-09: not_started
+    PROP-10: not_started
   e2e:
-    {E2E-API-01: not_started, E2E-API-02: not_started, E2E-API-03: not_started,
-     E2E-API-04: not_started, E2E-API-05: not_started, E2E-API-06: not_started,
-     E2E-API-07: not_started, E2E-API-08: not_started, E2E-API-09: not_started,
-     E2E-API-10: not_started, E2E-API-11: not_started, E2E-API-12: not_started}
+    E2E-API-01: not_started
+    E2E-API-02: not_started
+    E2E-API-03: not_started
+    E2E-API-04: not_started
+    E2E-API-05: not_started
+    E2E-API-06: not_started
+    E2E-API-07: not_started
+    E2E-API-08: not_started
+    E2E-API-09: not_started
+    E2E-API-10: not_started
+    E2E-API-11: not_started
+    E2E-API-12: not_started
   spec_17_1:
-    {REP-001: not_started, REP-002: partial, REP-003: partial,
-     ARC-001: not_started, ARC-002: not_started,
-     DB-001: partial, DB-002: partial, DB-003: partial, DB-004: not_started, DB-005: not_started,
-     DB-006: not_started, DB-007: partial, DB-008: partial, DB-009: not_started, DB-010: not_started,
-     CODE-001: not_started, CODE-002: not_started,
-     DOC-001: not_started, DOC-002: not_started,
-     TRACE-001: not_started,
-     MEM-001: not_started, MEM-002: not_started, MEM-003: not_started,
-     MEM-004: not_started, MEM-005: not_started, MEM-006: not_started,
-     MCP-001: not_started, SEC-001: not_started, OPS-001: not_started}
+    REP-001: not_started
+    REP-002: partial
+    REP-003: partial
+    ARC-001: not_started
+    ARC-002: not_started
+    DB-001: partial
+    DB-002: partial
+    DB-003: partial
+    DB-004: not_started
+    DB-005: not_started
+    DB-006: not_started
+    DB-007: partial
+    DB-008: partial
+    DB-009: not_started
+    DB-010: not_started
+    CODE-001: not_started
+    CODE-002: not_started
+    DOC-001: not_started
+    DOC-002: not_started
+    TRACE-001: not_started
+    MEM-001: not_started
+    MEM-002: not_started
+    MEM-003: not_started
+    MEM-004: not_started
+    MEM-005: not_started
+    MEM-006: not_started
+    MCP-001: not_started
+    SEC-001: not_started
+    OPS-001: not_started
   fma_29_4:
-    {FM-001: not_started, FM-002: not_started, FM-003: not_started, FM-004: not_started,
-     FM-005: not_started, FM-006: not_started, FM-007: not_started, FM-008: not_started,
-     FM-009: not_started, FM-010: not_started,
-     FO-001: not_started, FO-002: not_started, FO-003: not_started, FO-004: not_started, FO-005: not_started,
-     RE-001: not_started, RE-002: not_started, RE-003: not_started,
-     CT-001: not_started, CT-002: not_started, CT-003: not_started, CT-004: not_started,
-     AG-001: not_started, AG-002: not_started, AG-003: not_started,
-     TR-001: not_started, TR-002: not_started,
-     CO-001: not_started,
-     LC-001: not_started, LC-002: not_started, LC-003: not_started,
-     PM-001: not_started,
-     ML-001: not_started, ML-002: not_started, ML-003: not_started, ML-004: not_started,
-     SR-001: not_started, SR-002: not_started, SR-003: partial, SR-004: not_started}
-
-# 開放決策（未定案前對應 WP 標 blocked）
+    FM-001: not_started
+    FM-002: not_started
+    FM-003: not_started
+    FM-004: not_started
+    FM-005: not_started
+    FM-006: not_started
+    FM-007: not_started
+    FM-008: not_started
+    FM-009: not_started
+    FM-010: not_started
+    FO-001: not_started
+    FO-002: not_started
+    FO-003: not_started
+    FO-004: not_started
+    FO-005: not_started
+    RE-001: not_started
+    RE-002: not_started
+    RE-003: not_started
+    CT-001: not_started
+    CT-002: not_started
+    CT-003: not_started
+    CT-004: not_started
+    AG-001: not_started
+    AG-002: not_started
+    AG-003: not_started
+    TR-001: not_started
+    TR-002: not_started
+    CO-001: not_started
+    LC-001: not_started
+    LC-002: not_started
+    LC-003: not_started
+    PM-001: not_started
+    ML-001: not_started
+    ML-002: not_started
+    ML-003: not_started
+    ML-004: not_started
+    SR-001: not_started
+    SR-002: not_started
+    SR-003: partial
+    SR-004: not_started
 open_decisions:
-  - {id: O-01, title: 首發語言集（Code Parser）, blocks: [P3-WP1]}
-  - {id: O-02, title: 首發 PDF/OCR 覆蓋率, blocks: [P4-WP2]}
-  - {id: O-03, title: 第一組 DB Adapter, blocks: [P10-WP1]}
-  - {id: O-04, title: Embedding profile 與 SLA, blocks: [P6-WP5]}
-  - {id: O-05, title: "Crate 命名與規格 §3.1 對照", status: resolved, resolution: "ADR-045：採 §3.1 命名；ukma-graph-engine → graph-engine", blocks: []}
-  - {id: O-06, title: "repo ADR-031 與規格 ADR-031 衝突重編號", status: resolved, resolution: "ADR-046：repo 版重編為 ADR-031a", blocks: []}
-  - {id: O-07, title: legacy ukma-code-runtime 去留, blocks: []}
-
+- id: O-01
+  title: 首發語言集（Code Parser）
+  status: resolved
+  resolution: ADR-048：全 38 個上游 parser（bash,c,clojure,cobol,cpp,csharp,css,dart,dockerfile,elixir,elm,erlang,fortran,go,groovy,haskell,hcl,java,julia,kotlin,lua,objc,ocaml,perl,php,python,r,ruby,rust,scala,solidity,swift,tcl,toml,typescript,verilog,yaml,zig）
+  blocks: []
+- id: O-02
+  title: 首發 PDF/OCR 覆蓋率
+  status: resolved
+  resolution: ADR-048：Markdown 完整 + PDF 文字層 + DOCX；OCR 標 NOT_IMPLEMENTED（partial + diagnostics）
+  blocks: []
+- id: O-03
+  title: 第一組 DB Adapter
+  status: resolved
+  resolution: ADR-048：hybrid —— A=filesystem+SQLite(embedded)、B=PostgreSQL(sql)、C=Qdrant+Neo4j(hybrid)
+  blocks: []
+- id: O-04
+  title: Embedding profile 與 SLA
+  status: resolved
+  resolution: ADR-048：BGE-M3 1024d 多語；SM=1024/EM=512/WM=256 截斷須經 ML-003 + 品質測試核准
+  blocks: []
+- id: O-05
+  title: Crate 命名與規格 §3.1 對照
+  status: resolved
+  resolution: ADR-045：採 §3.1 命名；ukma-graph-engine → graph-engine
+  blocks: []
+- id: O-06
+  title: repo ADR-031 與規格 ADR-031 衝突重編號
+  status: resolved
+  resolution: ADR-046：repo 版重編為 ADR-031a
+  blocks: []
+- id: O-07
+  title: legacy ukma-code-runtime 去留
+  status: resolved
+  resolution: ADR-048：標 deprecated，P3 完成後移除；其 9 測試不得作為任何 gate 證據
+  blocks: []
 notes:
-  - "SR-003/MIG-01 為 partial：S0/S1 有 ledger，S2..S7 尚無。"
-  - "DB-001/002/003/007/008 為 partial：僅 S1 graph in-memory 與 JSON file 兩 adapter，尚非 production-capable。"
-  - "system.* 4 ops 的 schema 已建立（ADR-047 暫行形狀），但 closure_status 仍為 provisional，待形狀核准。"
+- SR-003/MIG-01 為 partial：S0/S1 有 ledger，S2..S7 尚無。
+- DB-001/002/003/007/008 為 partial：僅 S1 graph in-memory 與 JSON file 兩 adapter，尚非 production-capable。
+- system.* 4 ops 的 schema 已建立（ADR-047 暫行形狀），但 closure_status 仍為 provisional，待形狀核准。

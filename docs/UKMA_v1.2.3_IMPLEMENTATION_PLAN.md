@@ -134,7 +134,7 @@ flowchart LR
 | P9 | 跨域 E2E + Security + Chaos | G6 + R3 + SEC-001 + OPS-001 | L3（整合） | P8 | L |
 | P10 | Production Readiness | G7 + R1..R8 | L4 | P9 | L |
 
-規模說明：S≈1–3 人日、M≈4–10、L≈11–30、XL≈31+（**估算，非承諾**；須以實測修正）。
+規模說明：S≈1–3 人日、M≈4–10、L≈11–30、XL≈31–60、XXL≈61+（**估算，非承諾**；須以實測修正）。ADR-048 決策後，P1（三 adapter）、P3（38 語言）、P10（三 profile）規模已上調。
 
 ---
 
@@ -167,8 +167,8 @@ flowchart LR
 |---|---|---|---|---|
 | **P1-WP1** | 六個 Port 契約（§6.2） | `crates/ukma-storage-ports/src/{graph,vector,fulltext,metadata,artifact,outbox}.rs`：`upsert/get/delete/bounded traverse`、`search/filter`、`index/fielded search`、`CAS/list/manifest`、`put immutable/hash/retention`、`enqueue/ack/replay/dead-letter` | 每 port 之 trait object 可被至少一個 in-memory 實作滿足；無 DB SDK import（ARC-001） | L |
 | **P1-WP2** | Capability set（§6.3 17 欄位） | `capabilities.rs`：`adapter_id, adapter_version, backend_kind, logical_contract_version, adapter_schema_version, supported_ports, transaction_scope, atomic_batch, compare_and_swap, snapshot_reads, acl_filtering, stable_cursor, native_graph_traversal, vector_filters, fulltext_analyzers, durable_outbox, backup_restore, max_batch_size` + `fail_on_missing_required` 啟動檢查 | DB-007：缺必要能力 → 啟動失敗 `CAPABILITY_UNAVAILABLE`（負向測試） | M |
-| **P1-WP3** | Adapter A：embedded/FS | `ukma-storage-adapters/filesystem`（Artifact/Metadata）+ SQLite 或等效（Graph/FTS/Outbox）；沿用 S1 `FileGraphStore` 經驗 | 通過 P1-WP5 全套 Port Tests | L |
-| **P1-WP4** | Adapter B：SQL（production 候選） | `ukma-storage-adapters/postgres`（Metadata/Graph/FTS/Vector-via-extension 或獨立 vector port） | DB-002：兩 Adapter 跑同一組 Port Tests；DB-008：B 不含 RocksDB | L |
+| **P1-WP3** | Adapter A：embedded（**ADR-048 O-03**） | `crates/adapters/filesystem`（Artifact/Metadata）+ `crates/adapters/sqlite`（Graph/FTS/Outbox）；沿用 S1 `FileGraphStore` 經驗 | 通過 P1-WP5 全套 Port Tests；單獨可滿足 DB-008（無 RocksDB E2E） | L |
+| **P1-WP4** | Adapter B/C：sql + hybrid（**ADR-048 O-03**） | `crates/adapters/postgres`（Metadata/Graph/FTS/Outbox）+ hybrid profile 的 Qdrant（vector）與 Neo4j（graph）adapter | DB-002 三方等價（A↔B↔C）；兩 profile 皆不得載入 RocksDB | XL |
 | **P1-WP5** | Port Contract Tests | `tests/contract/storage/*.rs`：CRUD、bounded traversal、ACL 過濾、CAS、cursor、outbox 重播（at-least-once + 去重） | DB-001、DB-002、DB-003（切換後 IDs/ACL/provenance/revision 不變）、DB-006 | L |
 | **P1-WP6** | Outbox + generation publish | `ukma-storage-ports/outbox` 實作 + `index_generation` 原子指標（§36.3 `atomic_manifest_pointer`） | DB-006；`strict_generation` 超時回 `INDEX_NOT_READY` | M |
 | **P1-WP7** | Router + 降級政策 | `ukma-storage-router`：依 workload 選 port；不支援能力不得宣稱成功 | 啟動 fail-fast + `partial` 標示 | M |
@@ -197,7 +197,7 @@ flowchart LR
 
 | WP | 目標 | 交付物 | 驗收 | 規模 |
 |---|---|---|---|---|
-| **P3-WP1** | ParserPort + 語言集 | `ukma-domain-code/parser`；由 CodeGraph S2 移植（依 §4.2 slice 流程、ledger `S2`）；首發語言集為 §18 OPEN 項，需決策 | `ParsedContent{blocks, symbols, source_spans, diagnostics, parser_version, content_hash}`；解析失敗不得吞成空文件 | XL |
+| **P3-WP1** | ParserPort + 語言集（**ADR-048 O-01：38 語言**） | `crates/code-intelligence/parser`；由 CodeGraph S2 逐語言移植（依 §4.2 slice 流程、ledger `S2-<lang>`）；清單：bash, c, clojure, cobol, cpp, csharp, css, dart, dockerfile, elixir, elm, erlang, fortran, go, groovy, haskell, hcl, java, julia, kotlin, lua, objc, ocaml, perl, php, python, r, ruby, rust, scala, solidity, swift, tcl, toml, typescript, verilog, yaml, zig | `ParsedContent{blocks, symbols, source_spans, diagnostics, parser_version, content_hash}`；解析失敗不得吞成空文件；38 語言各需 golden parity 報告 | XXL |
 | **P3-WP2** | Symbol/Edge 模型 | `Symbol`、`CodeEdge`（`resolution: static_exact \| static_possible \| unresolved`）、`CodeAnalysisManifest` | 動態呼叫不得偽稱 complete；`completeness: partial` 正確 | L |
 | **P3-WP3** | Ingestion 管線 | `Git Rev → File Discovery → Parse → Resolve → Graph Commit → Index Publish` + job FSM | `code.analyze_repository`（CAPI-01）等 job 三段狀態正交（§40.4） | L |
 | **P3-WP4** | 13 ops 實作 | `CodeIntelligencePort`（§37 簽名） | CAPI-01..13 各 8 子案例：`valid / invalid_schema / cross_scope / revision_conflict / idempotent_retry / capability_missing / generation_staleness / pagination` | XL |
@@ -211,7 +211,7 @@ flowchart LR
 | WP | 目標 | 交付物 | 驗收 | 規模 |
 |---|---|---|---|---|
 | **P4-WP1** | Markdown Parser | `ukma-domain-document/parsers/markdown`：heading tree、fenced code、table、link、anchor、source span | DOC-001、DAPI-05；`interpretation` 不得失去位置 | L |
-| **P4-WP2** | PDF / DOCX | page/paragraph/table/heading/list + layout offsets；OCR 為 optional 且必須標 `partial` + diagnostics | DAPI-01/02；未解析區塊比例必列 | XL |
+| **P4-WP2** | PDF / DOCX（**ADR-048 O-02：無 OCR**） | page/paragraph/table/heading/list + layout offsets；**OCR 標 NOT_IMPLEMENTED**，影像區塊 MUST 記 `parse_status=unparsed` + diagnostics 並使 `completeness=partial` | DAPI-01/02；「OCR 未啟用」須有負向案例；`DOC-001` 不以 OCR 結果為通過條件 | XL |
 | **P4-WP3** | Requirement / Relation 抽取 | `RequirementCandidate`（`normative_strength: must \| should \| may \| unknown`、`verification`、`status: candidate`）、`ExtractedRelation` | DAPI-07/08；LLM 抽取預設 `candidate/unverified`，不得自動 approved | L |
 | **P4-WP4** | Review 流程 | `review_requirement`：僅 `candidate` → approved/rejected；approved 變更需新 revision | DAPI-09；`EVIDENCE_REQUIRED`/`ETAG_MISMATCH` 負向 | M |
 | **P4-WP5** | Consistency / Compare / Span | `verify_consistency`（`ConsistencyReport.completeness`）、`compare_revisions`、`get_source_span`（redaction 標記） | DAPI-11/12/14；DOC-002（可回溯 location + hash） | L |
@@ -243,7 +243,7 @@ flowchart LR
 | **P6-WP2** | Fact 提案與驗證 | `propose_fact`（evidence required）→ `verify_fact`（獨立證據）；`CONFLICTING_EVIDENCE` 保留雙方 | MAPI-10/11/12、TR-001 | L |
 | **P6-WP3** | Trust 數學 | `Beta(2,2)`、`E[T]=α/(α+β)`；Kalman `Q=0.05, R=0.1`、`T_rank=0.7*BetaMean+0.3*KalmanMean ∈[0,1]`；深度折扣 `e^{-0.2d}`、折疊折扣 `e^{-0.15*fold}`；四欄分離（source_reliability / claim_confidence / extractor_confidence / verification_state）+ `authz_decision` 非分數 | TR-001（cold-start、重複來源去重）、FO-004、AG-003、MAPI-11 | L |
 | **P6-WP4** | Poisoning / Injection 防護 | 來源突變、異常頻率、矛盾群暴增、`trust_delta_z<-2`、譯文夾帶指令 → `QUARANTINED` 並凍結 Promotion | TR-002、SEC-001 | M |
-| **P6-WP5** | 多語言 | 片段級語言辨識；ICU/jieba/Kuromoji/Snowball 可插；`theta_align=.85`、`theta_cross=.75`、`lang_match 1.0/0.85/0.425`、`omega_source=.95`、`omega_trans=.90`、`translation_cache_TTL=24h`、`language_prior=1.0`；`SM=1024/EM=512/WM=256` 需實測核准 | MEM-006、ML-001..004、E2E-API-05 | XL |
+| **P6-WP5** | 多語言（**ADR-048 O-04：BGE-M3 1024d**） | 片段級語言辨識；ICU/jieba/Kuromoji/Snowball 可插；`theta_align=.85`、`theta_cross=.75`、`lang_match 1.0/0.85/0.425`、`omega_source=.95`、`omega_trans=.90`、`translation_cache_TTL=24h`、`language_prior=1.0`；`SM=1024/EM=512/WM=256` 截斷**須經 ML-003 + 本地 recall/MRR 測試核准**，未通過即用 1024 維 | MEM-006、ML-001..004、E2E-API-05 | XL |
 | **P6-WP6** | Procedure 生命週期 | `LEARN→CONSOLIDATE→APPLY→REFINE` + `DISABLE/REVOKE`；`calls>=3 & success>=0.65` 才 consolidate；`calls>=5 or success<=0.50` 觸發 refine；Beta 有界信心 | PM-001、MAPI-20/21/22 | L |
 | **P6-WP7** | 背景維護 jobs | `ttl_sweep, fsrs_refresh, entropy_candidate_scan, consolidation, reconsolidation_close, translation_cache_warm, index_rebuild, stale_knowledge_ref_scan, procedure_review`；FSRS sweep 每 1h；lease/fencing/DLQ/checkpoint | PROP-09、OPS-001（重啟續跑） | L |
 | **P6-WP8** | 熵整理 | `gzip_ratio<0.4` 且 `0.3≤R<0.7` → 摘要候選；`raw_bytes_len=0 → SKIPPED_EMPTY`；壓縮後 token 增加或關鍵內容遺失須 rollback | LC-002 | M |
@@ -291,7 +291,7 @@ flowchart LR
 
 | WP | 目標 | 驗收 |
 |---|---|---|
-| **P10-WP1** | 兩 profile Port parity | 至少兩個 production-capable backend profile（如 SQL-only / hybrid）通過同一組 Port Tests；DB-008 一個完全不載入 RocksDB | R4、DB-002/008 |
+| **P10-WP1** | 三 profile Port parity（**ADR-048 O-03**） | embedded（FS+SQLite）、sql（PostgreSQL）、hybrid（PostgreSQL+Qdrant+Neo4j）皆通過同一組 Port Tests；DB-008 至少一 profile 完全不載入 RocksDB（三 profile 均不得載入） | R4、DB-002（三方等價）/DB-008 |
 | **P10-WP2** | Cutover 演練 | `PLANNED→SNAPSHOT→EXPORT→IMPORT→VERIFY→SHADOW_READ→CUTOVER→MONITOR→COMPLETE`；fencing token、rollback/replay（DB-010、E2E-API-11） |
 | **P10-WP3** | 效能基準 | 記錄 P50/P95/P99、RAM/VRAM、索引大小、吞吐、失敗率（指定資料規模/語言/backend/hardware/embedding version）；1M episode 基準（FM-010） |
 | **P10-WP4** | 災難復原 | OPS-001（backup/restore、re-index、rollback 演練） |
@@ -402,17 +402,20 @@ tests:
 
 ## 9. 風險與未決事項
 
-### 9.1 需使用者/架構決策（§18 OPEN + 本計畫新增）
+### 9.1 決策記錄（已全部定案，2026-10-25）
 
-| ID | 未決事項 | 影響 | 建議 |
+| 編號 | 決策 | 狀態 | 決議（ADR） |
 |---|---|---|---|
-| O-01 | 首發語言集（Code Parser） | P3 規模與 CODE-001 parity 範圍 | 以鎖定 SHA 實際測試通過的語言為準，先 3–5 種 |
-| O-02 | 首發 PDF/OCR 覆蓋率 | P4 規模、G4 判定 | MD 先完整；PDF 文字層優先，OCR 標 optional |
-| O-03 | 第一組 DB Adapter | P1/P10 選型、DB-01 | embedded（FS+SQLite）為 A、SQL（PostgreSQL）為 B |
-| O-04 | Embedding profile 與 SLA | P2-WP5、P6-WP5 | 先接一個多語 profile（BGE-M3 1024d）+ 實測截斷品質 |
-| O-05 | Crate 命名對照（§3.1 目標名 vs 現有 `ukma-*`） | P0-WP8 結構 | 需 ADR-041 核准；本計畫不自行變更 |
-| O-06 | repo ADR-031 與規格 ADR-031 衝突 | 治理 | 需 ADR-042 核准重編號 |
-| O-07 | 是否保留 legacy `ukma-code-runtime` | P2/P3 銜接 | 建議標 `deprecated`，P3 完成後移除 |
+| O-01 | 首發語言集（Code Parser） | ✅ **resolved** | ADR-048：**全 38 個上游 parser**（bash…zig）；`CODE-001` 判定集合為 38 語言 |
+| O-02 | 首發 PDF/OCR 覆蓋率 | ✅ **resolved** | ADR-048：Markdown 完整 + PDF 文字層 + DOCX；**OCR 標 NOT_IMPLEMENTED**並以 `partial`+`diagnostics` 誠實反映 |
+| O-03 | 第一組 DB Adapter | ✅ **resolved** | ADR-048：**hybrid** — A=filesystem+SQLite(embedded)、B=PostgreSQL(sql)、C=Qdrant+Neo4j(hybrid) |
+| O-04 | Embedding profile 與 SLA | ✅ **resolved** | ADR-048：**BGE-M3 1024d**；`SM=1024/EM=512/WM=256` 截斷須經 ML-003 與本地品質測試核准 |
+| O-05 | Crate 命名對照 | ✅ **resolved** | ADR-045：採 §3.1 命名（`crates/ukma-graph-engine` → `crates/graph-engine`） |
+| O-06 | repo ADR-031 與規格 ADR-031 衝突 | ✅ **resolved** | ADR-046：repo 版重編為 ADR-031a |
+| O-07 | legacy `ukma-code-runtime` | ✅ **resolved** | ADR-048：標 `deprecated`，P3 完成後移除；其測試不得作為 gate 證據 |
+| O-08 | 4 個 `system.*` operation 的 wire 形狀（規格未定義） | ✅ **resolved** | ADR-047：`capabilities / get_operation / get_job / cancel_job` 形狀已核准 |
+
+> 所有 §18 `OPEN` 項與本計畫新增決策均已定案；後續變更 MUST 走 Superseding ADR（ADR-046 程序）。
 
 ### 9.2 主要風險
 
@@ -425,6 +428,10 @@ tests:
 | 兩個 backend parity 不完整 | DB-01 阻擋 release | P1 即以同一組 Port Tests 驅動兩個 adapter，不等到 P10 |
 | 「先做功能後補契約」的壓力 | 回到 provisional 狀態 | P0 出口即 CI 強制：registry/schema/drift 任一缺 → 紅燈，無豁免 |
 | 上游 `/tmp/` 缺陷與 toolchain pin | G1 重驗 | 已記錄為 accepted known defect；CI 以 windows-latest 誠實偵測；merge 前重驗 pin |
+| **【ADR-048】38 語言全覆蓋** | P3-WP1/WP6 規模放大一個數量級：需 38 份 parser ledger + 38 份 golden parity 報告；`CODE-001` 任一語言缺報告即 FAIL | 內部順序仍為「先建共用 ParserPort + 5 語言標竿，再批次擴充」，但**驗收範圍不縮減**；每語言以固定 fixture 與自動化 parity 報告降低人工作業 |
+| **【ADR-048】hybrid 三 adapter** | P1 需 3 組 adapter（embedded/sql/hybrid）與跨 vendor projection lag 語意；`DB-002` 由 2 方等價升為 3 方等價；P10 規模顯著增加 | P1 先完成 A（embedded）使 `DB-008` 可獨立達成，B/C 以同一組 Port Tests 平行推進；不得假設跨 vendor global ACID（§28.2） |
+| **【ADR-048】BGE-M3 截斷不可用** | `EM-512/WM-256` 若品質測試未過，只能維持 1024 維，向量儲存成本上升 | 以 `ML-003` 與本地 recall/MRR 先行驗證；未通過即記錄 `truncation: unapproved`，不強行啟用 |
+| **【ADR-048】legacy runtime 移除風險** | P3 後刪除 `ukma-code-runtime` 可能影響既有 9 測試代表的相容行為 | 移除前確認無 gate 證據依賴，並將仍有價值的行為（JSON snapshot 格式）移轉至 `storage-adapters` |
 
 ---
 
@@ -449,6 +456,6 @@ tests:
 5. **P0-WP5** `ukma-contract-check` + CI gate（自此不再有「口頭閉環」）
 6. **P0-WP4** Codegen（schema → Rust/TS/SDK/MCP，drift 測試）
 
-> **已核准（2026-10-25）**：O-05 crate 命名採 §3.1（ADR-045，`crates/ukma-graph-engine` → `crates/graph-engine`）；O-06 repo ADR-031 重編為 ADR-031a（ADR-046）。P0-WP6（ADR 正規化 27 檔）與 P0-WP8（22 crate + `apps/ukma-server` 骨架）已完成。
+> **已核准（2026-10-25）**：O-01…O-08 全部定案（ADR-045/046/047/048）。P0-WP6（ADR 正規化）、P0-WP8（22 crate + `apps/ukma-server` 骨架）、P0-WP9（基線缺陷）已完成；O-05/O-06/O-07 一併決議。
 >
-> **仍待決策**：O-01（首發語言集）、O-02（PDF/OCR 覆蓋率）、O-03（首組 DB Adapter）、O-04（embedding profile/SLA）、O-07（`ukma-code-runtime` 去留）。
+> **決定後的範圍**：Code 語言 = 38 種全覆蓋；Document = MD + PDF 文字層 + DOCX（無 OCR）；Storage = hybrid 三 adapter；Embedding = BGE-M3 1024d；legacy `ukma-code-runtime` 標 deprecated 並於 P3 後移除。

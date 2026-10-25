@@ -34,12 +34,14 @@
 | [ADR-044](./ADR-044.md) | Job, Idempotency, Outbox and Generation Semantics | ACCEPTED | §39（原 ADR-030，重編） |
 | [ADR-045](./ADR-045.md) | Crate 命名與目錄對照（§3.1 為權威命名） | ACCEPTED | §3.1 / §39.2 |
 | [ADR-046](./ADR-046.md) | ADR 編號治理與衝突裁決記錄 | ACCEPTED | §18 / §39 / §40.1 |
+| [ADR-047](./ADR-047.md) | System API Minimal Contract（4 個 system operation 的 wire 形狀） | ACCEPTED | §36.4 |
+| [ADR-048](./ADR-048.md) | 實作範圍與 Profile 決策（語言集 / PDF-OCR / DB Profile / Embedding / legacy runtime） | ACCEPTED | §8.1 / §9.1 / §25.2 / §28.2 |
 
 ## 編號衝突與對照（摘要）
 
 - §39 表的 `ADR-027..030` 與 §18 的 `ADR-027..030` 內容不同 → 重編為 **ADR-041..044**。
 - repo 原 `ADR-031`（S1 graph 決策）與規格 `ADR-031`（Schema-as-Code）衝突 → repo 版重編為 **ADR-031a**。
-- 新增 **ADR-045**（crate 命名）、**ADR-046**（本治理程序）。
+- 新增 **ADR-045**（crate 命名）、**ADR-046**（本治理程序）、**ADR-047**（system API 形狀）、**ADR-048**（範圍與 profile 決策）。
 
 ## 新增 ADR 的規則
 
