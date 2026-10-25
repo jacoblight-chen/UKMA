@@ -204,6 +204,7 @@ name = "code-intelligence"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "serde_yaml",
 ]
 
 [[package]]
@@ -273,6 +274,10 @@ version = "0.1.0"
 [[package]]
 name = "embedding-engine"
 version = "0.1.0"
+dependencies = [
+ "serde",
+ "storage-ports",
+]
 
 [[package]]
 name = "equivalent"
@@ -998,6 +1003,10 @@ dependencies = [
 [[package]]
 name = "retrieval-engine"
 version = "0.1.0"
+dependencies = [
+ "storage-ports",
+ "ukma-contracts",
+]
 
 [[package]]
 name = "rustversion"

@@ -1,0 +1,43 @@
+slice_id: S2-hcl
+upstream:
+  repository: https://github.com/codegraph-ai/CodeGraph
+  commit: 590c2ca7dd7b37bd1d41caf45fac535b6522f969
+  crate: crates/codegraph-hcl
+  paths:
+  - crates/codegraph-hcl/src/extractor.rs
+  - crates/codegraph-hcl/src/lib.rs
+  - crates/codegraph-hcl/src/mapper.rs
+  - crates/codegraph-hcl/src/parser_impl.rs
+  - crates/codegraph-hcl/src/visitor.rs
+  file_count: 5
+target:
+  repository: ukma
+  crate: code-intelligence
+  files:
+  - crates/code-intelligence/src/lib.rs
+  - crates/code-intelligence/src/parsers/hcl.rs (to be created)
+license:
+  identified: true
+  notices_preserved: true
+  note: Apache-2.0 per docs/migration/license-audit.md
+changes: []
+behavior:
+  preserved: []
+  intentional_breaking: []
+required_behaviour:
+- symbol identity (module/type/function/method)
+- source spans (1-based lines, 0-based bytes)
+- call edges with static_exact/static_possible/unresolved
+- import/dependency edges
+- diagnostics on unparsable input (never an empty document)
+tests:
+  golden: pending
+  contract: pending
+  integration: pending
+status:
+  grammar_ported: false
+  parity_report: not_run
+  blocked_reason: 'grammar not ported: no tree-sitter grammar dependency added and no symbol extractor written for this language'
+review:
+  owner: jacoblight-chen
+  status: pending

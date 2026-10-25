@@ -32,6 +32,7 @@ pub mod error;
 pub mod file_store;
 pub mod ids;
 pub mod memory_store;
+pub mod query;
 pub mod state;
 pub mod store;
 pub mod types;
@@ -43,5 +44,8 @@ pub use ids::{
     CanonicalId, DefaultIdGenerator, DeterministicIdGenerator, IdGenerator, IdKind, Ulid,
 };
 pub use memory_store::InMemoryGraphStore;
+pub use query::{
+    AllowAll, Authorizer, GraphQuery, RelationFilter, TraversalBounds, TraversalResult,
+};
 pub use store::{GraphStore, ScopeKey, StoreCapabilities};
 pub use types::{Direction, EdgeType, GraphEdge, GraphNode, NodeType, PropertyMap, PropertyValue};

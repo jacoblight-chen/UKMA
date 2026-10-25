@@ -4,4 +4,8 @@ version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 publish = false
-description = "RRF fusion, PPR graph ranking, recency/language weighting, five-strategy planner (§7.3, §24)"
+description = "RRF fusion, PPR ranking, HNSW ANN, recency/language weighting, five-strategy planner (§7.3, §24)"
+
+[dependencies]
+storage-ports = { path = "../storage-ports" }
+ukma-contracts = { path = "../ukma-contracts" }

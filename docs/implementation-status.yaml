@@ -142,27 +142,27 @@ phases:
     blocked_reason: null
 - id: P2
   name: Shared Core 引擎
-  status: in_progress
+  status: done
   work_packages:
   - id: P2-WP1
-    status: in_progress
-    evidence: 'partial: S1 graph-engine provides scope-keyed CRUD, bounded bfs/dfs/Tarjan/paths and neighbors; §7.2 naming (upsert_batch/query_relations) and per-hop ACL filtering not added'
+    status: done
+    evidence: '?7.2 facade in graph-engine/src/query.rs: upsert_batch (rejects dangling edges before writing), get_entity/get_relation (unauthorized => None, existence not leaked), traverse_bounded (depth/node/edge bounds => RESOURCE_LIMIT, per-hop Authorizer, visited_count counts only authorized nodes), find_paths excluding hidden nodes, query_relations with filters; 8 tests'
     blocked_reason: null
   - id: P2-WP2
     status: done
     evidence: FullTextPort BM25 (k1=1.5, b=0.75 per 29.2) with analyzer-versioned indexes and deterministic (score desc, id asc) ordering; 3 contract tests; RE-002 maths pinned
     blocked_reason: null
   - id: P2-WP3
-    status: in_progress
-    evidence: 'partial: vector port enforces profile isolation + dimension/metric rejection and does exact k-NN; HNSW (M=16/ef_construction=200/ef_search=64) is recorded but not implemented'
+    status: done
+    evidence: HNSW ANN in retrieval-engine/src/hnsw.rs with the registered profile (M=16, m0=32, ef_construction=200, ef_search=64), deterministic seeded level sampling, tombstone deletes, recall@10 >= 0.90 vs brute force, L2 as negated distance; plus HnswVectorStore serving VectorPort (13 index tests + 5 port tests)
     blocked_reason: null
   - id: P2-WP4
     status: done
     evidence: 'retrieval-engine: RRF (k=60, ranks from 1), weighted RRF with weight validation, recency exp(-0.05*d), lang_match 1.0/0.85/0.425, omega_align min(1,a/0.85), final score exponents 1.0/0.5/0.8/0.2/0.6 with NaN/negative rejection, PPR (a=0.6, max_iter=200, L1<1e-6, dangling re-injection, hub dampening), 5-strategy planner with partial reporting, calibrated-relevance detail tiers; 13 tests'
     blocked_reason: null
   - id: P2-WP5
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'embedding-engine: ModelProfile with all ?7.4 registry fields (digest, tokenizer, dimension, metric, normalization, language support, privacy policy), ModelRegistry rejecting dimension/metric drift (MODEL_PROFILE_MISMATCH), EmbeddingPort/RerankerPort, UnavailableEmbedder returning MODEL_UNAVAILABLE, and an explicitly non-semantic HashEmbedder test double; 8 tests'
     blocked_reason: null
   - id: P2-WP6
     status: done
@@ -178,7 +178,7 @@ phases:
   work_packages:
   - id: P3-WP1
     status: in_progress
-    evidence: ParserPort + 38-language registry (ADR-048 O-01) with SupportLevel; all 38 report NotPorted and carry an S2-<lang> ledger slice id; UnportedParser returns CAPABILITY_UNAVAILABLE instead of an empty ParsedSource (7.1); grammar port pending
+    evidence: 'ParserPort + 38-language registry (all NotPorted, each with an S2-<lang> ledger slice) AND the S2 migration infrastructure: 38 real ledger slices (upstream paths, SHA, license/notices) + docs/migration/s2-parity-report.yaml + tests/s2_coverage.rs which fails if a language claims Ported without grammar_ported and parity=passed. No grammar is ported yet: 0/38.'
     blocked_reason: null
   - id: P3-WP2
     status: done
@@ -929,7 +929,7 @@ tests:
     DB-008: partial
     DB-009: partial
     DB-010: not_started
-    CODE-001: not_started
+    CODE-001: partial
     CODE-002: not_started
     DOC-001: not_started
     DOC-002: not_started
@@ -983,7 +983,7 @@ tests:
     SR-001: not_started
     SR-002: not_started
     SR-003: partial
-    SR-004: not_started
+    SR-004: partial
 open_decisions:
 - id: O-01
   title: 首發語言集（Code Parser）
@@ -1021,8 +1021,8 @@ open_decisions:
   resolution: ADR-048：標 deprecated，P3 完成後移除；其 9 測試不得作為任何 gate 證據
   blocks: []
 notes:
-- P0 完成 → L2 Schema-Closed（claim_level.schema_closed=true）。
-- P1 完成：六個 storage port + 17 欄位能力協商 + embedded/filesystem adapter + fail-closed router。B(sql)/C(hybrid) profile 為 declared-unavailable，故 DB-002 仍為 partial。
-- P2 部分完成：BM25、RRF/PPR/recency/語言加權、五策略規劃器、context budget（含 40.2 六組向量）、folding/eviction/paging、indexing FSM。未完成：HNSW ANN（P2-WP3）、embedding/reranker port（P2-WP5）、§7.2 graph 介面命名（P2-WP1）。
-- P3 尚未開始：38 語言 parser 移植、13 個 code operation、golden parity 皆未實作。
-- P2/P3 的演算法實作不改變任何 wire 語意；registry/schema 仍由 ukma-contract-check 把關。
+- P0 ?? ? L2 Schema-Closed?
+- P1 ???7/7??? port + 17 ?????? + embedded/filesystem adapter + fail-closed router?
+- P2 ???7/7??BM25?RRF/PPR/recency/?????HNSW ANN?recall@10 ? 0.90???7.2 graph ???per-hop ACL?bounded?visited_count ??????context budget?40.2 ??????folding/eviction/paging?indexing FSM?embedding/reranker port?
+- P3 ??????? 38 ?? registry ???S2 ???????38 ? ledger?parity report?s2_coverage ????????????? grammar ?? 0/38?
+- B(sql)/C(hybrid) adapter ? declared-unavailable?? DB-002/DB-08 ? partial?

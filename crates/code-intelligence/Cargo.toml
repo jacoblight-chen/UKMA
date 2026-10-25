@@ -8,3 +8,6 @@ description = "Code Intelligence domain types and parser port (§32.1); 38-langu
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+serde_yaml = "0.9"

@@ -4,6 +4,9 @@
 //! Every constant here is a registered default of §29.2. Raw channel scores are
 //! never summed directly across channels (RE-003): fusion happens on ranks.
 
+pub mod hnsw;
+pub mod vector_port;
+
 use std::collections::BTreeMap;
 
 /// RRF constant `k` (§29.2 `RRF_k=60`).
