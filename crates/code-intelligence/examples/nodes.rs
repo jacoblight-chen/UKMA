@@ -25,9 +25,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let language = args.next().ok_or("usage: nodes <language> <path>")?;
     let path = args.next().ok_or("usage: nodes <language> <path>")?;
     let source = std::fs::read_to_string(&path)?;
-    let spec = spec::spec(&language).ok_or_else(|| format!("no spec for `{language}`"))?;
+    let grammar = spec::grammar_for(&language)
+        .ok_or_else(|| format!("no compiled grammar for `{language}`"))?;
     let mut parser = tree_sitter::Parser::new();
-    parser.set_language(&(spec.grammar)())?;
+    parser.set_language(&grammar)?;
     let tree = parser.parse(&source, None).ok_or("no tree")?;
     let mut out = Vec::new();
     walk(tree.root_node(), 0, &mut out);

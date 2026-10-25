@@ -103,6 +103,70 @@ fn signature_of(source: &str, node: Node<'_>, body_fields: &[&str]) -> Option<St
     }
 }
 
+/// Node kinds that can carry a declaration name when the grammar has no `name`
+/// field.
+const IDENTIFIER_KINDS: &[&str] = &[
+    "identifier",
+    "simple_identifier",
+    "type_identifier",
+    "field_identifier",
+    "property_identifier",
+    "class_name",
+    "tag_name",
+    "constant",
+    "name",
+    "atom",
+    "sym_lit",
+    "keyword",
+    "alias",
+    "lower_case_identifier",
+    "upper_case_identifier",
+    "value_name",
+    "bare_key",
+    "dotted_key",
+    "plain_scalar",
+    "string_scalar",
+    "function_identifier",
+    "declarator",
+    "variable",
+];
+
+/// First identifier-like descendant within `depth` levels, breadth first.
+fn descendant_name<'a>(source: &'a str, node: Node<'_>, depth: usize) -> Option<&'a str> {
+    let mut level: Vec<Node<'_>> = {
+        let mut cursor = node.walk();
+        node.children(&mut cursor).collect()
+    };
+    for _ in 0..depth {
+        let mut next: Vec<Node<'_>> = Vec::new();
+        for child in level {
+            if child.is_named() && IDENTIFIER_KINDS.contains(&child.kind()) {
+                let name = text(source, child).trim();
+                if !name.is_empty() {
+                    return Some(name);
+                }
+            }
+            if child.is_named() {
+                let mut cursor = child.walk();
+                next.extend(child.children(&mut cursor));
+            }
+        }
+        level = next;
+    }
+    None
+}
+
+/// Text of the n-th named child, trimmed.
+fn named_child_text<'a>(source: &'a str, node: Node<'_>, index: usize) -> Option<&'a str> {
+    let child = node.named_child(index)?;
+    let text = text(source, child).trim();
+    if text.is_empty() {
+        None
+    } else {
+        Some(text)
+    }
+}
+
 /// Last path/dot segment of a callee expression (`self.check(x)` -> `check`).
 fn callee_name(callee: &str) -> Option<String> {
     let name = callee
@@ -201,8 +265,13 @@ impl<'a> Extractor<'a> {
     /// otherwise the identifier reached through a chain of `declarator` fields
     /// (C/C++ put the name inside the declarator).
     fn resolve_name(&self, node: Node<'_>) -> Option<&'a str> {
-        if let Some(name) = field_name(self.source, node, self.spec.name_field) {
-            return Some(name);
+        if !self.spec.name_field.is_empty() {
+            if let Some(name) = field_name(self.source, node, self.spec.name_field) {
+                return Some(name);
+            }
+        }
+        if self.spec.name_from_descendant {
+            return descendant_name(self.source, node, 3);
         }
         if !self.spec.declarator_names {
             return None;
@@ -228,6 +297,20 @@ impl<'a> Extractor<'a> {
         None
     }
 
+    /// Symbol kind for a form declaration (`(defn x ..)`), if the head of this
+    /// node is a known form head.
+    fn form_kind(&self, node: Node<'_>) -> Option<SymbolKind> {
+        if self.spec.form_heads.is_empty() {
+            return None;
+        }
+        let head = named_child_text(self.source, node, 0)?;
+        self.spec
+            .form_heads
+            .iter()
+            .find(|(kind, candidate, _)| *kind == node.kind() && *candidate == head)
+            .map(|(_, _, symbol_kind)| *symbol_kind)
+    }
+
     fn qualified_child(&self, parent: Option<&str>, name: &str) -> String {
         match parent.and_then(|parent_id| self.symbol(parent_id)) {
             Some(symbol) => format!("{}::{name}", symbol.qualified_name),
@@ -236,6 +319,10 @@ impl<'a> Extractor<'a> {
     }
 
     fn walk(&mut self, node: Node<'_>, parent: Option<&str>) {
+        self.walk_in(node, parent, None);
+    }
+
+    fn walk_in(&mut self, node: Node<'_>, parent: Option<&str>, _parent_kind: Option<&str>) {
         let kind = node.kind();
         let mut child_parent = parent.map(str::to_string);
 
@@ -247,7 +334,36 @@ impl<'a> Extractor<'a> {
             return;
         }
 
+        // Form-based languages: `(defn name ..)` / `def name` carry no
+        // declaration node kind, so the head symbol decides the meaning.
+        if let Some(symbol_kind) = self.form_kind(node) {
+            let name = node.named_child(1).and_then(|second| {
+                if IDENTIFIER_KINDS.contains(&second.kind()) {
+                    let text = text(self.source, second).trim();
+                    (!text.is_empty()).then(|| text.to_string())
+                } else {
+                    descendant_name(self.source, second, 3).map(str::to_string)
+                }
+            });
+            if let Some(name) = name {
+                let qualified = self.qualified_child(parent, &name);
+                let id = self.push_symbol(&name, qualified, symbol_kind, node);
+                if let Some(parent_id) = parent {
+                    self.defines
+                        .push((parent_id.to_string(), id.clone(), line_of(node, true)));
+                }
+                self.walk_children(node, Some(&id));
+                return;
+            }
+        }
+
         if let Some(declared) = self.spec.declaration(kind) {
+            if !self.spec.declaration_allowed(node) {
+                // same kind name, different meaning (Haskell `function` is both a
+                // definition and a function *type*) — keep descending, don't emit
+                self.walk_children(node, child_parent.as_deref());
+                return;
+            }
             if let Some(name) = self.resolve_name(node) {
                 // A function declared directly inside a type is a method.
                 let kind = if declared == SymbolKind::Function
@@ -299,9 +415,13 @@ impl<'a> Extractor<'a> {
     }
 
     fn walk_children(&mut self, node: Node<'_>, parent: Option<&str>) {
+        self.walk_children_of(node, parent, node.kind());
+    }
+
+    fn walk_children_of(&mut self, node: Node<'_>, parent: Option<&str>, parent_kind: &str) {
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk(child, parent);
+            self.walk_in(child, parent, Some(parent_kind));
         }
     }
 
@@ -355,7 +475,17 @@ impl<'a> Extractor<'a> {
     /// Resolve deferred references once every symbol in the file is known.
     fn finish(&mut self) {
         let evidence = |line: u32| vec![format!("ev:{}:{}", self.path, line)];
+        let mut seen_contains: Vec<(String, String)> = Vec::new();
         for (parent, child, line) in std::mem::take(&mut self.defines) {
+            // one declaration can be visited twice under the same parent (objc's
+            // @interface and @implementation both name the class)
+            if seen_contains
+                .iter()
+                .any(|(seen_parent, seen_child)| *seen_parent == parent && *seen_child == child)
+            {
+                continue;
+            }
+            seen_contains.push((parent.clone(), child.clone()));
             self.edges.push(CodeEdge {
                 source: parent,
                 target: Some(child),
@@ -491,8 +621,13 @@ impl TreeSitterParser {
             });
         }
         let mut parser = Parser::new();
+        let grammar = spec::grammar_for(self.spec.language).ok_or_else(|| {
+            CodeError::CapabilityUnavailable {
+                language: self.spec.language.to_string(),
+            }
+        })?;
         parser
-            .set_language(&(self.spec.grammar)())
+            .set_language(&grammar)
             .map_err(|error| CodeError::SourceParseFailed {
                 message: format!("grammar load failed: {error}"),
             })?;

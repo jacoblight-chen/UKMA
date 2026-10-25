@@ -215,6 +215,177 @@ const CASES: &[Case] = &[
         resolved_calls: 1,
         signature_hint: "add",
     },
+    Case {
+        language: "clojure",
+        file: "s2-clojure/sample.clj",
+        symbols: &[
+            ("sample::demo.core", SymbolKind::Module, 1, 1),
+            ("sample::compute", SymbolKind::Function, 3, 4),
+        ],
+        imports: 0,
+        resolved_calls: 0,
+        signature_hint: "",
+    },
+    Case {
+        language: "css",
+        file: "s2-css/sample.css",
+        symbols: &[("sample::graph", SymbolKind::Class, 3, 3)],
+        imports: 1,
+        resolved_calls: 0,
+        signature_hint: "",
+    },
+    Case {
+        language: "elixir",
+        file: "s2-elixir/sample.ex",
+        symbols: &[
+            ("sample::Demo.Graph", SymbolKind::Module, 3, 7),
+            ("sample::Demo.Graph::add", SymbolKind::Function, 4, 6),
+        ],
+        imports: 0,
+        resolved_calls: 0,
+        signature_hint: "",
+    },
+    Case {
+        language: "elm",
+        file: "s2-elm/sample.elm",
+        symbols: &[
+            ("sample::Demo", SymbolKind::Module, 1, 1),
+            ("sample::compute", SymbolKind::Function, 7, 8),
+        ],
+        imports: 1,
+        resolved_calls: 0,
+        signature_hint: "",
+    },
+    Case {
+        language: "erlang",
+        file: "s2-erlang/sample.erl",
+        symbols: &[
+            ("sample::sample", SymbolKind::Module, 1, 1),
+            ("sample::compute", SymbolKind::Function, 4, 5),
+        ],
+        imports: 0,
+        resolved_calls: 0,
+        signature_hint: "",
+    },
+    Case {
+        language: "fortran",
+        file: "s2-fortran/sample.f90",
+        symbols: &[
+            ("sample::demo", SymbolKind::Module, 1, 9),
+            ("sample::demo::compute", SymbolKind::Function, 3, 8),
+        ],
+        imports: 0,
+        resolved_calls: 0,
+        signature_hint: "",
+    },
+    Case {
+        language: "groovy",
+        file: "s2-groovy/sample.groovy",
+        symbols: &[
+            ("sample::Graph", SymbolKind::Class, 3, 7),
+            ("sample::Graph::add", SymbolKind::Method, 4, 6),
+        ],
+        imports: 1,
+        resolved_calls: 0,
+        signature_hint: "int add",
+    },
+    Case {
+        language: "haskell",
+        file: "s2-haskell/sample.hs",
+        symbols: &[("sample::compute", SymbolKind::Function, 6, 6)],
+        imports: 1,
+        resolved_calls: 0,
+        signature_hint: "",
+    },
+    Case {
+        language: "hcl",
+        file: "s2-hcl/sample.hcl",
+        symbols: &[
+            ("sample::resource", SymbolKind::Other, 1, 3),
+            ("sample::resource::size", SymbolKind::Field, 2, 2),
+        ],
+        imports: 0,
+        resolved_calls: 0,
+        signature_hint: "",
+    },
+    Case {
+        language: "julia",
+        file: "s2-julia/sample.jl",
+        symbols: &[
+            ("sample::Demo", SymbolKind::Module, 1, 7),
+            ("sample::Demo::compute", SymbolKind::Function, 3, 5),
+        ],
+        imports: 0,
+        resolved_calls: 0,
+        signature_hint: "",
+    },
+    Case {
+        language: "lua",
+        file: "s2-lua/sample.lua",
+        symbols: &[("sample::compute", SymbolKind::Function, 3, 5)],
+        imports: 0,
+        resolved_calls: 0,
+        signature_hint: "function compute",
+    },
+    Case {
+        language: "objc",
+        file: "s2-objc/sample.m",
+        symbols: &[
+            ("sample::Graph", SymbolKind::Class, 3, 5),
+            ("sample::Graph::add", SymbolKind::Method, 4, 4),
+        ],
+        imports: 1,
+        resolved_calls: 0,
+        signature_hint: "",
+    },
+    Case {
+        language: "ocaml",
+        file: "s2-ocaml/sample.ml",
+        symbols: &[
+            ("sample::compute", SymbolKind::Function, 1, 2),
+            ("sample::helper", SymbolKind::Function, 5, 5),
+        ],
+        imports: 0,
+        resolved_calls: 0,
+        signature_hint: "",
+    },
+    Case {
+        language: "toml",
+        file: "s2-toml/sample.toml",
+        symbols: &[
+            ("sample::package", SymbolKind::Module, 1, 4),
+            ("sample::package::name", SymbolKind::Field, 2, 2),
+            ("sample::lib", SymbolKind::Module, 4, 6),
+            ("sample::lib::path", SymbolKind::Field, 5, 5),
+        ],
+        imports: 0,
+        resolved_calls: 0,
+        signature_hint: "",
+    },
+    Case {
+        language: "verilog",
+        file: "s2-verilog/sample.v",
+        symbols: &[
+            ("sample::demo", SymbolKind::Module, 1, 8),
+            ("sample::demo::compute", SymbolKind::Function, 4, 7),
+        ],
+        imports: 0,
+        resolved_calls: 0,
+        signature_hint: "",
+    },
+    Case {
+        language: "yaml",
+        file: "s2-yaml/sample.yaml",
+        symbols: &[
+            ("sample::name", SymbolKind::Field, 1, 1),
+            ("sample::version", SymbolKind::Field, 2, 2),
+            ("sample::nested", SymbolKind::Field, 3, 5),
+            ("sample::nested::key", SymbolKind::Field, 4, 4),
+        ],
+        imports: 0,
+        resolved_calls: 0,
+        signature_hint: "",
+    },
 ];
 
 fn fixture(case: &Case) -> ParsedSource {
@@ -352,6 +523,19 @@ fn containment_and_imports_follow_the_shared_rules() {
 fn signatures_are_captured_for_functions_and_methods() {
     for case in CASES {
         let parsed = fixture(case);
+        if case.signature_hint.is_empty() {
+            // the grammar has no body boundary we can cut at, so no signature is
+            // claimed at all rather than a wrong one
+            assert!(
+                parsed
+                    .symbols
+                    .iter()
+                    .all(|symbol| symbol.signature.is_none()),
+                "{}: expected no signatures",
+                case.language
+            );
+            continue;
+        }
         let signature = parsed
             .symbols
             .iter()

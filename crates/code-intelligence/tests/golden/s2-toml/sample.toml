@@ -1,0 +1,5 @@
+[package]
+name = "demo"
+
+[lib]
+path = "src/lib.rs"

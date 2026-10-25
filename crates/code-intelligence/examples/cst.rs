@@ -17,9 +17,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         std::fs::read_to_string(&path)?
     };
-    let spec = spec::spec(&language).ok_or_else(|| format!("no spec for `{language}`"))?;
+    let grammar = spec::grammar_for(&language)
+        .ok_or_else(|| format!("no compiled grammar for `{language}`"))?;
     let mut parser = tree_sitter::Parser::new();
-    parser.set_language(&(spec.grammar)())?;
+    parser.set_language(&grammar)?;
     let tree = parser
         .parse(&source, None)
         .ok_or("parser returned no tree")?;
