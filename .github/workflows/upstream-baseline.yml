@@ -18,7 +18,11 @@ permissions:
 
 jobs:
   upstream-baseline:
-    runs-on: ubuntu-latest
+    # ubuntu-22.04 (gcc 11): rocksdb 8.10 C++ headers lack '#include <cstdint>'
+    # and do not compile on newer gcc (observed failures on ubuntu-latest gcc 14
+    # and on Windows MinGW). ubuntu-22.04 is the toolchain era rocksdb 8.10
+    # targets. Job conclusion MUST reflect cargo's real exit code.
+    runs-on: ubuntu-22.04
     timeout-minutes: 90
     steps:
       - name: Clone CodeGraph upstream and pin the locked SHA
@@ -36,13 +40,14 @@ jobs:
           rustc --version
 
       - name: Official baseline - cargo test --workspace
-        id: test
         run: |
           cd codegraph
-          set +e
-          cargo test --workspace 2>&1 | tee upstream-baseline-test.log
-          echo "exit=$?" >> upstream-baseline-test.log
-          tail -n 20 upstream-baseline-test.log
+          # No pipe: capture cargo's real exit code so the job conclusion is honest.
+          cargo test --workspace > upstream-baseline-test.log 2>&1
+          code=$?
+          echo "CARGO_EXIT=$code" >> upstream-baseline-test.log
+          tail -n 30 upstream-baseline-test.log
+          exit $code
 
       - name: Upload test log
         if: always()
