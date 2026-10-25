@@ -57,7 +57,7 @@ pub enum CodeError {
         /// Job id.
         job_id: String,
     },
-    /// Cancellation arrived after the commit point (?40.4).
+    /// Cancellation arrived after the commit point (§40.4).
     JobNotCancellable {
         /// Job id.
         job_id: String,
@@ -288,7 +288,7 @@ pub struct Symbol {
     pub language: String,
     /// Resolution state.
     pub resolution: Resolution,
-    /// Declaration signature (part of the ?32.3 identity).
+    /// Declaration signature (part of the §32.3 identity).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub signature: Option<String>,
     /// Declared visibility, when the language has one.
@@ -487,7 +487,7 @@ pub const UPSTREAM_LANGUAGES: [&str; 38] = [
 /// golden parity test (see `tests/s2_rust_parity.rs`). The registry and the
 /// migration paperwork are cross-checked by `tests/s2_coverage.rs`, so editing
 /// this list without the evidence fails the build.
-pub const PORTED_LANGUAGES: &[&str] = &["rust"];
+pub const PORTED_LANGUAGES: &[&str] = &["bash", "c", "cpp", "go", "java", "python", "rust"];
 
 fn extensions_for(language: &str) -> Vec<String> {
     let list: &[&str] = match language {

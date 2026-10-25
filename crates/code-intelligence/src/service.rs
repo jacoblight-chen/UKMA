@@ -346,7 +346,7 @@ impl CodeIntelligenceService {
         if !request.asynchronous {
             return Err(CodeError::InvalidArgument {
                 field: "async",
-                reason: "code.analyze_repository is asynchronous; pass `async: true` (?32.2)"
+                reason: "code.analyze_repository is asynchronous; pass `async: true` (§32.2)"
                     .into(),
             });
         }
@@ -1109,7 +1109,7 @@ impl CodeIntelligenceService {
             test_candidates.sort();
         }
 
-        // ?32.1: a graph containing dynamic/possible calls must never be
+        // §32.1: a graph containing dynamic/possible calls must never be
         // presented as a complete call graph.
         let completeness = if truncated || unresolved_dynamic_calls > 0 || saw_possible_call {
             "partial"

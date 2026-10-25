@@ -1,8 +1,12 @@
 //! Tree-sitter based parsers (S2 slices).
 //!
-//! Each module is one migration slice. The grammar crate version MUST match the
-//! locked upstream baseline so the parse substrate is identical; the extraction
-//! logic is a native implementation and says so in its ledger.
+//! One generic engine ([`engine`]) plus one declarative spec per language
+//! ([`spec`]). Grammar crate versions are pinned in `Cargo.toml`; for the
+//! languages that exist in the locked upstream `Cargo.lock` the pin is exactly
+//! the baseline version.
+
+pub mod engine;
+pub mod spec;
 
 #[cfg(feature = "parser-rust")]
 pub mod rust;

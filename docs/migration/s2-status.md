@@ -6,11 +6,11 @@ Upstream commit: `590c2ca7dd7b37bd1d41caf45fac535b6522f969`  ·  languages: 38  
 
 | Language | Upstream files | Grammar ported | Parity | Ledger |
 |---|---:|---|---|---|
-| bash | 5 | no | not_run | [s2-bash.yaml](ledger/s2-bash.yaml) |
-| c | 14 | no | not_run | [s2-c.yaml](ledger/s2-c.yaml) |
+| bash | 5 | **yes** | **passed** (8 tests) | [s2-bash.yaml](ledger/s2-bash.yaml) |
+| c | 14 | **yes** | **passed** (8 tests) | [s2-c.yaml](ledger/s2-c.yaml) |
 | clojure | 6 | no | not_run | [s2-clojure.yaml](ledger/s2-clojure.yaml) |
 | cobol | 9 | no | not_run | [s2-cobol.yaml](ledger/s2-cobol.yaml) |
-| cpp | 7 | no | not_run | [s2-cpp.yaml](ledger/s2-cpp.yaml) |
+| cpp | 7 | **yes** | **passed** (8 tests) | [s2-cpp.yaml](ledger/s2-cpp.yaml) |
 | csharp | 8 | no | not_run | [s2-csharp.yaml](ledger/s2-csharp.yaml) |
 | css | 6 | no | not_run | [s2-css.yaml](ledger/s2-css.yaml) |
 | dart | 8 | no | not_run | [s2-dart.yaml](ledger/s2-dart.yaml) |
@@ -19,11 +19,11 @@ Upstream commit: `590c2ca7dd7b37bd1d41caf45fac535b6522f969`  ·  languages: 38  
 | elm | 6 | no | not_run | [s2-elm.yaml](ledger/s2-elm.yaml) |
 | erlang | 6 | no | not_run | [s2-erlang.yaml](ledger/s2-erlang.yaml) |
 | fortran | 9 | no | not_run | [s2-fortran.yaml](ledger/s2-fortran.yaml) |
-| go | 7 | no | not_run | [s2-go.yaml](ledger/s2-go.yaml) |
+| go | 7 | **yes** | **passed** (8 tests) | [s2-go.yaml](ledger/s2-go.yaml) |
 | groovy | 5 | no | not_run | [s2-groovy.yaml](ledger/s2-groovy.yaml) |
 | haskell | 5 | no | not_run | [s2-haskell.yaml](ledger/s2-haskell.yaml) |
 | hcl | 5 | no | not_run | [s2-hcl.yaml](ledger/s2-hcl.yaml) |
-| java | 7 | no | not_run | [s2-java.yaml](ledger/s2-java.yaml) |
+| java | 7 | **yes** | **passed** (8 tests) | [s2-java.yaml](ledger/s2-java.yaml) |
 | julia | 5 | no | not_run | [s2-julia.yaml](ledger/s2-julia.yaml) |
 | kotlin | 9 | no | not_run | [s2-kotlin.yaml](ledger/s2-kotlin.yaml) |
 | lua | 6 | no | not_run | [s2-lua.yaml](ledger/s2-lua.yaml) |
@@ -31,7 +31,7 @@ Upstream commit: `590c2ca7dd7b37bd1d41caf45fac535b6522f969`  ·  languages: 38  
 | ocaml | 5 | no | not_run | [s2-ocaml.yaml](ledger/s2-ocaml.yaml) |
 | perl | 7 | no | not_run | [s2-perl.yaml](ledger/s2-perl.yaml) |
 | php | 8 | no | not_run | [s2-php.yaml](ledger/s2-php.yaml) |
-| python | 17 | no | not_run | [s2-python.yaml](ledger/s2-python.yaml) |
+| python | 17 | **yes** | **passed** (8 tests) | [s2-python.yaml](ledger/s2-python.yaml) |
 | r | 8 | no | not_run | [s2-r.yaml](ledger/s2-r.yaml) |
 | ruby | 7 | no | not_run | [s2-ruby.yaml](ledger/s2-ruby.yaml) |
 | rust | 7 | **yes** | **passed** (10 tests) | [s2-rust.yaml](ledger/s2-rust.yaml) |

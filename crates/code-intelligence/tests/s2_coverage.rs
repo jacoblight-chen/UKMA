@@ -173,7 +173,12 @@ fn nothing_is_claimed_as_ported_without_evidence() {
         .collect();
     ported.sort_unstable();
     // grow this list only together with the ledger slice and the golden test
-    assert_eq!(ported, vec!["rust"], "only S2-rust has landed so far");
+    let mut expected: Vec<&str> = PORTED_LANGUAGES.to_vec();
+    expected.sort_unstable();
+    assert_eq!(
+        ported, expected,
+        "the registry must match the languages with executed golden evidence"
+    );
     assert_eq!(
         registry.not_ported().len(),
         UPSTREAM_LANGUAGES.len() - ported.len()
