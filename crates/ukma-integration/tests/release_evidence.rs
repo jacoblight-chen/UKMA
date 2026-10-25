@@ -352,11 +352,37 @@ fn the_sbom_digest_matches_the_file() {
         Some(payload.len() as u64),
         "the recorded size does not match"
     );
-    // Stated honestly: a digest is integrity, not a signature.
-    assert_eq!(manifest["signature"], Value::Null);
-    assert!(manifest["note"]
-        .as_str()
-        .is_some_and(|note| note.contains("not a cryptographic signature")));
+    // A digest is integrity; the signature file is provenance. The manifest must
+    // say which state it is in, and when signed it must point at the signature
+    // that covers exactly this SBOM.
+    let signature_path = root().join("contracts/testing/sbom.signature.json");
+    if signature_path.is_file() {
+        let recorded = manifest["signature"].as_str().unwrap_or_default();
+        assert!(
+            recorded.ends_with("sbom.signature.json"),
+            "a signed SBOM must record its signature file, found `{recorded}`"
+        );
+        assert_eq!(manifest["signature_algorithm"], "ed25519");
+        let signature: Value = serde_json::from_str(
+            &std::fs::read_to_string(&signature_path).expect("readable signature"),
+        )
+        .expect("signature is JSON");
+        assert_eq!(
+            signature["sha256"].as_str(),
+            Some(actual.as_str()),
+            "the signature must cover the current SBOM"
+        );
+        assert_eq!(
+            manifest["public_key"].as_str(),
+            signature["public_key"].as_str(),
+            "the digest and the signature must name the same key"
+        );
+    } else {
+        assert_eq!(manifest["signature"], Value::Null);
+        assert!(manifest["note"]
+            .as_str()
+            .is_some_and(|note| note.contains("not a cryptographic signature")));
+    }
 }
 
 #[test]
@@ -422,6 +448,9 @@ fn the_release_evidence_pack_is_complete() {
         "docs/adr/ADR-057.md",
         "docs/adr/ADR-058.md",
         "docs/adr/ADR-059.md",
+        "docs/adr/ADR-061.md",
+        "docs/adr/ADR-062.md",
+        "contracts/testing/sbom.signature.json",
         "contracts/schema/v1/wire.schema.json",
         "contracts/testing/sbom.cyclonedx.json",
         "contracts/testing/sbom.digest.json",

@@ -20,6 +20,7 @@ use storage_ports::{
     canonical_migrations, migrate, MetadataPort, OutboxPort, SchemaVersionPort, StorageError,
     CANONICAL_SCHEMA_VERSION,
 };
+use storage_ports::{EmbeddingProfile, FullTextDoc, FullTextPort, Metric, VectorItem, VectorPort};
 use ukma_adapter_embedded::EmbeddedStore;
 use ukma_adapter_postgres::{capabilities_with, event, PostgresStore, DSN_ENV};
 use ukma_contracts::ScopeRef;
@@ -280,5 +281,152 @@ fn the_store_reports_the_same_capabilities_as_the_probe() {
     assert!(reported.available);
     reported.assert_minimum_profile().unwrap();
     assert_eq!(reported.adapter_id, "postgres");
+    store.purge_scope(&scope).unwrap();
+}
+
+#[test]
+fn fulltext_is_ranked_inside_the_database() {
+    use std::collections::BTreeMap;
+
+    let (store, scope) = needs_server!("fulltext");
+    let doc = |id: &str, body: &str, title: &str| {
+        let mut fields = BTreeMap::new();
+        fields.insert("body".to_string(), body.to_string());
+        fields.insert("title".to_string(), title.to_string());
+        FullTextDoc {
+            id: id.to_string(),
+            revision: "r1".to_string(),
+            fields,
+        }
+    };
+    store
+        .index(
+            &scope,
+            "icu-v1",
+            &doc("d1", "graph traversal over nodes", "graph"),
+        )
+        .unwrap();
+    store
+        .index(
+            &scope,
+            "icu-v1",
+            &doc("d2", "graph graph graph traversal", "graph graph"),
+        )
+        .unwrap();
+    store
+        .index(&scope, "icu-v1", &doc("d3", "unrelated content", "other"))
+        .unwrap();
+
+    let hits = FullTextPort::search(&store, &scope, "icu-v1", None, "graph", 10).unwrap();
+    assert_eq!(hits.len(), 2, "only matching documents come back");
+    assert_eq!(hits[0].id, "d2", "the denser document ranks first");
+    assert!(hits[0].score >= hits[1].score);
+    assert_eq!(hits[0].revision, "r1");
+
+    // Field-scoped search only looks at that field.
+    let title_only =
+        FullTextPort::search(&store, &scope, "icu-v1", Some("title"), "other", 10).unwrap();
+    assert_eq!(title_only.len(), 1);
+    assert_eq!(title_only[0].id, "d3");
+
+    // Analyser isolation: another label sees nothing.
+    assert!(
+        FullTextPort::search(&store, &scope, "cjk-jieba-v1", None, "graph", 10)
+            .unwrap()
+            .is_empty()
+    );
+    assert_eq!(FullTextPort::analyzers(&store), vec!["icu-v1".to_string()]);
+
+    FullTextPort::delete(&store, &scope, "icu-v1", "d2").unwrap();
+    let after = FullTextPort::search(&store, &scope, "icu-v1", None, "graph", 10).unwrap();
+    assert_eq!(after.len(), 1);
+    store.purge_scope(&scope).unwrap();
+}
+
+#[test]
+fn vectors_are_searched_in_the_database_and_the_profile_survives_a_reconnect() {
+    use std::collections::BTreeMap;
+
+    let (store, scope) = needs_server!("vector");
+    let profile = EmbeddingProfile {
+        profile_id: "bge-m3".into(),
+        model_id: "bge-m3".into(),
+        model_revision: "2024-01".into(),
+        dimension: 4,
+        metric: Metric::Cosine,
+        normalization: "l2".into(),
+    };
+    VectorPort::declare_profile(&store, &scope, &profile).unwrap();
+
+    let item = |id: &str, vector: Vec<f32>, topic: &str| {
+        let mut metadata = BTreeMap::new();
+        metadata.insert("topic".to_string(), topic.to_string());
+        VectorItem {
+            id: id.to_string(),
+            revision: "r1".to_string(),
+            vector,
+            metadata,
+        }
+    };
+    VectorPort::upsert(
+        &store,
+        &scope,
+        "bge-m3",
+        &[
+            item("a", vec![1.0, 0.0, 0.0, 0.0], "alpha"),
+            item("b", vec![0.0, 1.0, 0.0, 0.0], "beta"),
+            item("c", vec![0.9, 0.1, 0.0, 0.0], "alpha"),
+        ],
+    )
+    .unwrap();
+
+    let hits =
+        VectorPort::search(&store, &scope, "bge-m3", &[1.0, 0.0, 0.0, 0.0], 3, None).unwrap();
+    assert_eq!(hits.len(), 3);
+    assert_eq!(hits[0].id, "a");
+    assert!(hits[0].score > 0.99, "cosine of an identical vector is 1.0");
+    assert!(hits[0].score > hits[2].score);
+
+    let mut filter = BTreeMap::new();
+    filter.insert("topic".to_string(), "beta".to_string());
+    let filtered = VectorPort::search(
+        &store,
+        &scope,
+        "bge-m3",
+        &[1.0, 0.0, 0.0, 0.0],
+        5,
+        Some(&filter),
+    )
+    .unwrap();
+    assert_eq!(filtered.len(), 1);
+    assert_eq!(filtered[0].id, "b");
+
+    // A wrong dimension is refused rather than silently truncated.
+    let wrong = VectorPort::upsert(
+        &store,
+        &scope,
+        "bge-m3",
+        &[item("x", vec![1.0, 0.0], "alpha")],
+    )
+    .unwrap_err();
+    assert_eq!(wrong.code(), "MODEL_PROFILE_MISMATCH");
+
+    // The profile lives in the database, not in process memory.
+    let dsn = std::env::var(DSN_ENV).unwrap();
+    let reopened = PostgresStore::connect(&dsn).unwrap();
+    let restored = VectorPort::profile(&reopened, &scope, "bge-m3")
+        .unwrap()
+        .unwrap();
+    assert_eq!(restored.dimension, 4);
+    assert_eq!(restored.metric, Metric::Cosine);
+    assert_eq!(restored.model_revision, "2024-01");
+
+    VectorPort::delete(&store, &scope, "bge-m3", "b").unwrap();
+    assert_eq!(
+        VectorPort::search(&store, &scope, "bge-m3", &[1.0, 0.0, 0.0, 0.0], 5, None)
+            .unwrap()
+            .len(),
+        2
+    );
     store.purge_scope(&scope).unwrap();
 }

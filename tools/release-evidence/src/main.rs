@@ -370,6 +370,26 @@ fn sign(key_path: &Path, out: &Path) -> Result<(), String> {
     });
     std::fs::write(out, render(&manifest))
         .map_err(|error| format!("cannot write {}: {error}", out.display()))?;
+    // Record the signature in the digest manifest so a reader sees provenance
+    // without having to guess whether the SBOM was signed at all.
+    let digest_path = Path::new(DIGEST);
+    if let Ok(text) = std::fs::read_to_string(digest_path) {
+        if let Ok(mut digest) = serde_json::from_str::<Value>(&text) {
+            if let Some(object) = digest.as_object_mut() {
+                object.insert("signature".into(), json!(out.to_string_lossy()));
+                object.insert("signature_algorithm".into(), json!("ed25519"));
+                object.insert(
+                    "public_key".into(),
+                    json!(hex(key.verifying_key().as_bytes())),
+                );
+                object.insert(
+                    "signature_note".into(),
+                    json!("the private key is held outside the repository; verify with `cargo run -p ukma-release-evidence -- verify`"),
+                );
+                let _ = std::fs::write(digest_path, render(&digest));
+            }
+        }
+    }
     println!("signed {SBOM} -> {}", out.display());
     Ok(())
 }

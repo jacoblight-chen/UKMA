@@ -23,9 +23,8 @@ use storage_ports::capabilities::{
 };
 use storage_ports::ports::{
     validate_scope, EmbeddingProfile, FullTextDoc, FullTextHit, FullTextPort, MetadataEntry,
-    MetadataPort, OutboxEvent, OutboxPort, VectorHit, VectorItem, VectorPort,
+    MetadataPort, Metric, OutboxEvent, OutboxPort, VectorHit, VectorItem, VectorPort,
 };
-use storage_ports::testing::{InMemoryFullText, InMemoryVector};
 use storage_ports::{PortResult, StorageError};
 use ukma_contracts::ScopeRef;
 
@@ -83,6 +82,34 @@ CREATE TABLE IF NOT EXISTS outbox_dead (
     event_id TEXT NOT NULL,
     reason   TEXT NOT NULL,
     PRIMARY KEY (scope, consumer, event_id)
+);
+CREATE TABLE IF NOT EXISTS fulltext (
+    scope    TEXT  NOT NULL,
+    analyzer TEXT  NOT NULL,
+    id       TEXT  NOT NULL,
+    revision TEXT  NOT NULL,
+    fields   JSONB NOT NULL,
+    all_text TEXT  NOT NULL,
+    PRIMARY KEY (scope, analyzer, id)
+);
+CREATE TABLE IF NOT EXISTS vector_profile (
+    scope          TEXT    NOT NULL,
+    profile_id     TEXT    NOT NULL,
+    model_id       TEXT    NOT NULL,
+    model_revision TEXT    NOT NULL,
+    dimension      INTEGER NOT NULL,
+    metric         TEXT    NOT NULL,
+    normalization  TEXT    NOT NULL,
+    PRIMARY KEY (scope, profile_id)
+);
+CREATE TABLE IF NOT EXISTS vector_item (
+    scope      TEXT  NOT NULL,
+    profile_id TEXT  NOT NULL,
+    id         TEXT  NOT NULL,
+    revision   TEXT  NOT NULL,
+    vector     REAL[] NOT NULL,
+    metadata   JSONB NOT NULL,
+    PRIMARY KEY (scope, profile_id, id)
 );
 CREATE TABLE IF NOT EXISTS canonical_schema (
     id      INTEGER PRIMARY KEY CHECK (id = 1),
@@ -174,8 +201,6 @@ fn dsn_hint(dsn: &str) -> String {
 pub struct PostgresStore {
     dsn: String,
     client: Mutex<Client>,
-    fulltext: InMemoryFullText,
-    vector: InMemoryVector,
 }
 
 impl PostgresStore {
@@ -207,8 +232,6 @@ impl PostgresStore {
         Ok(Self {
             dsn: dsn.to_string(),
             client: Mutex::new(client),
-            fulltext: InMemoryFullText::new(),
-            vector: InMemoryVector::new(),
         })
     }
 
@@ -620,11 +643,46 @@ impl storage_ports::MigrationStore for PostgresStore {
 
 impl FullTextPort for PostgresStore {
     fn index(&self, scope: &ScopeRef, analyzer: &str, doc: &FullTextDoc) -> PortResult<()> {
-        self.fulltext.index(scope, analyzer, doc)
+        validate_scope(scope)?;
+        let mut client = self.client.lock().map_err(|_| lock_error())?;
+        let fields = serde_json::to_value(&doc.fields)
+            .map_err(|error| internal(format!("fulltext fields: {error}")))?;
+        let all_text = doc
+            .fields
+            .values()
+            .cloned()
+            .collect::<Vec<String>>()
+            .join(" ");
+        client
+            .execute(
+                "INSERT INTO fulltext (scope, analyzer, id, revision, fields, all_text)
+                 VALUES ($1, $2, $3, $4, $5, $6)
+                 ON CONFLICT (scope, analyzer, id) DO UPDATE
+                 SET revision = excluded.revision, fields = excluded.fields,
+                     all_text = excluded.all_text",
+                &[
+                    &scope_key(scope),
+                    &analyzer,
+                    &doc.id,
+                    &doc.revision,
+                    &fields,
+                    &all_text,
+                ],
+            )
+            .map_err(to_internal)?;
+        Ok(())
     }
 
     fn delete(&self, scope: &ScopeRef, analyzer: &str, id: &str) -> PortResult<()> {
-        self.fulltext.delete(scope, analyzer, id)
+        validate_scope(scope)?;
+        let mut client = self.client.lock().map_err(|_| lock_error())?;
+        client
+            .execute(
+                "DELETE FROM fulltext WHERE scope = $1 AND analyzer = $2 AND id = $3",
+                &[&scope_key(scope), &analyzer, &id],
+            )
+            .map_err(to_internal)?;
+        Ok(())
     }
 
     fn search(
@@ -635,29 +693,191 @@ impl FullTextPort for PostgresStore {
         query: &str,
         limit: usize,
     ) -> PortResult<Vec<FullTextHit>> {
-        self.fulltext.search(scope, analyzer, field, query, limit)
+        validate_scope(scope)?;
+        let mut client = self.client.lock().map_err(|_| lock_error())?;
+        // Real in-database search: PostgreSQL ranks the tsvector built from the
+        // document; `analyzer` is the isolation label, the tokenisation is the
+        // server's `simple` configuration (stated, not hidden).
+        let rows = match field {
+            Some(field) => client
+                .query(
+                    "SELECT id, revision,
+                            ts_rank_cd(to_tsvector('simple', COALESCE(fields ->> $5, '')),
+                                       plainto_tsquery('simple', $4)) AS score
+                     FROM fulltext
+                     WHERE scope = $1 AND analyzer = $2
+                       AND to_tsvector('simple', COALESCE(fields ->> $5, ''))
+                           @@ plainto_tsquery('simple', $4)
+                     ORDER BY score DESC, id ASC
+                     LIMIT $3",
+                    &[
+                        &scope_key(scope),
+                        &analyzer,
+                        &(limit as i64),
+                        &query,
+                        &field,
+                    ],
+                )
+                .map_err(to_internal)?,
+            None => client
+                .query(
+                    "SELECT id, revision,
+                            ts_rank_cd(to_tsvector('simple', all_text),
+                                       plainto_tsquery('simple', $4)) AS score
+                     FROM fulltext
+                     WHERE scope = $1 AND analyzer = $2
+                       AND to_tsvector('simple', all_text) @@ plainto_tsquery('simple', $4)
+                     ORDER BY score DESC, id ASC
+                     LIMIT $3",
+                    &[&scope_key(scope), &analyzer, &(limit as i64), &query],
+                )
+                .map_err(to_internal)?,
+        };
+        Ok(rows
+            .into_iter()
+            .map(|row| FullTextHit {
+                id: row.get(0),
+                revision: row.get(1),
+                score: row.get::<_, f32>(2) as f64,
+            })
+            .collect())
     }
 
     fn analyzers(&self) -> Vec<String> {
-        self.fulltext.analyzers()
+        // The analyzers this store actually holds documents for.
+        let mut client = match self.client.lock() {
+            Ok(client) => client,
+            Err(_) => return Vec::new(),
+        };
+        match client.query(
+            "SELECT DISTINCT analyzer FROM fulltext ORDER BY analyzer",
+            &[],
+        ) {
+            Ok(rows) => rows.into_iter().map(|row| row.get(0)).collect(),
+            Err(_) => Vec::new(),
+        }
     }
 }
 
 impl VectorPort for PostgresStore {
     fn declare_profile(&self, scope: &ScopeRef, profile: &EmbeddingProfile) -> PortResult<()> {
-        self.vector.declare_profile(scope, profile)
+        validate_scope(scope)?;
+        let mut client = self.client.lock().map_err(|_| lock_error())?;
+        let existing = client
+            .query_opt(
+                "SELECT dimension FROM vector_profile WHERE scope = $1 AND profile_id = $2",
+                &[&scope_key(scope), &profile.profile_id],
+            )
+            .map_err(to_internal)?;
+        if let Some(row) = existing {
+            let stored: i32 = row.get(0);
+            if stored as usize != profile.dimension {
+                return Err(StorageError::ModelProfileMismatch {
+                    detail: format!(
+                        "profile `{}` is stored with dimension {stored}, not {}",
+                        profile.profile_id, profile.dimension
+                    ),
+                });
+            }
+        }
+        client
+            .execute(
+                "INSERT INTO vector_profile
+                 (scope, profile_id, model_id, model_revision, dimension, metric, normalization)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7)
+                 ON CONFLICT (scope, profile_id) DO UPDATE
+                 SET model_id = excluded.model_id, model_revision = excluded.model_revision,
+                     metric = excluded.metric, normalization = excluded.normalization",
+                &[
+                    &scope_key(scope),
+                    &profile.profile_id,
+                    &profile.model_id,
+                    &profile.model_revision,
+                    &(profile.dimension as i32),
+                    &metric_label(profile.metric),
+                    &profile.normalization,
+                ],
+            )
+            .map_err(to_internal)?;
+        Ok(())
     }
 
     fn profile(&self, scope: &ScopeRef, profile_id: &str) -> PortResult<Option<EmbeddingProfile>> {
-        self.vector.profile(scope, profile_id)
+        validate_scope(scope)?;
+        let mut client = self.client.lock().map_err(|_| lock_error())?;
+        let row = client
+            .query_opt(
+                "SELECT model_id, model_revision, dimension, metric, normalization
+                 FROM vector_profile WHERE scope = $1 AND profile_id = $2",
+                &[&scope_key(scope), &profile_id],
+            )
+            .map_err(to_internal)?;
+        Ok(row.map(|row| EmbeddingProfile {
+            profile_id: profile_id.to_string(),
+            model_id: row.get(0),
+            model_revision: row.get(1),
+            dimension: row.get::<_, i32>(2) as usize,
+            metric: metric_from(&row.get::<_, String>(3)),
+            normalization: row.get(4),
+        }))
     }
 
     fn upsert(&self, scope: &ScopeRef, profile_id: &str, items: &[VectorItem]) -> PortResult<()> {
-        self.vector.upsert(scope, profile_id, items)
+        validate_scope(scope)?;
+        let profile =
+            self.profile(scope, profile_id)?
+                .ok_or_else(|| StorageError::ModelProfileMismatch {
+                    detail: format!("profile `{profile_id}` is not declared"),
+                })?;
+        for item in items {
+            if item.vector.len() != profile.dimension {
+                return Err(StorageError::ModelProfileMismatch {
+                    detail: format!(
+                        "item `{}` has dimension {}, profile expects {}",
+                        item.id,
+                        item.vector.len(),
+                        profile.dimension
+                    ),
+                });
+            }
+        }
+        let mut client = self.client.lock().map_err(|_| lock_error())?;
+        let mut transaction = client.transaction().map_err(to_internal)?;
+        for item in items {
+            let metadata = serde_json::to_value(&item.metadata)
+                .map_err(|error| internal(format!("vector metadata: {error}")))?;
+            transaction
+                .execute(
+                    "INSERT INTO vector_item (scope, profile_id, id, revision, vector, metadata)
+                     VALUES ($1, $2, $3, $4, $5, $6)
+                     ON CONFLICT (scope, profile_id, id) DO UPDATE
+                     SET revision = excluded.revision, vector = excluded.vector,
+                         metadata = excluded.metadata",
+                    &[
+                        &scope_key(scope),
+                        &profile_id,
+                        &item.id,
+                        &item.revision,
+                        &item.vector,
+                        &metadata,
+                    ],
+                )
+                .map_err(to_internal)?;
+        }
+        transaction.commit().map_err(to_internal)?;
+        Ok(())
     }
 
     fn delete(&self, scope: &ScopeRef, profile_id: &str, id: &str) -> PortResult<()> {
-        self.vector.delete(scope, profile_id, id)
+        validate_scope(scope)?;
+        let mut client = self.client.lock().map_err(|_| lock_error())?;
+        client
+            .execute(
+                "DELETE FROM vector_item WHERE scope = $1 AND profile_id = $2 AND id = $3",
+                &[&scope_key(scope), &profile_id, &id],
+            )
+            .map_err(to_internal)?;
+        Ok(())
     }
 
     fn search(
@@ -668,7 +888,93 @@ impl VectorPort for PostgresStore {
         k: usize,
         filter: Option<&BTreeMap<String, String>>,
     ) -> PortResult<Vec<VectorHit>> {
-        self.vector.search(scope, profile_id, query, k, filter)
+        validate_scope(scope)?;
+        let profile =
+            self.profile(scope, profile_id)?
+                .ok_or_else(|| StorageError::ModelProfileMismatch {
+                    detail: format!("profile `{profile_id}` is not declared"),
+                })?;
+        if query.len() != profile.dimension {
+            return Err(StorageError::ModelProfileMismatch {
+                detail: format!(
+                    "query dimension {} does not match profile dimension {}",
+                    query.len(),
+                    profile.dimension
+                ),
+            });
+        }
+        let filter_json: Option<Value> = match filter {
+            Some(map) if !map.is_empty() => {
+                let mut object = serde_json::Map::new();
+                for (key, value) in map {
+                    object.insert(key.clone(), Value::String(value.clone()));
+                }
+                Some(Value::Object(object))
+            }
+            _ => None,
+        };
+        let mut client = self.client.lock().map_err(|_| lock_error())?;
+        // Exact k-NN inside the database over float4[]: no ANN approximation, no
+        // in-process copy, and the metric comes from the declared profile.
+        let score = match profile.metric {
+            Metric::Cosine => {
+                "(SELECT COALESCE(sum(x * y), 0) FROM unnest(i.vector, $4::real[]) AS t(x, y))
+                 / NULLIF(
+                     (SELECT sqrt(COALESCE(sum(x * x), 0)) FROM unnest(i.vector) AS t(x))
+                     * (SELECT sqrt(COALESCE(sum(y * y), 0)) FROM unnest($4::real[]) AS t(y)),
+                     0)"
+            }
+            Metric::Dot => {
+                "(SELECT COALESCE(sum(x * y), 0) FROM unnest(i.vector, $4::real[]) AS t(x, y))"
+            }
+            Metric::L2 => {
+                "-sqrt((SELECT COALESCE(sum((x - y) * (x - y)), 0) FROM unnest(i.vector, $4::real[]) AS t(x, y)))"
+            }
+        };
+        let sql = format!(
+            "SELECT i.id, i.revision, {score} AS score
+             FROM vector_item i
+             WHERE i.scope = $1 AND i.profile_id = $2
+               AND ($5::jsonb IS NULL OR i.metadata @> $5::jsonb)
+             ORDER BY score DESC NULLS LAST, i.id ASC
+             LIMIT $3"
+        );
+        let rows = client
+            .query(
+                &sql,
+                &[
+                    &scope_key(scope),
+                    &profile_id,
+                    &(k as i64),
+                    &query,
+                    &filter_json,
+                ],
+            )
+            .map_err(to_internal)?;
+        Ok(rows
+            .into_iter()
+            .map(|row| VectorHit {
+                id: row.get(0),
+                revision: row.get(1),
+                score: row.get::<_, f64>(2),
+            })
+            .collect())
+    }
+}
+
+fn metric_label(metric: Metric) -> String {
+    match metric {
+        Metric::Cosine => "cosine".to_string(),
+        Metric::Dot => "dot".to_string(),
+        Metric::L2 => "l2".to_string(),
+    }
+}
+
+fn metric_from(label: &str) -> Metric {
+    match label {
+        "dot" => Metric::Dot,
+        "l2" => Metric::L2,
+        _ => Metric::Cosine,
     }
 }
 

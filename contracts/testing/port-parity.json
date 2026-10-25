@@ -82,5 +82,16 @@
         "GraphPort": "available when configured"
       }
     }
-  ]
+  ],
+  "three_way_equivalence": {
+    "verified": true,
+    "test": "crates/ukma-integration/tests/three_way_parity.rs::the_four_profile_c_ports_agree_in_one_run",
+    "scope": "embedded + SQLite + PostgreSQL on MetadataPort/OutboxPort, Qdrant on VectorPort, Neo4j on GraphPort, in one run",
+    "requires": [
+      "UKMA_POSTGRES_DSN",
+      "UKMA_QDRANT_URL",
+      "UKMA_NEO4J_URL",
+      "UKMA_NEO4J_PASSWORD"
+    ]
+  }
 }

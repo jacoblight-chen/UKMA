@@ -13,7 +13,7 @@ serde_json = "1"
 sha2 = "0.10"
 # The only backend SDK in this crate: arc001/db001 allow SQL clients under
 # `crates/adapters/` and nowhere else (ADR-021, ADR-061).
-postgres = "0.19"
+postgres = { version = "0.19", features = ["with-serde_json-1"] }
 
 [dev-dependencies]
 ukma-adapter-embedded = { path = "../embedded" }

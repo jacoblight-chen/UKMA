@@ -47,6 +47,8 @@
 | [ADR-057](./ADR-057.md) | P10 收尾修正：SQLite 第二後端與兩後端等價、候選索引解除 10k 上限（1M 實測）、RSS/on-disk 實測、備份排程與 CycloneDX SBOM；仍需 owner 批准 schema closure | ACCEPTED | §17.1 / §29.4 / §31.4 / §38.3 |
 | [ADR-058](./ADR-058.md) | Schema closure: wire payload schemas generated from the Rust types (schemars behind the `schema` feature, 184 `$defs`, 65 operations, 5338 contract checks) | ACCEPTED | 31 / 41.1 / 41.2 / 41.3 |
 | [ADR-059](./ADR-059.md) | Canonical schema migration (FM-006: SchemaVersionPort, forward-only chain, fail-closed runner, embedded + SQLite) and SBOM signing (`tools/release-evidence`: derive, check, generate-key, sign, verify) | ACCEPTED | 29.4 / 17.1 REP-003 |
+| [ADR-061](./ADR-061.md) | Profile C adapters are real (PostgreSQL canonical, Qdrant vectors, Neo4j graph) and configuration driven; the list-prefix bug found by the new contract test | ACCEPTED | 6.2 / 6.3 / 28.2 / 29.4 |
+| [ADR-062](./ADR-062.md) | Close the last four caveats: one-run three-way parity over the four profile-C ports, PostgreSQL tsvector + exact k-NN in-database, Ed25519-signed SBOM with recorded provenance, claim level derived from evidence | ACCEPTED | 17.1 / 29.4 / 6.2 / R8 |
 
 ## 編號衝突與對照（摘要）
 
