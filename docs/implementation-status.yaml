@@ -178,7 +178,7 @@ phases:
   work_packages:
   - id: P3-WP1
     status: in_progress
-    evidence: 'ParserPort + 38-language registry (all NotPorted, each with an S2-<lang> ledger slice) AND the S2 migration infrastructure: 38 real ledger slices (upstream paths, SHA, license/notices) + docs/migration/s2-parity-report.yaml + tests/s2_coverage.rs which fails if a language claims Ported without grammar_ported and parity=passed. No grammar is ported yet: 0/38.'
+    evidence: 'ParserPort + 38-language registry plus the S2 migration infrastructure (38 ledger slices with upstream paths/SHA/license, docs/migration/s2-parity-report.yaml, tests/s2_coverage.rs which fails if a language claims Ported without grammar_ported + parity=passed + an existing golden fixture/test). 1/38 grammars ported: rust, on the locked-baseline grammar versions tree-sitter 0.25.10 / tree-sitter-rust 0.24.2, extractor crates/code-intelligence/src/parsers/rust.rs, 10 passing golden parity tests in tests/s2_rust_parity.rs over tests/golden/s2-rust/sample.rs. Parity scope: symbol identity + 1-based spans + containment/import/call edge kinds and resolutions; cross-file resolution, macro expansion and type inference are NOT covered, so call edges are never static_exact. Remaining: 37 languages.'
     blocked_reason: null
   - id: P3-WP2
     status: done
@@ -197,8 +197,8 @@ phases:
     evidence: null
     blocked_reason: null
   - id: P3-WP6
-    status: not_started
-    evidence: null
+    status: in_progress
+    evidence: 'S2 parity gate exists and passes: docs/migration/s2-parity-report.yaml + ledger slices are cross-checked against the registry and the golden fixtures by tests/s2_coverage.rs, so a language cannot claim Ported without executed evidence. Golden parity for CODE-001/CODE-002 is only covered for rust so far; the per-language golden reports for the other 37 languages are still missing.'
     blocked_reason: null
 - id: P4
   name: Document Intelligence 14 ops

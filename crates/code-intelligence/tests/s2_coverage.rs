@@ -8,12 +8,16 @@
 //! 3. the parity report has a row for the language;
 //! 4. a language the registry reports as `Ported` must have
 //!    `grammar_ported: true` **and** `parity: passed`;
-//! 5. conversely a report claiming `passed` is rejected while the registry still
-//!    says `NotPorted` (no free wins in either direction).
+//! 5. a `passed` parity row must point at a golden fixture and a golden test that
+//!    both exist on disk, and the golden test must be a real test target;
+//! 6. conversely a report claiming `passed` is rejected while the registry still
+//!    says `NotPorted` (no free wins in either direction);
+//! 7. the ledger slice must record the change log, the preserved behaviour and
+//!    the executed evidence for every claimed language.
 
 use std::path::{Path, PathBuf};
 
-use code_intelligence::{LanguageRegistry, SupportLevel, UPSTREAM_LANGUAGES};
+use code_intelligence::{LanguageRegistry, SupportLevel, PORTED_LANGUAGES, UPSTREAM_LANGUAGES};
 
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -94,7 +98,8 @@ fn every_baseline_language_has_a_ledger_slice() {
 
 #[test]
 fn parity_report_covers_every_language() {
-    let report = load_yaml(&repo_root().join("docs/migration/s2-parity-report.yaml"));
+    let root = repo_root();
+    let report = load_yaml(&root.join("docs/migration/s2-parity-report.yaml"));
     let rows = report
         .get("languages")
         .and_then(serde_yaml::Value::as_sequence)
@@ -120,12 +125,34 @@ fn parity_report_covers_every_language() {
             .get(language)
             .expect("registry entry")
             .support_level;
+        if ledger_ported(&root, &expected_slice) {
+            assert_eq!(
+                parity, "passed",
+                "{language}: ledger records grammar_ported but the parity row does not say passed"
+            );
+        }
         match parity {
-            "passed" => assert_eq!(
-                support,
-                SupportLevel::Ported,
-                "{language}: report claims passing parity but the registry does not say Ported"
-            ),
+            "passed" => {
+                assert_eq!(
+                    support,
+                    SupportLevel::Ported,
+                    "{language}: report claims passing parity but the registry does not say Ported"
+                );
+                for field in ["golden_fixture", "golden_test"] {
+                    let relative = row
+                        .get(field)
+                        .and_then(serde_yaml::Value::as_str)
+                        .unwrap_or_else(|| {
+                            panic!("{language}: a passed parity row needs `{field}`")
+                        });
+                    let path = root.join(relative);
+                    assert!(
+                        path.is_file(),
+                        "{language}: `{field}` must exist at {}",
+                        path.display()
+                    );
+                }
+            }
             _ => assert_ne!(
                 support,
                 SupportLevel::Ported,
@@ -138,15 +165,79 @@ fn parity_report_covers_every_language() {
 #[test]
 fn nothing_is_claimed_as_ported_without_evidence() {
     let registry = LanguageRegistry::new();
-    let ported: Vec<&str> = registry
+    let mut ported: Vec<&str> = registry
         .entries()
         .iter()
         .filter(|entry| entry.support_level == SupportLevel::Ported)
         .map(|entry| entry.language.as_str())
         .collect();
-    assert!(
-        ported.is_empty(),
-        "no grammar has been ported yet; unexpected Ported languages: {ported:?}"
+    ported.sort_unstable();
+    // grow this list only together with the ledger slice and the golden test
+    assert_eq!(ported, vec!["rust"], "only S2-rust has landed so far");
+    assert_eq!(
+        registry.not_ported().len(),
+        UPSTREAM_LANGUAGES.len() - ported.len()
     );
-    assert_eq!(registry.not_ported().len(), 38);
+}
+
+#[test]
+fn ported_slices_record_their_changes_and_evidence() {
+    let root = repo_root();
+    for language in PORTED_LANGUAGES {
+        let path = root
+            .join("docs/migration/ledger")
+            .join(format!("S2-{language}.yaml"));
+        let ledger = load_yaml(&path);
+        let changes = ledger
+            .get("changes")
+            .and_then(serde_yaml::Value::as_sequence)
+            .map(Vec::len)
+            .unwrap_or(0);
+        assert!(
+            changes > 0,
+            "{language}: a ported slice must record what changed from upstream"
+        );
+        let preserved = ledger
+            .get("behavior")
+            .and_then(|behavior| behavior.get("preserved"))
+            .and_then(serde_yaml::Value::as_sequence)
+            .map(Vec::len)
+            .unwrap_or(0);
+        assert!(
+            preserved > 0,
+            "{language}: a ported slice must record the preserved algorithm semantics"
+        );
+        let golden = ledger
+            .get("tests")
+            .and_then(|tests| tests.get("golden"))
+            .and_then(serde_yaml::Value::as_str)
+            .unwrap_or("");
+        assert!(
+            golden.contains("passing"),
+            "{language}: golden evidence must record an executed, passing test: `{golden}`"
+        );
+        let grammar_ported = ledger
+            .get("status")
+            .and_then(|status| status.get("grammar_ported"))
+            .and_then(serde_yaml::Value::as_bool)
+            .unwrap_or(false);
+        assert!(grammar_ported, "{language}: grammar_ported must be true");
+        let parity = ledger
+            .get("status")
+            .and_then(|status| status.get("parity_report"))
+            .and_then(serde_yaml::Value::as_str)
+            .unwrap_or("");
+        assert_eq!(parity, "passed", "{language}: parity_report must be passed");
+    }
+}
+
+fn ledger_ported(root: &Path, slice: &str) -> bool {
+    let path = root
+        .join("docs/migration/ledger")
+        .join(format!("{slice}.yaml"));
+    load_yaml(&path)
+        .get("status")
+        .and_then(|status| status.get("grammar_ported"))
+        .and_then(serde_yaml::Value::as_bool)
+        .unwrap_or(false)
 }

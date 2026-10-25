@@ -11,6 +11,8 @@
 //! - the registry lists exactly the languages the locked upstream baseline has
 //!   parsers for (ADR-048 O-01).
 
+pub mod parsers;
+
 use serde::{Deserialize, Serialize};
 
 /// Why a code operation could not run.
@@ -339,6 +341,15 @@ pub const UPSTREAM_LANGUAGES: [&str; 38] = [
     "zig",
 ];
 
+/// Languages whose grammar is actually ported in this build.
+///
+/// A language may only be listed here when its ledger slice under
+/// `docs/migration/ledger/` records `grammar_ported: true` with a passing
+/// golden parity test (see `tests/s2_rust_parity.rs`). The registry and the
+/// migration paperwork are cross-checked by `tests/s2_coverage.rs`, so editing
+/// this list without the evidence fails the build.
+pub const PORTED_LANGUAGES: &[&str] = &["rust"];
+
 fn extensions_for(language: &str) -> Vec<String> {
     let list: &[&str] = match language {
         "bash" => &["sh", "bash"],
@@ -397,14 +408,19 @@ impl Default for LanguageRegistry {
 }
 
 impl LanguageRegistry {
-    /// Registry with all 38 upstream languages, every one `NotPorted` today.
+    /// Registry of all 38 upstream languages with the support level this build
+    /// can actually back with a grammar and a passing parity test.
     pub fn new() -> Self {
         let entries = UPSTREAM_LANGUAGES
             .iter()
             .map(|language| LanguageEntry {
                 language: (*language).to_string(),
                 extensions: extensions_for(language),
-                support_level: SupportLevel::NotPorted,
+                support_level: if PORTED_LANGUAGES.contains(language) {
+                    SupportLevel::Ported
+                } else {
+                    SupportLevel::NotPorted
+                },
                 ledger_slice: format!("S2-{language}"),
             })
             .collect();
@@ -469,8 +485,9 @@ pub trait ParserPort: Send + Sync {
 }
 
 /// A parser port that has no grammars wired: every language is `NotPorted` and
-/// every parse attempt fails with a typed error. This is the honest default
-/// until the S2 slices land.
+/// every parse attempt fails with a typed error. It is the reference shape of a
+/// parser port and the honest fallback for languages whose S2 slice has not
+/// landed yet.
 #[derive(Debug, Default)]
 pub struct UnportedParser {
     registry: LanguageRegistry,
@@ -491,11 +508,10 @@ impl UnportedParser {
 }
 
 impl ParserPort for UnportedParser {
-    fn support(&self, language: &str) -> SupportLevel {
-        self.registry
-            .get(language)
-            .map(|entry| entry.support_level)
-            .unwrap_or(SupportLevel::NotPorted)
+    fn support(&self, _language: &str) -> SupportLevel {
+        // This port has no grammars at all, so it cannot claim any language as
+        // ported even when the registry knows the language exists.
+        SupportLevel::NotPorted
     }
 
     fn parse(&self, path: &str, language: &str, source: &str) -> CodeResult<ParsedSource> {
@@ -532,7 +548,18 @@ mod tests {
                 "{language} must be registered"
             );
         }
-        assert_eq!(registry.not_ported().len(), 38, "nothing is ported yet");
+        assert_eq!(
+            registry.not_ported().len(),
+            UPSTREAM_LANGUAGES.len() - PORTED_LANGUAGES.len(),
+            "landed slices: {PORTED_LANGUAGES:?}"
+        );
+        for language in PORTED_LANGUAGES {
+            assert_eq!(
+                registry.get(language).unwrap().support_level,
+                SupportLevel::Ported,
+                "{language}: listed in PORTED_LANGUAGES"
+            );
+        }
     }
 
     #[test]
