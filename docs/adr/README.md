@@ -37,6 +37,8 @@
 | [ADR-047](./ADR-047.md) | System API Minimal Contract（4 個 system operation 的 wire 形狀） | ACCEPTED | §36.4 |
 | [ADR-048](./ADR-048.md) | 實作範圍與 Profile 決策（語言集 / PDF-OCR / DB Profile / Embedding / legacy runtime） | ACCEPTED | §8.1 / §9.1 / §25.2 / §28.2 |
 | [ADR-049](./ADR-049.md) | Code Intelligence 服務實作決策（同步核心 + §37 async port、derived projection、version-scoped id、FSM 對照、impact completeness） | ACCEPTED | §7.1 / §32.1 / §32.3 / §37 / §40.4 |
+| [ADR-050](./ADR-050.md) | Document Intelligence 實作決策（14 ops、no-OCR 結構性強制、rule-based 需求抽取、span 語意、redaction） | ACCEPTED | §9.1 / §31.4 / §33.1 / §33.2 / §33.3 / §37 / §40.4 / §41.4 |
+| [ADR-051](./ADR-051.md) | Fractal Memory 核心實作（P5）：reuse context/retrieval engine、抽取式 fold、FSRS/TTL、gzip 熵、BM25+RRF 檢索、sandbox 隔離、tombstone 與投影撤銷、CAPABILITY_UNAVAILABLE 邊界 | ACCEPTED | §21 / §22 / §23 / §26.4 / §34.1 / §34.2 / §37 / §40.2 |
 
 ## 編號衝突與對照（摘要）
 

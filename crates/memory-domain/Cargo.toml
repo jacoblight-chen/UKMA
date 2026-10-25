@@ -4,6 +4,17 @@ version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 publish = false
-description = "Fractal Memory domain: 25 operations (MAPI-01..25)."
+description = "Fractal Memory domain: canonical memory types, FSRS/TTL, folding, eviction, paging, agent scopes, deletion and the core operations (MAPI-01..25 core set)."
 
 [dependencies]
+serde = { version = "1", features = ["derive"] }
+sha2 = "0.10"
+context-engine = { path = "../context-engine" }
+embedding-engine = { path = "../embedding-engine" }
+flate2 = "1"
+retrieval-engine = { path = "../retrieval-engine" }
+ukma-contracts = { path = "../ukma-contracts" }
+
+[dev-dependencies]
+serde_json = "1"
+context-engine = { path = "../context-engine" }

@@ -23,6 +23,148 @@ pub const HUB_LIMIT: f64 = 50.0;
 pub const RECENCY_LAMBDA: f64 = 0.05;
 /// Cross-lingual alignment threshold (§25.4 `theta_align=.85`).
 pub const ALIGN_THETA: f64 = 0.85;
+/// BM25 term-frequency saturation (§29.2 `BM25_k1=1.5`).
+pub const BM25_K1: f64 = 1.5;
+/// BM25 length normalisation (§29.2 `BM25_b=.75`).
+pub const BM25_B: f64 = 0.75;
+
+/// BM25 over a fixed, already-tokenised corpus (§24.2).
+///
+/// `score(D,Q) = sum IDF(q_i) * f_i*(k1+1) / (f_i + k1*(1-b+b*|D|/avgdl))`.
+/// The IDF variant is the standard non-negative `ln(1 + (N-n+0.5)/(n+0.5))`;
+/// §24.2 registers only `k1` and `b`, so the variant is recorded in ADR-051.
+#[derive(Debug, Clone, Default)]
+pub struct Bm25Index {
+    docs: Vec<Vec<String>>,
+    doc_freq: BTreeMap<String, usize>,
+    avgdl: f64,
+}
+
+impl Bm25Index {
+    /// Build an index over the corpus.
+    pub fn build(corpus: &[Vec<String>]) -> Self {
+        let mut doc_freq: BTreeMap<String, usize> = BTreeMap::new();
+        let mut total = 0usize;
+        for doc in corpus {
+            let mut seen: BTreeMap<&str, ()> = BTreeMap::new();
+            for term in doc {
+                seen.insert(term.as_str(), ());
+            }
+            for term in seen.keys() {
+                *doc_freq.entry((*term).to_string()).or_insert(0) += 1;
+            }
+            total += doc.len();
+        }
+        let avgdl = if corpus.is_empty() {
+            0.0
+        } else {
+            total as f64 / corpus.len() as f64
+        };
+        Self {
+            docs: corpus.to_vec(),
+            doc_freq,
+            avgdl,
+        }
+    }
+
+    /// Number of indexed documents.
+    pub fn len(&self) -> usize {
+        self.docs.len()
+    }
+
+    /// Whether the corpus is empty.
+    pub fn is_empty(&self) -> bool {
+        self.docs.is_empty()
+    }
+
+    /// Inverse document frequency of one term.
+    pub fn idf(&self, term: &str) -> f64 {
+        let total = self.docs.len() as f64;
+        let frequency = *self.doc_freq.get(term).unwrap_or(&0) as f64;
+        (1.0 + (total - frequency + 0.5) / (frequency + 0.5)).ln()
+    }
+
+    /// Score one document; `doc_index` out of range is an error.
+    pub fn score(&self, query: &[String], doc_index: usize) -> Result<f64, String> {
+        let doc = self
+            .docs
+            .get(doc_index)
+            .ok_or_else(|| format!("document index {doc_index} is out of range"))?;
+        if self.avgdl <= 0.0 {
+            return Ok(0.0);
+        }
+        let dl = doc.len() as f64;
+        let mut total = 0.0;
+        for term in query {
+            let tf = doc.iter().filter(|token| *token == term).count();
+            if tf == 0 {
+                continue;
+            }
+            let f = tf as f64;
+            let denominator = f + BM25_K1 * (1.0 - BM25_B + BM25_B * dl / self.avgdl);
+            if denominator <= 0.0 {
+                continue;
+            }
+            total += self.idf(term) * f * (BM25_K1 + 1.0) / denominator;
+        }
+        if total.is_finite() {
+            Ok(total)
+        } else {
+            Err("non-finite BM25 score".to_string())
+        }
+    }
+
+    /// Rank all documents, best first, ties broken by document index.
+    pub fn rank(&self, query: &[String]) -> Result<Vec<(usize, f64)>, String> {
+        let mut scored: Vec<(usize, f64)> = Vec::with_capacity(self.docs.len());
+        for index in 0..self.docs.len() {
+            scored.push((index, self.score(query, index)?));
+        }
+        scored.sort_by(|left, right| {
+            right
+                .1
+                .partial_cmp(&left.1)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| left.0.cmp(&right.0))
+        });
+        Ok(scored)
+    }
+}
+
+/// Cosine similarity of two vectors (§24.2 `score_vec`).
+///
+/// Mismatched dimensions are an error: vectors from different embedding
+/// profiles are never compared directly.
+pub fn cosine(left: &[f32], right: &[f32]) -> Result<f64, String> {
+    if left.len() != right.len() {
+        return Err(format!(
+            "dimension mismatch: {} vs {}",
+            left.len(),
+            right.len()
+        ));
+    }
+    if left.is_empty() {
+        return Err("empty vectors".to_string());
+    }
+    let mut dot = 0.0f64;
+    let mut left_norm = 0.0f64;
+    let mut right_norm = 0.0f64;
+    for (a, b) in left.iter().zip(right.iter()) {
+        let a = f64::from(*a);
+        let b = f64::from(*b);
+        if !a.is_finite() || !b.is_finite() {
+            return Err("non-finite vector component".to_string());
+        }
+        dot += a * b;
+        left_norm += a * a;
+        right_norm += b * b;
+    }
+    if left_norm == 0.0 || right_norm == 0.0 {
+        return Ok(0.0);
+    }
+    let similarity = dot / (left_norm.sqrt() * right_norm.sqrt());
+    Ok(similarity.clamp(-1.0, 1.0))
+}
 
 /// One fused result.
 #[derive(Debug, Clone, PartialEq)]
@@ -593,5 +735,63 @@ mod tests {
         assert!(detail_tier(1.7).is_err(), "raw scores are out of range");
         assert!(detail_tier(f64::NAN).is_err());
         assert_eq!(DetailTier::Full.token_range(), (500, 2000));
+    }
+
+    fn tokens(text: &str) -> Vec<String> {
+        text.split_whitespace().map(|t| t.to_lowercase()).collect()
+    }
+
+    #[test]
+    fn bm25_ranks_the_matching_document_first() {
+        let corpus = vec![
+            tokens("alpha beta gamma"),
+            tokens("delta epsilon zeta"),
+            tokens("alpha alpha alpha"),
+        ];
+        let index = Bm25Index::build(&corpus);
+        assert_eq!(index.len(), 3);
+        let ranked = index.rank(&tokens("alpha")).unwrap();
+        assert_eq!(ranked[0].0, 2, "the most frequent match ranks first");
+        assert_eq!(ranked[1].0, 0);
+        assert_eq!(ranked[2].1, 0.0, "a document without the term scores zero");
+    }
+
+    #[test]
+    fn bm25_length_normalisation_discounts_longer_documents() {
+        let corpus = vec![tokens("alpha"), tokens("alpha filler filler filler filler")];
+        let index = Bm25Index::build(&corpus);
+        let short = index.score(&tokens("alpha"), 0).unwrap();
+        let long = index.score(&tokens("alpha"), 1).unwrap();
+        assert!(short > long, "short={short} long={long}");
+    }
+
+    #[test]
+    fn bm25_idf_is_never_negative_and_empty_corpus_scores_zero() {
+        let corpus = vec![tokens("common term"), tokens("common term")];
+        let index = Bm25Index::build(&corpus);
+        assert!(index.idf("common") >= 0.0, "idf={}", index.idf("common"));
+        assert_eq!(index.score(&tokens("absent"), 0).unwrap(), 0.0);
+        let empty = Bm25Index::build(&[]);
+        assert!(empty.is_empty());
+        assert!(empty.rank(&tokens("anything")).unwrap().is_empty());
+        let blank = Bm25Index::build(&[vec![], vec![]]);
+        assert_eq!(blank.score(&tokens("anything"), 0).unwrap(), 0.0);
+    }
+
+    #[test]
+    fn bm25_rejects_out_of_range_document_index() {
+        let index = Bm25Index::build(&[tokens("alpha")]);
+        assert!(index.score(&tokens("alpha"), 4).is_err());
+    }
+
+    #[test]
+    fn cosine_is_bounded_and_rejects_mismatched_dimensions() {
+        assert_eq!(cosine(&[1.0, 0.0], &[1.0, 0.0]).unwrap(), 1.0);
+        assert_eq!(cosine(&[1.0, 0.0], &[0.0, 1.0]).unwrap(), 0.0);
+        assert_eq!(cosine(&[1.0, 0.0], &[-1.0, 0.0]).unwrap(), -1.0);
+        assert_eq!(cosine(&[0.0, 0.0], &[1.0, 0.0]).unwrap(), 0.0);
+        assert!(cosine(&[1.0], &[1.0, 2.0]).is_err());
+        assert!(cosine(&[], &[]).is_err());
+        assert!(cosine(&[f32::NAN], &[1.0]).is_err());
     }
 }

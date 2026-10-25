@@ -230,44 +230,45 @@ phases:
     blocked_reason: null
 - id: P5
   name: Memory Domain Core
-  status: not_started
+  status: done
   work_packages:
   - id: P5-WP1
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'crates/memory-domain/src/domain.rs: §34.1 wire types (MemoryKind, MemoryRef equivalent Ref, MemoryView, MemoryQuery, WorkingBlockInput, EpisodeInput, FoldInput/FoldedResult, PagingReceipt, ReconsolidationWindow, AgentScopeGrant, DeletionReceipt, ProcedureDraft/ProcedureView) plus the 25 §34.2 request shapes and the single MemoryError enum with the registered codes (ADR-034/035). MemoryKind wire form is lowercase per §34.1 (ADR-051 D-01).'
     blocked_reason: null
   - id: P5-WP2
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'Working memory reuses context-engine::budget (single B_eff(d) implementation, floor(B_eff*share), remainder to the ring, sum == B_eff) and the five-stage compression sequence; 60/25/15 shares at depth 0, per-turn automatic block cap of 5, turn-based block expiry and budget-aware put/list/get_budget. Tests: mapi03_*/mapi04_*/mapi25_*, p5_contracts section_40_2_budget_vectors_hold / shares_always_sum_to_the_effective_budget / the_five_compression_stages_appear_in_order.'
     blocked_reason: null
   - id: P5-WP3
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'crates/memory-domain/src/fsrs.rs: R(t)=[1+(19/9)(t/S)]^-1, S_new=min(S*[1+0.5(11-D)(e^{1.5(1-R)}-1)],3650), failure max(S_min,S*0.5), T_active(d)=max(1h,72h/2^d), effective_active_until=min(creation+T_active, completion+1h), retention gates at 0.3/0.7, real gzip entropy ratio with SKIPPED_EMPTY, and RFC 3339 time with negative-interval rejection (clock skew). crates/memory-domain/src/episodic.rs: ACTIVE->COMPRESSED->ARCHIVED->EXPIRED->TOMBSTONED->PURGED, HELD with held_from restore, purge guards, sweep decisions. Tests: fsrs::tests (10), episodic::tests (11), p5_contracts ttl_sweep_*.'
     blocked_reason: null
   - id: P5-WP4
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'Folding reuses context-engine::folding (PRESERVE >0.7, SUMMARIZE 0.3-0.7, FOLD <=0.3, R1-R8 safety before the model, T_fold=T_orig*e^{-0.15*fold_level}, 22-dim feature order with mask). memory-domain adds extractive folding (no summariser in this build), forced lossless preserve when a safety rule fires, and POLICY_DENIED instead of truncating when the lossless result exceeds max_tokens. Tests: mapi13_*, p5_contracts folding_levels_and_trust_decay_follow_the_registered_boundaries / fold_keeps_every_evidence_reference_across_a_chain.'
     blocked_reason: null
   - id: P5-WP5
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'Eviction reuses context-engine DeterministicPolicy (hard filter, total order, CONTEXT_OVERFLOW_SAFE_FAILURE) and ShadowRlPolicy (shadow-only, never bypasses the safety filter). evaluate_eviction plans under memory:manage, reports candidates/selected/protected/model_profile/deterministic_fallback/overflow_safe_failure/policy_version/decision_reason with the compression stage, refuses unknown policy ids, and only mutates when dry_run=false. Tests: mapi24_*, p5_contracts eviction_never_touches_pinned_or_task_state_blocks.'
     blocked_reason: null
   - id: P5-WP6
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'Paging reuses context-engine::paging checksums: page_out records a PageRecord with checksum, revision, generation, TTL and refcount and refuses protected blocks; page_in re-checks ACL (sandbox), TTL, declared and recomputed hash, and block revision, then restores the block and bumps refcount. Reconsolidation (crates/memory-domain/src/reconsolidation.rs) provides immutable MemoryRevision with a logical head, rollback, labile_until = opened+window clamped to 1..=12h (default 4h), CAS against the basis revision, evidence required, and strength_decay=0.8 that only scales the ranking signal. Tests: mapi14/15/16/17, reconsolidation::tests (10), p5_contracts paging_* / a_concurrent_edit_makes_the_window_commit_fail_without_overwriting.'
     blocked_reason: null
   - id: P5-WP7
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'crates/memory-domain/src/scope.rs: max_depth=3, max_concurrent=10, subagent_timeout=300s, STARTING->RUNNING<->WAITING->terminal->FOLDING->SEALED->CLEANUP_ELIGIBLE, isolation key tenant+agent_instance+task, attenuation of scopes/tools/budget/expiry, child retention horizons (1h follow-up, 24h archive, 7d purge-eligible). Service enforces the sandbox: working/episodic visible only inside tenant+project+session+agent, close_agent_scope returns only FoldedResult + evidence refs + status. Tests: scope::tests (9), mapi01_*/mapi02_*, p5_contracts a_child_agent_cannot_read_its_parents_episodes / another_session_cannot_read_episodic_memory.'
     blocked_reason: null
   - id: P5-WP8
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'crates/memory-domain/src/deletion.rs: tombstone tag, per-projection revocation over lexical_index/vector_index/graph_projection/translation_cache, cache invalidation state, backup expiry, legal-hold flag; NEVER_REVOKED (source_artifact, code_document_knowledge, accepted_trace_link) is never in the projection list and is guarded by tests. forget refuses on legal hold (DELETION_BLOCKED) and on an open reconsolidation window (POLICY_DENIED), tombstones the record, marks accepted trace links stale instead of deleting them, and the tombstoned record is no longer searchable, retrievable or updatable. Tests: mapi23_*, deletion::tests (4), p5_contracts a_deletion_revokes_projections_only_* / a_tombstoned_record_cannot_be_updated_or_reforgotten.'
     blocked_reason: null
   - id: P5-WP9
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'MemoryService implements MAPI-01..09, 13..17, 23..25 (17 operations) as a sync core plus the delegating §37 async FractalMemoryPort (full 25 methods, the 8 P6 operations answering CAPABILITY_UNAVAILABLE). Tests: tests/mapi_matrix.rs (41) covering positive/negative/authorization/cross-scope/version/idempotency/capability-gap paths, tests/p5_contracts.rs (21) for the cross-cutting contracts, 70 unit tests. NOTE: MAPI-10..12 and 18..22 are contract-present but behaviour-deferred to P6 (ADR-051 D-09); no persistence adapter yet (ADR-051 gap 1).'
     blocked_reason: null
+
 - id: P6
   name: Memory Advanced
   status: not_started

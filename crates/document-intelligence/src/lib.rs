@@ -1,6 +1,6 @@
 //! Document Intelligence domain: 14 operations (DAPI-01..14).
 //!
-//! Normative source: `docs/UKMA_v1.2.3_Full_Spec.md` ?9, ?33.
+//! Normative source: `docs/UKMA_v1.2.3_Full_Spec.md` §9, §33.
 //!
 //! Constraints that apply to this crate from day one:
 //! - MUST NOT depend on any database SDK or vendor backend crate (ADR-021).
