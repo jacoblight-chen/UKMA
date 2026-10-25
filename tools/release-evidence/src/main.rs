@@ -269,6 +269,32 @@ fn digest_manifest(payload: &str, components: usize) -> Value {
     })
 }
 
+/// Records a signature that covers exactly this digest; anything else is dropped.
+///
+/// A signature over an older SBOM must not survive as provenance: it would make an
+/// unsigned release look signed.
+pub fn apply_signature(digest: &mut Value, signature: Option<Value>) {
+    let Some(signature) = signature else { return };
+    if signature["sha256"].as_str() != digest["sha256"].as_str() {
+        return;
+    }
+    let recorded = signature["signature"]
+        .as_str()
+        .unwrap_or_default()
+        .to_string();
+    let public_key = signature["public_key"].clone();
+    if let Some(object) = digest.as_object_mut() {
+        object.insert("signature".into(), json!(SIGNATURE));
+        object.insert("signature_algorithm".into(), json!("ed25519"));
+        object.insert("public_key".into(), public_key);
+        object.insert("signature_bytes".into(), json!(recorded));
+        object.insert(
+            "signature_note".into(),
+            json!("the private key is held outside the repository; verify with `cargo run -p ukma-release-evidence -- verify`"),
+        );
+    }
+}
+
 fn render(value: &Value) -> String {
     let mut text = serde_json::to_string_pretty(value).expect("value renders");
     text.push('\n');
@@ -288,7 +314,13 @@ fn derive_all() -> Result<(String, String, String, usize), String> {
         .as_array()
         .map(Vec::len)
         .unwrap_or_default();
-    let digest = digest_manifest(&payload, components);
+    let mut digest = digest_manifest(&payload, components);
+    apply_signature(
+        &mut digest,
+        std::fs::read_to_string(SIGNATURE)
+            .ok()
+            .and_then(|text| serde_json::from_str::<Value>(&text).ok()),
+    );
     Ok((render(&inventory), payload, render(&digest), components))
 }
 
@@ -573,6 +605,32 @@ mod tests {
             hex(other.verifying_key().as_bytes()),
             manifest["public_key"].as_str().unwrap()
         );
+    }
+
+    #[test]
+    fn a_covering_signature_is_recorded_and_a_stale_one_is_dropped() {
+        let payload = "{\"bomFormat\":\"CycloneDX\"}";
+        let digest = digest_manifest(payload, 1);
+        let fresh = sha256_hex(payload.as_bytes());
+        let mut signed = digest.clone();
+        apply_signature(
+            &mut signed,
+            Some(json!({"sha256": fresh, "public_key": "ab", "signature": "cd"})),
+        );
+        assert_eq!(signed["signature"], SIGNATURE);
+        assert_eq!(signed["signature_algorithm"], "ed25519");
+        assert_eq!(signed["public_key"], "ab");
+
+        let mut stale = digest.clone();
+        apply_signature(
+            &mut stale,
+            Some(json!({"sha256": "deadbeef", "public_key": "ab", "signature": "cd"})),
+        );
+        assert!(
+            stale["signature"].is_null(),
+            "a stale signature must not survive"
+        );
+        assert!(stale.get("public_key").is_none());
     }
 
     #[test]

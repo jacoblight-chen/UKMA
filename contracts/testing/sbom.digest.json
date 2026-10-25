@@ -9,5 +9,6 @@
   "sha256": "c5f8d767a68adeeec68f33f4d3a495396ca582af3b0a500f10bfbef8e96e8bee",
   "signature": "contracts/testing/sbom.signature.json",
   "signature_algorithm": "ed25519",
+  "signature_bytes": "a59ac40501c638d4ddc6945051c0d3770af11cb9f1e93fb443ad1ee153531abb35add6bb76ca2aa43423d68bfd1817c7f07fab098537baa626ff0a763ab34c01",
   "signature_note": "the private key is held outside the repository; verify with `cargo run -p ukma-release-evidence -- verify`"
 }
