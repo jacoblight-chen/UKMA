@@ -31,7 +31,7 @@
       ]
     },
     "data": {
-      "$ref": "shared.schema.json#/$defs/EditContextResult"
+      "$ref": "wire.schema.json#/$defs/EditContextResult"
     },
     "error": {
       "$ref": "shared.schema.json#/$defs/ErrorDetail"

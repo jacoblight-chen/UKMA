@@ -3,8 +3,23 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
+  "data": {
+    "evidence": [],
+    "folded": true,
+    "kind": "working",
+    "language": "x",
+    "redacted": true,
+    "reference": {
+      "id": "x",
+      "kind": "working",
+      "revision": "x"
+    },
+    "state": "x",
+    "token_count": 0,
+    "trust": 1,
+    "version": "x"
+  },
   "warnings": [],
   "partial_reasons": [],
-  "freshness": "current",
-  "data": null
+  "freshness": "current"
 }

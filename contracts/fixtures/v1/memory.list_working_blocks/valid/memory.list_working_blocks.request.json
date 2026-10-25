@@ -13,8 +13,10 @@
     "consistency": "eventual"
   },
   "input": {
-    "session_id": null,
-    "agent_id": null,
-    "page": null
+    "agent_id": "x",
+    "page": {
+      "limit": 0
+    },
+    "session_id": "x"
   }
 }

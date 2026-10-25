@@ -99,11 +99,17 @@ the elected option is recorded in the entry's `reason`.
 
 | Measurement | Value |
 |---|---|
-| External / transitive packages | **296** |
-| Workspace packages | **28** |
+| External / transitive packages | **307** |
+| Workspace packages | **29** |
 | Packages without a declared licence | **0** |
 | Blocked licences | **0** |
 | Backend SDK packages (rocksdb, sqlx, qdrant-client, neo4j, …) | **0** |
+| CycloneDX components | **336** |
+
+The counts were refreshed with the schema-closure work (ADR-058): `schemars`,
+`schemars_derive`, `serde_derive_internals` and `dyn-clone` are MIT-licensed build
+dependencies used only behind the opt-in `schema` feature that generates the wire
+payload schemas.
 
 Two packages offer `MIT OR Apache-2.0 OR LGPL-2.1-or-later`; the permissive option
 is elected, so the LGPL option is never taken. No package is copyleft-only.

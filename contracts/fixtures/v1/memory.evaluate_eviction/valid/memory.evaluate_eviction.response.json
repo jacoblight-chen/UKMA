@@ -3,8 +3,16 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
+  "data": {
+    "candidates": [],
+    "decision_reason": "x",
+    "deterministic_fallback": true,
+    "overflow_safe_failure": true,
+    "policy_version": "x",
+    "protected": [],
+    "selected": []
+  },
   "warnings": [],
   "partial_reasons": [],
-  "freshness": "current",
-  "data": null
+  "freshness": "current"
 }

@@ -3,13 +3,13 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
-  "warnings": [],
-  "partial_reasons": [],
-  "freshness": "current",
   "data": {
     "blocks": [],
+    "omitted_refs": [],
     "total_tokens": 0,
-    "truncation": false,
-    "omitted_refs": []
-  }
+    "truncation": true
+  },
+  "warnings": [],
+  "partial_reasons": [],
+  "freshness": "current"
 }

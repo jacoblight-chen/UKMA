@@ -7,6 +7,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Validation state of an extracted claim (`§33.1 ValidationState`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ValidationState {
@@ -19,6 +20,7 @@ pub enum ValidationState {
 }
 
 /// How strongly a statement is expressed (`§33.1 normative_strength`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum NormativeStrength {
@@ -33,6 +35,7 @@ pub enum NormativeStrength {
 }
 
 /// Lifecycle of a requirement candidate (`§33.1 status`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RequirementStatus {
@@ -47,8 +50,10 @@ pub enum RequirementStatus {
 }
 
 /// Kind of a document block (`§33.1 DocumentBlock.kind`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "schema", schemars(rename = "DocumentBlockKind"))]
 pub enum BlockKind {
     /// Section heading.
     Heading,
@@ -71,6 +76,7 @@ pub enum BlockKind {
 }
 
 /// Parse status of one block (`§33.1 parse_status`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ParseStatus {
@@ -83,6 +89,7 @@ pub enum ParseStatus {
 }
 
 /// Completeness of a parsed document (`§33.1 completeness`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DocCompleteness {
@@ -106,6 +113,7 @@ impl DocCompleteness {
 }
 
 /// Diagnostic severity (`§33.1`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Severity {
@@ -118,6 +126,7 @@ pub enum Severity {
 }
 
 /// Half-open byte range plus 1-based lines inside one artifact.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Span {
     /// First line (1-based).
@@ -171,6 +180,7 @@ impl Span {
 }
 
 /// Where a document came from (`§33.1 DocumentSource`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DocumentSource {
     /// Original URI (informational; the artifact is the authority).
@@ -239,6 +249,7 @@ impl MediaFormat {
 }
 
 /// One block of a parsed document (`§33.1 DocumentBlock`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DocumentBlock {
     /// Block id (deterministic, revision-scoped).
@@ -262,6 +273,7 @@ pub struct DocumentBlock {
 }
 
 /// One parse diagnostic (`§33.1 diagnostics[]`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ParseDiagnostic {
     /// Stable code.
@@ -275,6 +287,7 @@ pub struct ParseDiagnostic {
 }
 
 /// Result of parsing one artifact (`§33.1 ParsedDocument`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ParsedDocument {
     /// Document id.
@@ -309,6 +322,7 @@ impl ParsedDocument {
 }
 
 /// An extracted requirement (`§33.1 RequirementCandidate`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RequirementCandidate {
     /// Candidate id.
@@ -334,6 +348,7 @@ pub struct RequirementCandidate {
 }
 
 /// An extracted relation between two refs (`§33.1 ExtractedRelation`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExtractedRelation {
     /// Source ref.
@@ -351,6 +366,7 @@ pub struct ExtractedRelation {
 }
 
 /// One search hit (`§33.2 document.search`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SearchHit {
     /// Document id.
@@ -368,6 +384,7 @@ pub struct SearchHit {
 }
 
 /// One consistency finding (`§33.1 ConsistencyFinding`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConsistencyFinding {
     /// Finding id.
@@ -387,6 +404,7 @@ pub struct ConsistencyFinding {
 }
 
 /// Category of a consistency finding.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ConsistencyCategory {
@@ -403,6 +421,7 @@ pub enum ConsistencyCategory {
 }
 
 /// Result of `document.verify_consistency` (`§33.1 ConsistencyReport`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConsistencyReport {
     /// Findings, ordered by category then id.
@@ -420,6 +439,7 @@ pub struct ConsistencyReport {
 }
 
 /// One change between two revisions (`§33.1 DocDiff`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DocChange {
     /// Change kind.
@@ -433,6 +453,7 @@ pub struct DocChange {
 }
 
 /// Kind of document change.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DocChangeKind {
@@ -447,6 +468,7 @@ pub enum DocChangeKind {
 }
 
 /// Result of `document.compare_revisions` (`§33.1 DocDiff`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DocDiff {
     /// Old revision label.
@@ -460,7 +482,9 @@ pub struct DocDiff {
 }
 
 /// Page request (§31.4). Kept local so the crate has no wire dependency.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "DocumentPageRequest"))]
 pub struct PageRequest {
     /// Opaque cursor.
     pub cursor: Option<String>,
@@ -514,6 +538,7 @@ impl PageRequest {
 }
 
 /// One page of results.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Page<T> {
     /// Items.
@@ -547,7 +572,9 @@ impl<T> Page<T> {
 }
 
 /// Handle of an accepted ingest job.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "DocumentJobHandle"))]
 pub struct JobHandle {
     /// Job id.
     pub job_id: String,
@@ -558,7 +585,9 @@ pub struct JobHandle {
 }
 
 /// Live job view.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "DocumentJobView"))]
 pub struct JobView {
     /// Job id.
     pub job_id: String,
@@ -577,7 +606,9 @@ pub struct JobView {
 }
 
 /// Bookkeeping receipt of a mutation.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "DocumentChangeReceipt"))]
 pub struct ChangeReceipt {
     /// Resource affected.
     pub resource_id: String,
@@ -594,6 +625,7 @@ pub struct ChangeReceipt {
 // ---------------------------------------------------------------------------
 
 /// `document.ingest` (DAPI-01).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DocumentIngest {
     /// Source description.
@@ -607,14 +639,18 @@ pub struct DocumentIngest {
 }
 
 /// `document.get_ingest_job` (DAPI-02).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "DocumentGetJob"))]
 pub struct GetJob {
     /// Job id.
     pub job_id: String,
 }
 
 /// `document.cancel_ingest_job` (DAPI-03).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "DocumentCancelJob"))]
 pub struct CancelJob {
     /// Job id.
     pub job_id: String,
@@ -623,6 +659,7 @@ pub struct CancelJob {
 }
 
 /// `document.get_document` (DAPI-04).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GetDocument {
     /// Document id.
@@ -634,6 +671,7 @@ pub struct GetDocument {
 }
 
 /// Result of `document.get_document`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DocumentView {
     /// Document id.
@@ -652,6 +690,7 @@ pub struct DocumentView {
 ///
 /// Not a wire operation: this is how a caller (or a test) reads what the parser
 /// actually did ? parser identity, diagnostics and how much was left unparsed.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DocumentManifest {
     /// Document id.
@@ -675,6 +714,7 @@ pub struct DocumentManifest {
 }
 
 /// `document.parse_preview` (DAPI-05): parse without persisting.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ParsePreview {
     /// Source description.
@@ -686,6 +726,7 @@ pub struct ParsePreview {
 }
 
 /// `document.search` (DAPI-06).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SearchDocument {
     /// Scope the search runs in.
@@ -705,6 +746,7 @@ pub struct SearchDocument {
 }
 
 /// `document.extract_requirements` (DAPI-07).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExtractRequirements {
     /// Document id.
@@ -718,6 +760,7 @@ pub struct ExtractRequirements {
 }
 
 /// `document.extract_relations` (DAPI-08).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExtractRelations {
     /// Document id.
@@ -735,6 +778,7 @@ pub struct ExtractRelations {
 }
 
 /// `document.review_requirement` (DAPI-09).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReviewRequirement {
     /// Candidate id.
@@ -750,6 +794,7 @@ pub struct ReviewRequirement {
 }
 
 /// Review decision.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ReviewDecision {
@@ -760,6 +805,7 @@ pub enum ReviewDecision {
 }
 
 /// Result of `document.review_requirement`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RequirementReviewResult {
     /// The updated candidate.
@@ -769,6 +815,7 @@ pub struct RequirementReviewResult {
 }
 
 /// `document.list_requirements` (DAPI-10).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ListRequirements {
     /// Document id.
@@ -780,6 +827,7 @@ pub struct ListRequirements {
 }
 
 /// `document.verify_consistency` (DAPI-11).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VerifyConsistency {
     /// Documents to include.
@@ -791,6 +839,7 @@ pub struct VerifyConsistency {
 }
 
 /// `document.compare_revisions` (DAPI-12).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DocumentRevisionDiff {
     /// Old document id.
@@ -800,6 +849,7 @@ pub struct DocumentRevisionDiff {
 }
 
 /// `document.invalidate_revision` (DAPI-13).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InvalidateDocumentRevision {
     /// Document id.
@@ -811,6 +861,7 @@ pub struct InvalidateDocumentRevision {
 }
 
 /// `document.get_source_span` (DAPI-14).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GetSourceSpan {
     /// Document id.
@@ -822,6 +873,7 @@ pub struct GetSourceSpan {
 }
 
 /// Result of `document.get_source_span`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SourceSpanView {
     /// Text, omitted when redacted or unavailable.

@@ -13,7 +13,8 @@
     "consistency": "eventual"
   },
   "input": {
-    "scope_id": "x",
-    "reason": "x"
+    "fold_on_close": true,
+    "reason": "x",
+    "scope_id": "x"
   }
 }

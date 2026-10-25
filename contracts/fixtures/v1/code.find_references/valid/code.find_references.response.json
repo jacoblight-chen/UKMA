@@ -3,13 +3,10 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
+  "data": {
+    "items": []
+  },
   "warnings": [],
   "partial_reasons": [],
-  "freshness": "current",
-  "data": {
-    "items": [],
-    "next_cursor": null,
-    "snapshot_id": "x",
-    "index_generation": "x"
-  }
+  "freshness": "current"
 }

@@ -147,40 +147,136 @@ fn get<'a>(value: &'a Yaml, key: &str) -> Option<&'a Yaml> {
     value.get(key)
 }
 
-/// Rewrite every `$ref` in a document to a local `#/$defs/<name>` pointer.
-fn localize_refs(value: &mut Value) {
+/// Rewrites `$ref` pointers of one definition set into a namespaced pointer.
+fn namespace_refs(value: &mut Value, prefix: &str) {
     match value {
         Value::Object(map) => {
             if let Some(Value::String(reference)) = map.get("$ref").cloned() {
                 if let Some(name) = reference.rsplit("#/$defs/").next() {
                     if reference.contains("#/$defs/") {
-                        map.insert("$ref".to_string(), Value::String(format!("#/$defs/{name}")));
+                        map.insert(
+                            "$ref".to_string(),
+                            Value::String(format!("#/$defs/{prefix}.{name}")),
+                        );
                     }
                 }
             }
             for child in map.values_mut() {
-                localize_refs(child);
+                namespace_refs(child, prefix);
             }
         }
-        Value::Array(items) => items.iter_mut().for_each(localize_refs),
+        Value::Array(items) => items
+            .iter_mut()
+            .for_each(|item| namespace_refs(item, prefix)),
         _ => {}
     }
 }
 
-/// Inline `shared.schema.json` `$defs` so a schema can be validated standalone.
-fn compose(schema: &Value, shared_defs: &Value) -> Value {
-    let mut doc = schema.clone();
-    let defs = doc
-        .as_object_mut()
-        .expect("schema root is an object")
-        .entry("$defs")
-        .or_insert_with(|| json!({}));
-    if let (Some(target), Some(source)) = (defs.as_object_mut(), shared_defs.as_object()) {
-        for (name, value) in source {
-            target.entry(name.clone()).or_insert_with(|| value.clone());
+/// Copies one `$defs` map under a `<prefix>.<name>` namespace.
+fn namespace_defs(defs: &Value, prefix: &str) -> serde_json::Map<String, Value> {
+    let mut out = serde_json::Map::new();
+    if let Some(map) = defs.as_object() {
+        for (name, schema) in map {
+            let mut cloned = schema.clone();
+            namespace_refs(&mut cloned, prefix);
+            out.insert(format!("{prefix}.{name}"), cloned);
         }
     }
-    localize_refs(&mut doc);
+    out
+}
+
+/// Points `wire.schema.json` / `shared.schema.json` refs at the namespaced defs.
+fn qualify_envelope_refs(value: &mut Value) {
+    match value {
+        Value::Object(map) => {
+            if let Some(Value::String(reference)) = map.get("$ref").cloned() {
+                let qualified = if reference.starts_with("wire.schema.json#/$defs/") {
+                    reference
+                        .rsplit("#/$defs/")
+                        .next()
+                        .map(|name| format!("#/$defs/wire.{name}"))
+                } else if reference.starts_with("shared.schema.json#/$defs/") {
+                    reference
+                        .rsplit("#/$defs/")
+                        .next()
+                        .map(|name| format!("#/$defs/shared.{name}"))
+                } else {
+                    None
+                };
+                if let Some(qualified) = qualified {
+                    map.insert("$ref".to_string(), Value::String(qualified));
+                }
+            }
+            for child in map.values_mut() {
+                qualify_envelope_refs(child);
+            }
+        }
+        Value::Array(items) => items.iter_mut().for_each(qualify_envelope_refs),
+        _ => {}
+    }
+}
+
+/// Collects the namespaced definition names referenced anywhere in `value`.
+fn referenced_names(value: &Value, out: &mut BTreeSet<String>) {
+    match value {
+        Value::Object(map) => {
+            if let Some(Value::String(reference)) = map.get("$ref") {
+                if let Some(name) = reference.strip_prefix("#/$defs/") {
+                    out.insert(name.to_string());
+                }
+            }
+            for child in map.values() {
+                referenced_names(child, out);
+            }
+        }
+        Value::Array(items) => items.iter().for_each(|item| referenced_names(item, out)),
+        _ => {}
+    }
+}
+
+/// Keeps only the definitions reachable from the document, so a tool schema
+/// carries the types its payload actually uses and nothing else.
+fn prune_defs(
+    document: &Value,
+    defs: &mut serde_json::Map<String, Value>,
+) -> serde_json::Map<String, Value> {
+    let mut reachable = BTreeSet::new();
+    referenced_names(document, &mut reachable);
+    loop {
+        let mut added = 0;
+        for name in reachable.clone() {
+            if let Some(schema) = defs.get(&name) {
+                let mut found = BTreeSet::new();
+                referenced_names(schema, &mut found);
+                for reference in found {
+                    if reachable.insert(reference) {
+                        added += 1;
+                    }
+                }
+            }
+        }
+        if added == 0 {
+            break;
+        }
+    }
+    defs.iter()
+        .filter(|(name, _)| reachable.contains(*name))
+        .map(|(name, schema)| (name.clone(), schema.clone()))
+        .collect()
+}
+
+/// Inline the `shared.schema.json` and `wire.schema.json` definitions so a
+/// schema can be validated standalone. Both sets are namespaced because they
+/// describe different type universes: the envelope types and the payload types.
+fn compose(schema: &Value, shared_defs: &Value, wire_defs: &Value) -> Value {
+    let mut doc = schema.clone();
+    qualify_envelope_refs(&mut doc);
+    let mut defs = namespace_defs(wire_defs, "wire");
+    defs.extend(namespace_defs(shared_defs, "shared"));
+    let pruned = prune_defs(&doc, &mut defs);
+    doc.as_object_mut()
+        .expect("schema root is an object")
+        .insert("$defs".to_string(), Value::Object(pruned));
     doc
 }
 
@@ -202,8 +298,13 @@ fn collect_refs(value: &Value, out: &mut Vec<String>) {
     }
 }
 
-fn validate(schema: &Value, shared_defs: &Value, instance: &Value) -> Result<(), String> {
-    let composed = compose(schema, shared_defs);
+fn validate(
+    schema: &Value,
+    shared_defs: &Value,
+    wire_defs: &Value,
+    instance: &Value,
+) -> Result<(), String> {
+    let composed = compose(schema, shared_defs, wire_defs);
     let compiled =
         jsonschema::JSONSchema::compile(&composed).map_err(|e| format!("schema: {e}"))?;
     let outcome = compiled.validate(instance);
@@ -431,6 +532,28 @@ fn main() -> ExitCode {
         shared_defs.as_object().is_some_and(|o| !o.is_empty()),
         || "shared.schema.json has no $defs (all cross-schema $refs would dangle)".to_string(),
     );
+    let wire_path = Path::new(SCHEMA_DIR).join("wire.schema.json");
+    let wire = match load_json(&wire_path) {
+        Ok(value) => value,
+        Err(error) => {
+            report.fail(
+                "SCHEMA-03",
+                format!("{error} (run `cargo run -p ukma-wire-schema`)"),
+            );
+            json!({})
+        }
+    };
+    let wire_defs = wire.get("$defs").cloned().unwrap_or_else(|| json!({}));
+    report.check(
+        "SCHEMA-03",
+        wire_defs.as_object().is_some_and(|defs| !defs.is_empty()),
+        || "wire.schema.json has no $defs (payload types would dangle)".to_string(),
+    );
+    let wire_operations = wire
+        .get("x-operations")
+        .and_then(Value::as_object)
+        .cloned()
+        .unwrap_or_default();
 
     for operation in &operations {
         let id = get(operation, "operation_id")
@@ -474,7 +597,16 @@ fn main() -> ExitCode {
             for reference in refs {
                 let resolvable = match reference.rsplit("#/$defs/").next() {
                     Some(name) if reference.contains("#/$defs/") => {
-                        shared_defs.get(name).is_some()
+                        let in_wire = reference.starts_with("wire.schema.json#/$defs/")
+                            || (!reference.starts_with("shared.schema.json#/$defs/")
+                                && !reference.starts_with('#')
+                                && wire_defs.get(name).is_some());
+                        let in_shared = reference.starts_with("shared.schema.json#/$defs/")
+                            || (!reference.starts_with("wire.schema.json#/$defs/")
+                                && !reference.starts_with('#')
+                                && shared_defs.get(name).is_some());
+                        in_wire
+                            || in_shared
                             || local_defs.is_some_and(|defs| defs.contains_key(name))
                     }
                     _ => false,
@@ -482,6 +614,38 @@ fn main() -> ExitCode {
                 report.check("SCHEMA-01", resolvable, || {
                     format!("{id}.{kind}: unresolvable $ref `{reference}`")
                 });
+            }
+            let pointer = if kind == "request" {
+                "/properties/input"
+            } else {
+                "/properties/data"
+            };
+            let payload = schema.pointer(pointer);
+            let typed = payload.is_some_and(|value| {
+                value.get("$ref").is_some()
+                    || (value.get("type").and_then(Value::as_str) == Some("object")
+                        && value
+                            .get("properties")
+                            .and_then(Value::as_object)
+                            .is_some_and(|props| !props.is_empty()))
+            });
+            report.check("SCHEMA-03", typed, || {
+                format!("{id}.{kind}: payload is not a typed schema (closure, §R1)")
+            });
+            if !id.starts_with("system.") {
+                let entry = wire_operations.get(id);
+                report.check("SCHEMA-03", entry.is_some(), || {
+                    format!("{id}: no generated wire types (run `cargo run -p ukma-wire-schema`)")
+                });
+                for role in ["request", "response"] {
+                    let name = entry
+                        .and_then(|entry| entry.get(role))
+                        .and_then(Value::as_str)
+                        .unwrap_or("");
+                    report.check("SCHEMA-03", wire_defs.get(name).is_some(), || {
+                        format!("{id}: {role} type `{name}` missing from wire.schema.json")
+                    });
+                }
             }
             if kind == "request" {
                 let declared = get(operation, "operation_uri")
@@ -531,7 +695,7 @@ fn main() -> ExitCode {
         let valid_response = base.join("valid").join(format!("{id}.response.json"));
         match (request_schema.as_ref(), load_json(&valid_request)) {
             (Some(schema), Ok(instance)) => {
-                let outcome = validate(schema, &shared_defs, &instance);
+                let outcome = validate(schema, &shared_defs, &wire_defs, &instance);
                 report.check("FIXTURES", outcome.is_ok(), || {
                     format!(
                         "{id}: valid request fixture rejected: {}",
@@ -543,7 +707,7 @@ fn main() -> ExitCode {
         }
         match (response_schema.as_ref(), load_json(&valid_response)) {
             (Some(schema), Ok(instance)) => {
-                let outcome = validate(schema, &shared_defs, &instance);
+                let outcome = validate(schema, &shared_defs, &wire_defs, &instance);
                 report.check("FIXTURES", outcome.is_ok(), || {
                     format!(
                         "{id}: valid response fixture rejected: {}",
@@ -578,7 +742,7 @@ fn main() -> ExitCode {
                     Ok(instance) => {
                         report.check(
                             "FIXTURES",
-                            validate(schema, &shared_defs, &instance).is_err(),
+                            validate(schema, &shared_defs, &wire_defs, &instance).is_err(),
                             || format!("{id}: invalid fixture `{name}` was accepted by the schema"),
                         );
                     }
@@ -681,14 +845,67 @@ fn main() -> ExitCode {
                     .get("input_schema")
                     .and_then(Value::as_str)
                     .unwrap_or("");
+                let operation_id = tool
+                    .get("operation_id")
+                    .and_then(Value::as_str)
+                    .unwrap_or("<missing>");
                 report.check(
                     "DRIFT",
                     !path.is_empty() && Path::new(path).exists(),
                     || format!("MCP tool input schema missing: `{path}`"),
                 );
+                // The MCP tool schema is the composed request schema, so a stale
+                // copy cannot advertise an untyped payload.
+                let canonical =
+                    PathBuf::from(SCHEMA_DIR).join(format!("{operation_id}.request.schema.json"));
+                if let (Ok(tool_schema), Ok(request_schema)) =
+                    (load_json(Path::new(path)), load_json(&canonical))
+                {
+                    let expected = compose(&request_schema, &shared_defs, &wire_defs);
+                    report.check("SCHEMA-03", tool_schema == expected, || {
+                        format!(
+                            "{operation_id}: `{path}` drifted from the canonical request schema"
+                        )
+                    });
+                } else {
+                    report.fail(
+                        "SCHEMA-03",
+                        format!(
+                            "{operation_id}: cannot compare `{path}` with `{}`",
+                            canonical.display()
+                        ),
+                    );
+                }
             }
         }
         Err(error) => report.fail("DRIFT", error),
+    }
+
+    // ---------- SCHEMA-03: no unresolved payload placeholders anywhere ----------
+    for directory in [SCHEMA_DIR, "contracts/mcp/tools"] {
+        let mut scanned = 0;
+        let mut unresolved: Vec<String> = Vec::new();
+        if let Ok(entries) = std::fs::read_dir(directory) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.extension().and_then(|extension| extension.to_str()) != Some("json") {
+                    continue;
+                }
+                scanned += 1;
+                let text = std::fs::read_to_string(&path).unwrap_or_default();
+                for marker in ["UNRESOLVED TYPE", "NOT CLOSED", "PROVISIONAL"] {
+                    if text.contains(marker) {
+                        unresolved.push(format!("{}: {marker}", path.display()));
+                    }
+                }
+            }
+        }
+        report.check("SCHEMA-03", scanned > 0, || {
+            format!("no JSON schemas found under `{directory}`")
+        });
+        report.check("SCHEMA-03", unresolved.is_empty(), || {
+            format!("unresolved payload placeholders remain: {unresolved:?}")
+        });
     }
 
     // ---------- DOC-04: orthogonal execution/commit/projection (§40.4) ----------

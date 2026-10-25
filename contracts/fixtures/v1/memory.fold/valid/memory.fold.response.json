@@ -3,8 +3,17 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
+  "data": {
+    "fold_level": 0,
+    "forced_preserve": true,
+    "key_facts": [],
+    "protected_evidence_refs": [],
+    "source_refs": [],
+    "summary": "x",
+    "token_count": 0,
+    "trust_score": 1
+  },
   "warnings": [],
   "partial_reasons": [],
-  "freshness": "current",
-  "data": null
+  "freshness": "current"
 }

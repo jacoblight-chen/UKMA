@@ -13,18 +13,13 @@
     "consistency": "eventual"
   },
   "input": {
-    "document": {
-      "domain": "code",
-      "kind": "x",
-      "id": "x",
-      "revision": "x",
-      "scope": {
-        "tenant_id": "x",
-        "project_id": "x"
-      }
+    "document_id": "x",
+    "extractor_profile": "x",
+    "page": {
+      "limit": 0
     },
-    "target_scope": null,
     "relation_kinds": [],
-    "extractor_profile": null
+    "target_project_id": "x",
+    "target_tenant_id": "x"
   }
 }

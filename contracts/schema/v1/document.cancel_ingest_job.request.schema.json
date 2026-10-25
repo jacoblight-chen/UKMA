@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.ukma.dev/v1/document.cancel_ingest_job.request.schema.json",
-  "title": "document.cancel_ingest_job Request [PHASE2 PROVISIONAL]",
+  "title": "document.cancel_ingest_job Request",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -21,23 +21,7 @@
       "$ref": "shared.schema.json#/$defs/RequestContext"
     },
     "input": {
-      "type": "object",
-      "properties": {
-        "job_id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "reason": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "required": [
-        "job_id",
-        "reason"
-      ],
-      "additionalProperties": false
+      "$ref": "wire.schema.json#/$defs/DocumentCancelJob"
     }
-  },
-  "$comment": "NOT A CLOSED INPUT CONTRACT: inferred from normative markdown table; require exact IDL and invariants."
+  }
 }

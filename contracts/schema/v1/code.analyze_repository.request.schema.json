@@ -21,41 +21,7 @@
       "$ref": "shared.schema.json#/$defs/RequestContext"
     },
     "input": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "revision": {
-          "$ref": "shared.schema.json#/$defs/RepoRevision"
-        },
-        "parser_profile": {
-          "type": "string",
-          "minLength": 1
-        },
-        "include_globs": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "exclude_globs": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "async": {
-          "const": true
-        }
-      },
-      "required": [
-        "revision",
-        "parser_profile",
-        "include_globs",
-        "exclude_globs",
-        "async"
-      ]
+      "$ref": "wire.schema.json#/$defs/AnalyzeRepository"
     }
   }
 }

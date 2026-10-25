@@ -13,20 +13,11 @@
     "consistency": "eventual"
   },
   "input": {
-    "repository": {
-      "domain": "code",
-      "kind": "x",
-      "id": "x",
-      "revision": "x",
-      "scope": {
-        "tenant_id": "x",
-        "project_id": "x"
-      }
-    },
     "from_revision": "x",
-    "to_revision": "x",
     "page": {
-      "limit": 1
-    }
+      "limit": 0
+    },
+    "repository_id": "x",
+    "to_revision": "x"
   }
 }

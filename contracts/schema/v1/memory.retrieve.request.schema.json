@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.ukma.dev/v1/memory.retrieve.request.schema.json",
-  "title": "memory.retrieve Request [PHASE2 PROVISIONAL]",
+  "title": "memory.retrieve Request",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -21,26 +21,7 @@
       "$ref": "shared.schema.json#/$defs/RequestContext"
     },
     "input": {
-      "type": "object",
-      "properties": {
-        "memory": {
-          "$ref": "shared.schema.json#/$defs/Ref"
-        },
-        "detail": {
-          "type": "string",
-          "minLength": 1
-        },
-        "max_tokens": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "memory",
-        "detail",
-        "max_tokens"
-      ],
-      "additionalProperties": false
+      "$ref": "wire.schema.json#/$defs/RetrieveMemory"
     }
-  },
-  "$comment": "NOT A CLOSED INPUT CONTRACT: inferred from normative markdown table; require exact IDL and invariants."
+  }
 }

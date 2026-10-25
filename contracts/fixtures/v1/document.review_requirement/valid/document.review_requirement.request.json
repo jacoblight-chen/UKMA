@@ -13,16 +13,10 @@
     "consistency": "eventual"
   },
   "input": {
-    "candidate": {
-      "domain": "code",
-      "kind": "x",
-      "id": "x",
-      "revision": "x",
-      "scope": {
-        "tenant_id": "x",
-        "project_id": "x"
-      }
-    },
-    "decision": null
+    "candidate_id": "x",
+    "decision": "approve",
+    "evidence_ids": [],
+    "expected_etag": "x",
+    "rationale": "x"
   }
 }

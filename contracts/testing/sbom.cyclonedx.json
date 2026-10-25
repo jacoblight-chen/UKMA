@@ -1381,6 +1381,27 @@
     },
     {
       "type": "library",
+      "bom-ref": "dyn-clone@1.0.20",
+      "name": "dyn-clone",
+      "version": "1.0.20",
+      "purl": "pkg:cargo/dyn-clone@1.0.20",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "ukma:workspace_member",
+          "value": "false"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT OR Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "ecb@0.1.2",
       "name": "ecb",
       "version": "0.1.2",
@@ -3922,6 +3943,48 @@
     },
     {
       "type": "library",
+      "bom-ref": "schemars@0.8.22",
+      "name": "schemars",
+      "version": "0.8.22",
+      "purl": "pkg:cargo/schemars@0.8.22",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "ukma:workspace_member",
+          "value": "false"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "schemars_derive@0.8.22",
+      "name": "schemars_derive",
+      "version": "0.8.22",
+      "purl": "pkg:cargo/schemars_derive@0.8.22",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "ukma:workspace_member",
+          "value": "false"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "scopeguard@1.2.0",
       "name": "scopeguard",
       "version": "1.2.0",
@@ -3989,6 +4052,27 @@
       "name": "serde_derive",
       "version": "1.0.229",
       "purl": "pkg:cargo/serde_derive@1.0.229",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "ukma:workspace_member",
+          "value": "false"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT OR Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "serde_derive_internals@0.29.1",
+      "name": "serde_derive_internals",
+      "version": "0.29.1",
+      "purl": "pkg:cargo/serde_derive_internals@0.29.1",
       "scope": "required",
       "properties": [
         {
@@ -5942,6 +6026,27 @@
       "name": "ukma-types",
       "version": "0.1.0",
       "purl": "pkg:cargo/ukma-types@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "ukma:workspace_member",
+          "value": "true"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "ukma-wire-schema@0.1.0",
+      "name": "ukma-wire-schema",
+      "version": "0.1.0",
+      "purl": "pkg:cargo/ukma-wire-schema@0.1.0",
       "scope": "required",
       "properties": [
         {

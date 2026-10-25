@@ -3,8 +3,14 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
+  "data": {
+    "completeness": "complete",
+    "impacted": [],
+    "links": [],
+    "paths": [],
+    "unknown_due_to_stale": []
+  },
   "warnings": [],
   "partial_reasons": [],
-  "freshness": "current",
-  "data": null
+  "freshness": "current"
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.ukma.dev/v1/memory.commit_reconsolidation.request.schema.json",
-  "title": "memory.commit_reconsolidation Request [PHASE2 PROVISIONAL]",
+  "title": "memory.commit_reconsolidation Request",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -21,33 +21,7 @@
       "$ref": "shared.schema.json#/$defs/RequestContext"
     },
     "input": {
-      "type": "object",
-      "properties": {
-        "window_id": {
-          "$comment": "UNRESOLVED TYPE: unspecified"
-        },
-        "patch": {
-          "$comment": "UNRESOLVED TYPE: object"
-        },
-        "evidence": {
-          "type": "array",
-          "items": {
-            "$comment": "ITEM TYPE REQUIRES MANUAL CLOSURE"
-          }
-        },
-        "expected_etag": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "required": [
-        "window_id",
-        "patch",
-        "evidence",
-        "expected_etag"
-      ],
-      "additionalProperties": false
+      "$ref": "wire.schema.json#/$defs/CommitReconsolidation"
     }
-  },
-  "$comment": "NOT A CLOSED INPUT CONTRACT: inferred from normative markdown table; require exact IDL and invariants."
+  }
 }

@@ -1,0 +1,19 @@
+[package]
+name = "ukma-wire-schema"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+description = "Generates the wire payload JSON Schemas from the Rust domain types (ADR-058)."
+
+[dependencies]
+schemars = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+code-intelligence = { path = "../../crates/code-intelligence", features = ["schema"] }
+document-intelligence = { path = "../../crates/document-intelligence", features = ["schema"] }
+memory-domain = { path = "../../crates/memory-domain", features = ["schema"] }
+traceability-engine = { path = "../../crates/traceability-engine", features = ["schema"] }
+
+[dev-dependencies]
+serde_yaml = "0.9"

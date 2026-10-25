@@ -13,8 +13,8 @@
     "consistency": "eventual"
   },
   "input": {
+    "asynchronous": true,
     "episode_refs": [],
-    "policy_id": "x",
-    "async": true
+    "policy_id": "x"
   }
 }

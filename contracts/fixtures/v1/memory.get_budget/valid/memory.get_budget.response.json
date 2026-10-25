@@ -3,8 +3,16 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
+  "data": {
+    "agent_budget": 0,
+    "available": 0,
+    "core": 0,
+    "model_context": 0,
+    "ring": 0,
+    "used": 0,
+    "wm": 0
+  },
   "warnings": [],
   "partial_reasons": [],
-  "freshness": "current",
-  "data": null
+  "freshness": "current"
 }

@@ -14,15 +14,14 @@
   },
   "input": {
     "endpoint": {
-      "domain": "code",
-      "kind": "x",
       "id": "x",
-      "revision": "x",
-      "scope": {
-        "tenant_id": "x",
-        "project_id": "x"
-      }
+      "kind": "x",
+      "revision": "x"
     },
-    "page": null
+    "kinds": [],
+    "page": {
+      "limit": 0
+    },
+    "states": []
   }
 }

@@ -196,6 +196,7 @@ impl std::error::Error for CodeError {}
 pub type CodeResult<T> = Result<T, CodeError>;
 
 /// Symbol kind (§32.1 `Symbol.symbol_kind`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SymbolKind {
@@ -226,6 +227,7 @@ pub enum SymbolKind {
 }
 
 /// How confident the resolver is (§32.1 `Symbol.resolution`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Resolution {
@@ -238,6 +240,7 @@ pub enum Resolution {
 }
 
 /// A source location with 1-based lines (§31.3 span rules).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CodeLocation {
     /// File identity (logical ref id).
@@ -272,7 +275,9 @@ impl CodeLocation {
 }
 
 /// A symbol definition (§32.1 `Symbol`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "CodeSymbol"))]
 pub struct Symbol {
     /// Stable logical id.
     pub id: String,
@@ -299,6 +304,7 @@ pub struct Symbol {
 }
 
 /// Edge kind (§32.1 `CodeEdge.kind`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CodeEdgeKind {
@@ -317,6 +323,7 @@ pub enum CodeEdgeKind {
 }
 
 /// Edge resolution (§32.1 `CodeEdge.resolution`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EdgeResolution {
@@ -329,6 +336,7 @@ pub enum EdgeResolution {
 }
 
 /// A code edge (§32.1 `CodeEdge`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CodeEdge {
     /// Source symbol id.
@@ -355,6 +363,7 @@ impl CodeEdge {
 }
 
 /// A diagnostic emitted during parsing (§32.1 `CodeDiagnostic`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CodeDiagnostic {
     /// Severity.
@@ -366,6 +375,7 @@ pub struct CodeDiagnostic {
 }
 
 /// Diagnostic severity.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DiagnosticSeverity {
@@ -378,6 +388,7 @@ pub enum DiagnosticSeverity {
 }
 
 /// Analysis manifest (§32.1 `CodeAnalysisManifest`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CodeAnalysisManifest {
     /// Repository identity.
@@ -414,6 +425,7 @@ impl CodeAnalysisManifest {
 }
 
 /// How well a language is supported here.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SupportLevel {
@@ -426,6 +438,7 @@ pub enum SupportLevel {
 }
 
 /// One language in the registry.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LanguageEntry {
     /// Language identifier (also the upstream crate suffix).
@@ -634,6 +647,7 @@ impl LanguageRegistry {
 }
 
 /// Parsed content (§7.1 `ParsedContent`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ParsedSource {
     /// Language of the source.

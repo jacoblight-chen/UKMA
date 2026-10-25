@@ -3,8 +3,15 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
+  "data": {
+    "analyzed_refs": [],
+    "completeness": "x",
+    "findings": [],
+    "skipped_reasons": [],
+    "skipped_refs": [],
+    "snapshot_id": "x"
+  },
   "warnings": [],
   "partial_reasons": [],
-  "freshness": "current",
-  "data": null
+  "freshness": "current"
 }

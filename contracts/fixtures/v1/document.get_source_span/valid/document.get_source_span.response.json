@@ -3,8 +3,17 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
+  "data": {
+    "artifact_ref": "x",
+    "redacted": true,
+    "span": {
+      "byte_end": 0,
+      "byte_start": 0,
+      "line_end": 0,
+      "line_start": 0
+    }
+  },
   "warnings": [],
   "partial_reasons": [],
-  "freshness": "current",
-  "data": null
+  "freshness": "current"
 }

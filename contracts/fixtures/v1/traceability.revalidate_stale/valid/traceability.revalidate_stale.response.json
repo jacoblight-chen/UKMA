@@ -3,8 +3,12 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
+  "data": {
+    "job_id": "x",
+    "kind": "x",
+    "stage": "x"
+  },
   "warnings": [],
   "partial_reasons": [],
-  "freshness": "current",
-  "data": null
+  "freshness": "current"
 }

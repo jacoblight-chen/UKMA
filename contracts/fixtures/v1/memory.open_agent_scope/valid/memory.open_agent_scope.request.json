@@ -13,6 +13,16 @@
     "consistency": "eventual"
   },
   "input": {
-    "grant": null
+    "grant": {
+      "allowed_scopes": [],
+      "allowed_tools": [],
+      "child_agent_id": "x",
+      "depth": 0,
+      "expires_at": "x",
+      "max_context_tokens": 0,
+      "parent_agent_id": "x",
+      "session_id": "x",
+      "task_id": "x"
+    }
   }
 }

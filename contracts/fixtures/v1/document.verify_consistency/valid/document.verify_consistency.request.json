@@ -13,8 +13,8 @@
     "consistency": "eventual"
   },
   "input": {
+    "compare_code": true,
     "document_refs": [],
-    "compare_code": false,
-    "max_findings": 0.0
+    "max_findings": 0
   }
 }

@@ -13,21 +13,11 @@
     "consistency": "eventual"
   },
   "input": {
-    "query": {
-      "symbol": {
-        "domain": "code",
-        "kind": "x",
-        "id": "x",
-        "revision": "x",
-        "scope": {
-          "tenant_id": "x",
-          "project_id": "x"
-        }
-      },
-      "include_declaration": false,
-      "page": {
-        "limit": 1
-      }
-    }
+    "include_declaration": true,
+    "page": {
+      "limit": 0
+    },
+    "relation_kinds": [],
+    "symbol_id": "x"
   }
 }

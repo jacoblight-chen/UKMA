@@ -354,6 +354,7 @@ dependencies = [
  "arborium-cobol",
  "bca-tree-sitter-tcl",
  "indexing-engine",
+ "schemars",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -592,11 +593,18 @@ dependencies = [
  "indexing-engine",
  "lopdf",
  "quick-xml",
+ "schemars",
  "serde",
  "sha2",
  "ukma-contracts",
  "zip",
 ]
+
+[[package]]
+name = "dyn-clone"
+version = "1.0.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
 
 [[package]]
 name = "ecb"
@@ -1343,6 +1351,7 @@ dependencies = [
  "embedding-engine",
  "flate2",
  "retrieval-engine",
+ "schemars",
  "serde",
  "serde_json",
  "sha2",
@@ -1784,6 +1793,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f"
 
 [[package]]
+name = "schemars"
+version = "0.8.22"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3fbf2ae1b8bc8e02df939598064d22402220cd5bbcca1c76f7d6a310974d5615"
+dependencies = [
+ "dyn-clone",
+ "schemars_derive",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "schemars_derive"
+version = "0.8.22"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32e265784ad618884abaea0600a9adf15393368d840e0222d101a072f3f7534d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "serde_derive_internals",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1817,6 +1850,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.9",
+]
+
+[[package]]
+name = "serde_derive_internals"
+version = "0.29.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "18d26a20a969b9e3fdf2fc2d9f21eda6c40e2de84c9408bb5d3b05d499aae711"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
 ]
 
 [[package]]
@@ -2147,6 +2191,7 @@ checksum = "8df9b6e13f2d32c91b9bd719c00d1958837bc7dec474d94952798cc8e69eeec3"
 name = "traceability-engine"
 version = "0.1.0"
 dependencies = [
+ "schemars",
  "serde",
  "serde_json",
  "sha2",
@@ -2720,6 +2765,20 @@ dependencies = [
 [[package]]
 name = "ukma-types"
 version = "0.1.0"
+
+[[package]]
+name = "ukma-wire-schema"
+version = "0.1.0"
+dependencies = [
+ "code-intelligence",
+ "document-intelligence",
+ "memory-domain",
+ "schemars",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "traceability-engine",
+]
 
 [[package]]
 name = "unicode-bidi"

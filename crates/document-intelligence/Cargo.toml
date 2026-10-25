@@ -6,8 +6,13 @@ license = "Apache-2.0"
 publish = false
 description = "Document Intelligence domain: parsers (MD/PDF text layer/DOCX) and the 14 operations (DAPI-01..14)."
 
+[features]
+# Emits JSON Schema for the wire types (contract closure, see ADR-058).
+schema = ["dep:schemars"]
+
 [dependencies]
 serde = { version = "1", features = ["derive"] }
+schemars = { version = "0.8", optional = true }
 sha2 = "0.10"
 indexing-engine = { path = "../indexing-engine" }
 ukma-contracts = { path = "../ukma-contracts" }

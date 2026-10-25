@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.ukma.dev/v1/memory.register_procedure_candidate.request.schema.json",
-  "title": "memory.register_procedure_candidate Request [PHASE2 PROVISIONAL]",
+  "title": "memory.register_procedure_candidate Request",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -21,17 +21,7 @@
       "$ref": "shared.schema.json#/$defs/RequestContext"
     },
     "input": {
-      "type": "object",
-      "properties": {
-        "draft": {
-          "$comment": "UNRESOLVED TYPE: ProcedureDraft"
-        }
-      },
-      "required": [
-        "draft"
-      ],
-      "additionalProperties": false
+      "$ref": "wire.schema.json#/$defs/RegisterProcedure"
     }
-  },
-  "$comment": "NOT A CLOSED INPUT CONTRACT: inferred from normative markdown table; require exact IDL and invariants."
+  }
 }

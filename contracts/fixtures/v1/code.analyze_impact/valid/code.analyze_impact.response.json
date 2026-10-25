@@ -3,15 +3,15 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
-  "warnings": [],
-  "partial_reasons": [],
-  "freshness": "current",
   "data": {
+    "completeness": "x",
+    "evidence_ids": [],
     "impacted": [],
     "paths": [],
     "test_candidates": [],
-    "unresolved_dynamic_calls": 0,
-    "completeness": "complete",
-    "evidence": []
-  }
+    "unresolved_dynamic_calls": 0
+  },
+  "warnings": [],
+  "partial_reasons": [],
+  "freshness": "current"
 }

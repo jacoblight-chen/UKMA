@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.ukma.dev/v1/document.search.response.schema.json",
-  "title": "document.search response [PROVISIONAL]",
+  "title": "document.search response",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -31,7 +31,7 @@
       ]
     },
     "data": {
-      "$comment": "RESPONSE TYPE NOT CLOSED: `Page<SearchHit>`"
+      "$ref": "wire.schema.json#/$defs/Page_for_SearchHit"
     },
     "error": {
       "$ref": "shared.schema.json#/$defs/ErrorDetail"
@@ -189,6 +189,5 @@
         }
       }
     }
-  ],
-  "$comment": "NOT A CLOSED RESPONSE CONTRACT: data payload unresolved."
+  ]
 }

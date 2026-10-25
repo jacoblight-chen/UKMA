@@ -21,35 +21,7 @@
       "$ref": "shared.schema.json#/$defs/RequestContext"
     },
     "input": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "query": {
-          "allOf": [
-            {
-              "$ref": "shared.schema.json#/$defs/TraversalQuery"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "edge_kinds": {
-                  "type": "array",
-                  "items": {
-                    "enum": [
-                      "depends_on",
-                      "imports"
-                    ]
-                  },
-                  "minItems": 1
-                }
-              }
-            }
-          ]
-        }
-      },
-      "required": [
-        "query"
-      ]
+      "$ref": "wire.schema.json#/$defs/TraversalQuery"
     }
   }
 }

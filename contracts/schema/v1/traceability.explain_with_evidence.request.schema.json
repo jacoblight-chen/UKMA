@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.ukma.dev/v1/traceability.explain_with_evidence.request.schema.json",
-  "title": "traceability.explain_with_evidence Request [PHASE2 PROVISIONAL]",
+  "title": "traceability.explain_with_evidence Request",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -21,29 +21,7 @@
       "$ref": "shared.schema.json#/$defs/RequestContext"
     },
     "input": {
-      "type": "object",
-      "properties": {
-        "claim": {
-          "type": "string",
-          "minLength": 1
-        },
-        "refs": {
-          "type": "array",
-          "items": {
-            "$comment": "ITEM TYPE REQUIRES MANUAL CLOSURE"
-          }
-        },
-        "max_tokens": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "claim",
-        "refs",
-        "max_tokens"
-      ],
-      "additionalProperties": false
+      "$ref": "wire.schema.json#/$defs/ExplainEvidence"
     }
-  },
-  "$comment": "NOT A CLOSED INPUT CONTRACT: inferred from normative markdown table; require exact IDL and invariants."
+  }
 }

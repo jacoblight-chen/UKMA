@@ -31,34 +31,7 @@
       ]
     },
     "data": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "items": {
-          "type": "array",
-          "items": {
-            "$ref": "shared.schema.json#/$defs/CodeEdge"
-          }
-        },
-        "next_cursor": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "snapshot_id": {
-          "$ref": "shared.schema.json#/$defs/ID"
-        },
-        "index_generation": {
-          "$ref": "shared.schema.json#/$defs/ID"
-        }
-      },
-      "required": [
-        "items",
-        "next_cursor",
-        "snapshot_id",
-        "index_generation"
-      ]
+      "$ref": "wire.schema.json#/$defs/Page_for_CodeEdge"
     },
     "error": {
       "$ref": "shared.schema.json#/$defs/ErrorDetail"

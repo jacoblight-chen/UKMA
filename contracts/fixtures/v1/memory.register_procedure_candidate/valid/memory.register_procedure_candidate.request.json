@@ -13,6 +13,14 @@
     "consistency": "eventual"
   },
   "input": {
-    "draft": null
+    "draft": {
+      "evidence": [],
+      "language": "x",
+      "name": "x",
+      "permissions": [],
+      "preconditions": [],
+      "source_episodes": [],
+      "steps": []
+    }
   }
 }

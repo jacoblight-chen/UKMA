@@ -13,6 +13,14 @@
     "consistency": "eventual"
   },
   "input": {
-    "query": null
+    "block_kinds": [],
+    "document_refs": [],
+    "languages": [],
+    "page": {
+      "limit": 0
+    },
+    "project_id": "x",
+    "query": "x",
+    "tenant_id": "x"
   }
 }

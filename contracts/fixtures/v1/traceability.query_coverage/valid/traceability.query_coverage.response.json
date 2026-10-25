@@ -3,8 +3,17 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
+  "data": {
+    "coverage_incomplete": true,
+    "covered": [],
+    "denominator": 0,
+    "excluded_count": 0,
+    "numerator": 0,
+    "snapshot_id": "x",
+    "uncovered": [],
+    "unknown": []
+  },
   "warnings": [],
   "partial_reasons": [],
-  "freshness": "current",
-  "data": null
+  "freshness": "current"
 }

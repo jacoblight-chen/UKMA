@@ -13,9 +13,10 @@
     "consistency": "eventual"
   },
   "input": {
-    "agent_id": null,
-    "session_id": null,
-    "policy_id": null,
-    "dry_run": false
+    "agent_id": "x",
+    "dry_run": true,
+    "policy_id": "x",
+    "required_tokens": 0,
+    "session_id": "x"
   }
 }

@@ -3,8 +3,15 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
+  "data": {
+    "claim": "x",
+    "completeness": "complete",
+    "conclusion": "supported",
+    "evidence": [],
+    "links": [],
+    "omitted_due_to_access": 0
+  },
   "warnings": [],
   "partial_reasons": [],
-  "freshness": "current",
-  "data": null
+  "freshness": "current"
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.ukma.dev/v1/memory.verify_fact.response.schema.json",
-  "title": "memory.verify_fact response [PROVISIONAL]",
+  "title": "memory.verify_fact response",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -31,7 +31,7 @@
       ]
     },
     "data": {
-      "$comment": "RESPONSE TYPE NOT CLOSED: 'reject', expected_etag`"
+      "$ref": "wire.schema.json#/$defs/MemoryChangeReceipt"
     },
     "error": {
       "$ref": "shared.schema.json#/$defs/ErrorDetail"
@@ -189,6 +189,5 @@
         }
       }
     }
-  ],
-  "$comment": "NOT A CLOSED RESPONSE CONTRACT: data payload unresolved."
+  ]
 }

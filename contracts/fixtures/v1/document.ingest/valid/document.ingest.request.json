@@ -13,9 +13,15 @@
     "consistency": "eventual"
   },
   "input": {
-    "source": null,
+    "asynchronous": true,
+    "include_images": true,
     "parser_profile": "x",
-    "options": null,
-    "async": true
+    "source": {
+      "artifact_ref": "x",
+      "content_hash": "x",
+      "media_type": "x",
+      "revision": "x",
+      "source_uri": "x"
+    }
   }
 }

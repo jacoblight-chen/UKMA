@@ -13,6 +13,17 @@
     "consistency": "eventual"
   },
   "input": {
-    "input": null
+    "input": {
+      "confidence": 1,
+      "evidence": [],
+      "language": "x",
+      "object": "x",
+      "predicate": "x",
+      "subject": {
+        "id": "x",
+        "kind": "working",
+        "revision": "x"
+      }
+    }
   }
 }

@@ -13,18 +13,13 @@
     "consistency": "eventual"
   },
   "input": {
-    "procedure": {
-      "domain": "code",
-      "kind": "x",
-      "id": "x",
-      "revision": "x",
-      "scope": {
-        "tenant_id": "x",
-        "project_id": "x"
-      }
-    },
-    "success": false,
     "evidence": [],
-    "expected_etag": "x"
+    "expected_etag": "x",
+    "procedure": {
+      "id": "x",
+      "kind": "working",
+      "revision": "x"
+    },
+    "success": true
   }
 }

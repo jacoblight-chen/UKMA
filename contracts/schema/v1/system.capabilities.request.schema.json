@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.ukma.dev/v1/system.capabilities.request.schema.json",
-  "title": "system.capabilities Request (provisional system API — ADR-047)",
+  "title": "system.capabilities Request",
   "type": "object",
   "additionalProperties": false,
   "required": [

@@ -31,7 +31,7 @@
       ]
     },
     "data": {
-      "$ref": "shared.schema.json#/$defs/JobView"
+      "$ref": "wire.schema.json#/$defs/CodeJobView"
     },
     "error": {
       "$ref": "shared.schema.json#/$defs/ErrorDetail"

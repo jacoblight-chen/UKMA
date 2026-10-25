@@ -3,8 +3,18 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
+  "data": {
+    "cache_invalidation": "pending",
+    "legal_hold": true,
+    "memory": {
+      "id": "x",
+      "kind": "working",
+      "revision": "x"
+    },
+    "projections": [],
+    "tombstone_revision": "x"
+  },
   "warnings": [],
   "partial_reasons": [],
-  "freshness": "current",
-  "data": null
+  "freshness": "current"
 }

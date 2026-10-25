@@ -3,8 +3,13 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
+  "data": {
+    "changes": [],
+    "completeness": "x",
+    "from": "x",
+    "to": "x"
+  },
   "warnings": [],
   "partial_reasons": [],
-  "freshness": "current",
-  "data": null
+  "freshness": "current"
 }

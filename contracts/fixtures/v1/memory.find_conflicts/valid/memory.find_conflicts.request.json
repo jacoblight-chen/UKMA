@@ -14,15 +14,10 @@
   },
   "input": {
     "fact": {
-      "domain": "code",
-      "kind": "x",
       "id": "x",
-      "revision": "x",
-      "scope": {
-        "tenant_id": "x",
-        "project_id": "x"
-      }
+      "kind": "working",
+      "revision": "x"
     },
-    "max_results": 0.0
+    "max_results": 0
   }
 }

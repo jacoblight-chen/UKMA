@@ -31,7 +31,7 @@
       ]
     },
     "data": {
-      "$ref": "shared.schema.json#/$defs/ChangeReceipt"
+      "$ref": "wire.schema.json#/$defs/CodeChangeReceipt"
     },
     "error": {
       "$ref": "shared.schema.json#/$defs/ErrorDetail"

@@ -13,18 +13,9 @@
     "consistency": "eventual"
   },
   "input": {
-    "repository": {
-      "domain": "code",
-      "kind": "x",
-      "id": "x",
-      "revision": "x",
-      "scope": {
-        "tenant_id": "x",
-        "project_id": "x"
-      }
-    },
-    "revision": "x",
+    "expected_etag": "x",
     "reason": "x",
-    "expected_etag": "x"
+    "repository_id": "x",
+    "revision": "x"
   }
 }

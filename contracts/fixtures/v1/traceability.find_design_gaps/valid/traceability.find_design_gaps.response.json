@@ -3,8 +3,14 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
+  "data": {
+    "coverage_incomplete": true,
+    "missing_implementation": [],
+    "missing_tests": [],
+    "stale_links": [],
+    "unverifiable": []
+  },
   "warnings": [],
   "partial_reasons": [],
-  "freshness": "current",
-  "data": null
+  "freshness": "current"
 }

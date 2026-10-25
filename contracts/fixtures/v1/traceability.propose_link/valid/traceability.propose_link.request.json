@@ -13,6 +13,19 @@
     "consistency": "eventual"
   },
   "input": {
-    "link": null
+    "link": {
+      "evidence": [],
+      "kind": "SPECIFIES",
+      "source": {
+        "id": "x",
+        "kind": "x",
+        "revision": "x"
+      },
+      "target": {
+        "id": "x",
+        "kind": "x",
+        "revision": "x"
+      }
+    }
   }
 }

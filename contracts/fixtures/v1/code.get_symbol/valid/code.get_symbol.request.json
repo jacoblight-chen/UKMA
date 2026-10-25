@@ -13,15 +13,6 @@
     "consistency": "eventual"
   },
   "input": {
-    "symbol": {
-      "domain": "code",
-      "kind": "x",
-      "id": "x",
-      "revision": "x",
-      "scope": {
-        "tenant_id": "x",
-        "project_id": "x"
-      }
-    }
+    "symbol_id": "x"
   }
 }

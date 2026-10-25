@@ -33,8 +33,8 @@
     "note": "a disjunction (OR, AND, or the legacy slash form) is allowed when at least one option is allowed; the elected option is recorded in reason"
   },
   "counts": {
-    "external": 303,
-    "workspace": 28,
+    "external": 307,
+    "workspace": 29,
     "unlicensed": 0,
     "blocked": 0
   },
@@ -361,6 +361,14 @@
       "workspace_member": false
     },
     {
+      "name": "code-intelligence",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
+    },
+    {
       "name": "colorchoice",
       "version": "1.0.5",
       "license": "MIT OR Apache-2.0",
@@ -375,6 +383,14 @@
       "decision": "allowed",
       "reason": "permissive",
       "workspace_member": false
+    },
+    {
+      "name": "context-engine",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
     },
     {
       "name": "core-foundation-sys",
@@ -529,6 +545,22 @@
       "workspace_member": false
     },
     {
+      "name": "document-intelligence",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
+    },
+    {
+      "name": "dyn-clone",
+      "version": "1.0.20",
+      "license": "MIT OR Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": false
+    },
+    {
       "name": "ecb",
       "version": "0.1.2",
       "license": "MIT",
@@ -543,6 +575,14 @@
       "decision": "allowed",
       "reason": "permissive",
       "workspace_member": false
+    },
+    {
+      "name": "embedding-engine",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
     },
     {
       "name": "encoding_rs",
@@ -703,6 +743,14 @@
       "decision": "allowed",
       "reason": "permissive",
       "workspace_member": false
+    },
+    {
+      "name": "graph-engine",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
     },
     {
       "name": "hashbrown",
@@ -881,6 +929,14 @@
       "workspace_member": false
     },
     {
+      "name": "indexing-engine",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
+    },
+    {
       "name": "indexmap",
       "version": "2.14.2",
       "license": "Apache-2.0 OR MIT",
@@ -895,6 +951,14 @@
       "decision": "allowed",
       "reason": "permissive",
       "workspace_member": false
+    },
+    {
+      "name": "intelligence-core",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
     },
     {
       "name": "ipnet",
@@ -1079,6 +1143,14 @@
       "decision": "allowed",
       "reason": "permissive",
       "workspace_member": false
+    },
+    {
+      "name": "memory-domain",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
     },
     {
       "name": "miniz_oxide",
@@ -1325,7 +1397,7 @@
       "version": "5.3.0",
       "license": "MIT OR Apache-2.0 OR LGPL-2.1-or-later",
       "decision": "allowed",
-      "reason": "permissive option elected from MIT OR Apache-2.0 OR LGPL-2.1-or-later",
+      "reason": "permissive",
       "workspace_member": false
     },
     {
@@ -1333,7 +1405,7 @@
       "version": "6.0.0",
       "license": "MIT OR Apache-2.0 OR LGPL-2.1-or-later",
       "decision": "allowed",
-      "reason": "permissive option elected from MIT OR Apache-2.0 OR LGPL-2.1-or-later",
+      "reason": "permissive",
       "workspace_member": false
     },
     {
@@ -1425,6 +1497,14 @@
       "workspace_member": false
     },
     {
+      "name": "retrieval-engine",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
+    },
+    {
       "name": "rusqlite",
       "version": "0.32.1",
       "license": "MIT",
@@ -1444,6 +1524,22 @@
       "name": "ryu",
       "version": "1.0.23",
       "license": "Apache-2.0 OR BSL-1.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": false
+    },
+    {
+      "name": "schemars",
+      "version": "0.8.22",
+      "license": "MIT",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": false
+    },
+    {
+      "name": "schemars_derive",
+      "version": "0.8.22",
+      "license": "MIT",
       "decision": "allowed",
       "reason": "permissive",
       "workspace_member": false
@@ -1475,6 +1571,14 @@
     {
       "name": "serde_derive",
       "version": "1.0.229",
+      "license": "MIT OR Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": false
+    },
+    {
+      "name": "serde_derive_internals",
+      "version": "0.29.1",
       "license": "MIT OR Apache-2.0",
       "decision": "allowed",
       "reason": "permissive",
@@ -1575,6 +1679,22 @@
       "decision": "allowed",
       "reason": "permissive",
       "workspace_member": false
+    },
+    {
+      "name": "storage-ports",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
+    },
+    {
+      "name": "storage-router",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
     },
     {
       "name": "streaming-iterator",
@@ -1735,6 +1855,14 @@
       "decision": "allowed",
       "reason": "permissive",
       "workspace_member": false
+    },
+    {
+      "name": "traceability-engine",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
     },
     {
       "name": "tracing",
@@ -2071,6 +2199,142 @@
       "decision": "allowed",
       "reason": "permissive",
       "workspace_member": false
+    },
+    {
+      "name": "ukma-adapter-embedded",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
+    },
+    {
+      "name": "ukma-adapter-filesystem",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
+    },
+    {
+      "name": "ukma-adapter-neo4j",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
+    },
+    {
+      "name": "ukma-adapter-postgres",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
+    },
+    {
+      "name": "ukma-adapter-qdrant",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
+    },
+    {
+      "name": "ukma-adapter-sqlite",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
+    },
+    {
+      "name": "ukma-bench",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
+    },
+    {
+      "name": "ukma-cli",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
+    },
+    {
+      "name": "ukma-code-runtime",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
+    },
+    {
+      "name": "ukma-contract-check",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
+    },
+    {
+      "name": "ukma-contracts",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
+    },
+    {
+      "name": "ukma-integration",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
+    },
+    {
+      "name": "ukma-mcp",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
+    },
+    {
+      "name": "ukma-security",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
+    },
+    {
+      "name": "ukma-server",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
+    },
+    {
+      "name": "ukma-types",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
+    },
+    {
+      "name": "ukma-wire-schema",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "decision": "allowed",
+      "reason": "permissive",
+      "workspace_member": true
     },
     {
       "name": "unicode-bidi",
@@ -2463,230 +2727,6 @@
       "decision": "allowed",
       "reason": "permissive",
       "workspace_member": false
-    },
-    {
-      "name": "code-intelligence",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "context-engine",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "document-intelligence",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "embedding-engine",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "graph-engine",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "indexing-engine",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "intelligence-core",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "memory-domain",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "retrieval-engine",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "storage-ports",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "storage-router",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "traceability-engine",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "ukma-adapter-embedded",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "ukma-adapter-filesystem",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "ukma-adapter-neo4j",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "ukma-adapter-postgres",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "ukma-adapter-qdrant",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "ukma-adapter-sqlite",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "ukma-bench",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "ukma-cli",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "ukma-code-runtime",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "ukma-contract-check",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "ukma-contracts",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "ukma-integration",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "ukma-mcp",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "ukma-security",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "ukma-server",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
-    },
-    {
-      "name": "ukma-types",
-      "version": "0.1.0",
-      "license": "Apache-2.0",
-      "decision": "allowed",
-      "reason": "workspace crate, licensed Apache-2.0",
-      "workspace_member": true
     }
   ]
 }

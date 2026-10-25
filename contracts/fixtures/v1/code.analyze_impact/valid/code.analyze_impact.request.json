@@ -13,13 +13,11 @@
     "consistency": "eventual"
   },
   "input": {
-    "query": {
-      "changed": [],
-      "revision": "x",
-      "edge_kinds": [],
-      "max_depth": 1,
-      "max_nodes": 1,
-      "include_test_candidates": false
-    }
+    "changed": [],
+    "edge_kinds": [],
+    "include_test_candidates": true,
+    "max_depth": 0,
+    "max_nodes": 0,
+    "revision": "x"
   }
 }

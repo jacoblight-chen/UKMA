@@ -8,6 +8,7 @@ description = "Code Intelligence domain types, parser port (§32.1) and the 38-l
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
+schemars = { version = "0.8", optional = true }
 sha2 = "0.10"
 indexing-engine = { path = "../indexing-engine" }
 ukma-contracts = { path = "../ukma-contracts" }
@@ -63,6 +64,8 @@ ts-parser-perl = { version = "=2.0.0", optional = true }
 
 [features]
 parser-rust = ["dep:tree-sitter", "dep:tree-sitter-rust"]
+# Emits JSON Schema for the wire types (contract closure, see ADR-058).
+schema = ["dep:schemars"]
 default = [
     "parser-rust",
     "parser-s2-batch1",

@@ -6,8 +6,13 @@ license = "Apache-2.0"
 publish = false
 description = "Traceability domain: canonical trace types, the TraceLink state machine, three-dimensional validity, coverage/impact/gap/explain analysis and the 13 operations (TAPI-01..13)."
 
+[features]
+# Emits JSON Schema for the wire types (contract closure, see ADR-058).
+schema = ["dep:schemars"]
+
 [dependencies]
 serde = { version = "1", features = ["derive"] }
+schemars = { version = "0.8", optional = true }
 sha2 = "0.10"
 ukma-contracts = { path = "../ukma-contracts" }
 

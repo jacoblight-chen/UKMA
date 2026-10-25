@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.ukma.dev/v1/memory.update_revision.request.schema.json",
-  "title": "memory.update_revision Request [PHASE2 PROVISIONAL]",
+  "title": "memory.update_revision Request",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -21,26 +21,7 @@
       "$ref": "shared.schema.json#/$defs/RequestContext"
     },
     "input": {
-      "type": "object",
-      "properties": {
-        "memory": {
-          "$ref": "shared.schema.json#/$defs/Ref"
-        },
-        "patch": {
-          "$comment": "UNRESOLVED TYPE: object"
-        },
-        "expected_etag": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "required": [
-        "memory",
-        "patch",
-        "expected_etag"
-      ],
-      "additionalProperties": false
+      "$ref": "wire.schema.json#/$defs/UpdateMemory"
     }
-  },
-  "$comment": "NOT A CLOSED INPUT CONTRACT: inferred from normative markdown table; require exact IDL and invariants."
+  }
 }

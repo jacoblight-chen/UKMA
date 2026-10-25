@@ -13,16 +13,10 @@
     "consistency": "eventual"
   },
   "input": {
-    "document": {
-      "domain": "code",
-      "kind": "x",
-      "id": "x",
-      "revision": "x",
-      "scope": {
-        "tenant_id": "x",
-        "project_id": "x"
-      }
+    "document_id": "x",
+    "page": {
+      "limit": 0
     },
-    "page": null
+    "statuses": []
   }
 }

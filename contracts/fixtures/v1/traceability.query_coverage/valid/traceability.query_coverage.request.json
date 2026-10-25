@@ -13,6 +13,16 @@
     "consistency": "eventual"
   },
   "input": {
-    "query": null
+    "accepted_only": true,
+    "implementation_kinds": [],
+    "include_unindexed": true,
+    "page": {
+      "limit": 0
+    },
+    "requirement_refs": [],
+    "requirement_scope": {
+      "project_id": "x",
+      "tenant_id": "x"
+    }
   }
 }

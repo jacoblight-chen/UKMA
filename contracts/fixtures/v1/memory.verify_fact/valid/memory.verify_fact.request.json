@@ -13,17 +13,13 @@
     "consistency": "eventual"
   },
   "input": {
-    "fact": {
-      "domain": "code",
-      "kind": "x",
-      "id": "x",
-      "revision": "x",
-      "scope": {
-        "tenant_id": "x",
-        "project_id": "x"
-      }
-    },
+    "decision": "verify",
     "evidence_ids": [],
-    "decision": null
+    "expected_etag": "x",
+    "fact": {
+      "id": "x",
+      "kind": "working",
+      "revision": "x"
+    }
   }
 }

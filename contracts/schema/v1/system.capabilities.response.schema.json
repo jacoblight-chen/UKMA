@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.ukma.dev/v1/system.capabilities.response.schema.json",
-  "title": "system.capabilities Response (provisional system API — ADR-047)",
+  "title": "system.capabilities Response",
   "type": "object",
   "additionalProperties": false,
   "required": [

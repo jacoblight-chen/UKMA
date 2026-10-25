@@ -13,25 +13,7 @@
     "consistency": "eventual"
   },
   "input": {
-    "from": {
-      "domain": "code",
-      "kind": "x",
-      "id": "x",
-      "revision": "x",
-      "scope": {
-        "tenant_id": "x",
-        "project_id": "x"
-      }
-    },
-    "to": {
-      "domain": "code",
-      "kind": "x",
-      "id": "x",
-      "revision": "x",
-      "scope": {
-        "tenant_id": "x",
-        "project_id": "x"
-      }
-    }
+    "from": "x",
+    "to": "x"
   }
 }

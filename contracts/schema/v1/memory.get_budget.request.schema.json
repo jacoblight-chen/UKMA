@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.ukma.dev/v1/memory.get_budget.request.schema.json",
-  "title": "memory.get_budget Request [PHASE2 PROVISIONAL]",
+  "title": "memory.get_budget Request",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -21,21 +21,7 @@
       "$ref": "shared.schema.json#/$defs/RequestContext"
     },
     "input": {
-      "type": "object",
-      "properties": {
-        "agent_id": {
-          "$comment": "UNRESOLVED TYPE: unspecified"
-        },
-        "session_id": {
-          "$comment": "UNRESOLVED TYPE: unspecified"
-        }
-      },
-      "required": [
-        "agent_id",
-        "session_id"
-      ],
-      "additionalProperties": false
+      "$ref": "wire.schema.json#/$defs/GetMemoryBudget"
     }
-  },
-  "$comment": "NOT A CLOSED INPUT CONTRACT: inferred from normative markdown table; require exact IDL and invariants."
+  }
 }

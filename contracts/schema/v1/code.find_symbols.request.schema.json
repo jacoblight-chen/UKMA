@@ -21,16 +21,7 @@
       "$ref": "shared.schema.json#/$defs/RequestContext"
     },
     "input": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "query": {
-          "$ref": "shared.schema.json#/$defs/SymbolQuery"
-        }
-      },
-      "required": [
-        "query"
-      ]
+      "$ref": "wire.schema.json#/$defs/SymbolQuery"
     }
   }
 }

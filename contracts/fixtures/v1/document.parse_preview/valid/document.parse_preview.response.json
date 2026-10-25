@@ -3,8 +3,22 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
+  "data": {
+    "blocks": [],
+    "completeness": "complete",
+    "diagnostics": [],
+    "document_id": "x",
+    "parser_id": "x",
+    "parser_version": "x",
+    "source": {
+      "artifact_ref": "x",
+      "content_hash": "x",
+      "media_type": "x",
+      "revision": "x",
+      "source_uri": "x"
+    }
+  },
   "warnings": [],
   "partial_reasons": [],
-  "freshness": "current",
-  "data": null
+  "freshness": "current"
 }

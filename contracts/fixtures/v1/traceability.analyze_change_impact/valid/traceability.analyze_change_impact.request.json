@@ -13,6 +13,11 @@
     "consistency": "eventual"
   },
   "input": {
-    "query": null
+    "changed": [],
+    "kinds": [],
+    "max_depth": 0,
+    "page": {
+      "limit": 0
+    }
   }
 }

@@ -13,6 +13,15 @@
     "consistency": "eventual"
   },
   "input": {
-    "input": null
+    "automatic": true,
+    "input": {
+      "agent_id": "x",
+      "block_type": "task_state",
+      "content": "x",
+      "language": "x",
+      "priority": 1,
+      "protected": true,
+      "session_id": "x"
+    }
   }
 }

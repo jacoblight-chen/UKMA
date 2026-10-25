@@ -45,6 +45,7 @@
 | [ADR-055](./ADR-055.md) | 跨域整合、安全與 Chaos（P9）：public-API E2E、PROP matrix、機器可讀覆蓋矩陣（69 項全分類）、依賴圖與兩個 graph store 同一契約、崩潰重播單一 READY generation | ACCEPTED | §17.1 / §29.4 / §38.1 / §38.2 / §40.7 |
 | [ADR-056](./ADR-056.md) | Production readiness 實作決策（P10）：three-profile parity report（僅 A 可用）、nine-state cutover 狀態機＋fencing/rollback、可重現效能基準（RSS/VRAM 未量測）、DR 演練、LICENSE/NOTICE 與 Cargo.lock 對齊的授權清單 | ACCEPTED | §17.1 / §28.2 / §28.3 / §29.4 / §38.3 |
 | [ADR-057](./ADR-057.md) | P10 收尾修正：SQLite 第二後端與兩後端等價、候選索引解除 10k 上限（1M 實測）、RSS/on-disk 實測、備份排程與 CycloneDX SBOM；仍需 owner 批准 schema closure | ACCEPTED | §17.1 / §29.4 / §31.4 / §38.3 |
+| [ADR-058](./ADR-058.md) | Schema closure: wire payload schemas generated from the Rust types (schemars behind the `schema` feature, 184 `$defs`, 65 operations, 5338 contract checks) | ACCEPTED | 31 / 41.1 / 41.2 / 41.3 |
 
 ## 編號衝突與對照（摘要）
 

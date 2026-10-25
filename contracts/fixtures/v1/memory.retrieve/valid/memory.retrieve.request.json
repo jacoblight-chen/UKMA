@@ -13,17 +13,12 @@
     "consistency": "eventual"
   },
   "input": {
+    "detail": "title",
+    "max_tokens": 0,
     "memory": {
-      "domain": "code",
-      "kind": "x",
       "id": "x",
-      "revision": "x",
-      "scope": {
-        "tenant_id": "x",
-        "project_id": "x"
-      }
-    },
-    "detail": "x",
-    "max_tokens": 0.0
+      "kind": "working",
+      "revision": "x"
+    }
   }
 }

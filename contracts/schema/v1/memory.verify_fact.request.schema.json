@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.ukma.dev/v1/memory.verify_fact.request.schema.json",
-  "title": "memory.verify_fact Request [PHASE2 PROVISIONAL]",
+  "title": "memory.verify_fact Request",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -21,28 +21,7 @@
       "$ref": "shared.schema.json#/$defs/RequestContext"
     },
     "input": {
-      "type": "object",
-      "properties": {
-        "fact": {
-          "$ref": "shared.schema.json#/$defs/Ref"
-        },
-        "evidence_ids": {
-          "type": "array",
-          "items": {
-            "$comment": "ITEM TYPE REQUIRES MANUAL CLOSURE"
-          }
-        },
-        "decision": {
-          "$comment": "UNRESOLVED TYPE: 'verify'"
-        }
-      },
-      "required": [
-        "fact",
-        "evidence_ids",
-        "decision"
-      ],
-      "additionalProperties": false
+      "$ref": "wire.schema.json#/$defs/VerifyFact"
     }
-  },
-  "$comment": "NOT A CLOSED INPUT CONTRACT: inferred from normative markdown table; require exact IDL and invariants."
+  }
 }

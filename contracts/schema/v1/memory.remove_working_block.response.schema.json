@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.ukma.dev/v1/memory.remove_working_block.response.schema.json",
-  "title": "memory.remove_working_block response [PROVISIONAL]",
+  "title": "memory.remove_working_block response",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -31,7 +31,7 @@
       ]
     },
     "data": {
-      "$comment": "RESPONSE TYPE NOT CLOSED: `DeletionReceipt`"
+      "$ref": "wire.schema.json#/$defs/DeletionReceipt"
     },
     "error": {
       "$ref": "shared.schema.json#/$defs/ErrorDetail"
@@ -189,6 +189,5 @@
         }
       }
     }
-  ],
-  "$comment": "NOT A CLOSED RESPONSE CONTRACT: data payload unresolved."
+  ]
 }

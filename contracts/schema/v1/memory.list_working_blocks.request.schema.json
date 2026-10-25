@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.ukma.dev/v1/memory.list_working_blocks.request.schema.json",
-  "title": "memory.list_working_blocks Request [PHASE2 PROVISIONAL]",
+  "title": "memory.list_working_blocks Request",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -21,25 +21,7 @@
       "$ref": "shared.schema.json#/$defs/RequestContext"
     },
     "input": {
-      "type": "object",
-      "properties": {
-        "session_id": {
-          "$comment": "UNRESOLVED TYPE: unspecified"
-        },
-        "agent_id": {
-          "$comment": "UNRESOLVED TYPE: unspecified"
-        },
-        "page": {
-          "$comment": "UNRESOLVED TYPE: unspecified"
-        }
-      },
-      "required": [
-        "session_id",
-        "agent_id",
-        "page"
-      ],
-      "additionalProperties": false
+      "$ref": "wire.schema.json#/$defs/ListWorkingBlocks"
     }
-  },
-  "$comment": "NOT A CLOSED INPUT CONTRACT: inferred from normative markdown table; require exact IDL and invariants."
+  }
 }

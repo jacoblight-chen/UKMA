@@ -17,6 +17,7 @@ pub const SCHEMA_VERSION: &str = "1.2.3";
 pub const MAX_BLOCKS_PER_TURN: u32 = 5;
 
 /// Which memory store an item lives in (§34.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MemoryKind {
@@ -43,6 +44,7 @@ impl MemoryKind {
 }
 
 /// Working memory block state machine (§21.2).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WorkingState {
@@ -72,6 +74,7 @@ impl WorkingState {
 }
 
 /// Episodic memory lifecycle (§21.3).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EpisodeState {
@@ -115,6 +118,7 @@ impl EpisodeState {
 }
 
 /// Verification state of a memory record (§21.1 `verification_state`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum VerificationState {
@@ -141,6 +145,7 @@ impl VerificationState {
 }
 
 /// Trust columns of a memory object (§21.1, kept separate from authorization).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Trust {
     /// Reliability of the asserting source.
@@ -186,8 +191,10 @@ impl Trust {
 }
 
 /// Kind of working memory block (§21.2).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "schema", schemars(rename = "MemoryBlockKind"))]
 pub enum BlockKind {
     /// What the task currently is.
     TaskState,
@@ -215,6 +222,7 @@ impl BlockKind {
 }
 
 /// Episode type (§21.3).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EpisodeType {
@@ -229,6 +237,7 @@ pub enum EpisodeType {
 }
 
 /// Outcome of the work an episode records (§21.3).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EpisodeOutcome {
@@ -241,6 +250,7 @@ pub enum EpisodeOutcome {
 }
 
 /// Requested response detail (§34.1 `MemoryQuery.detail`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DetailLevel {
@@ -262,6 +272,7 @@ impl DetailLevel {
 }
 
 /// State of a reconsolidation window (§23.4, §34.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WindowState {
@@ -288,6 +299,7 @@ impl WindowState {
 }
 
 /// State of one index projection after a deletion (§34.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ProjectionState {
@@ -300,6 +312,7 @@ pub enum ProjectionState {
 }
 
 /// State of the cache invalidation step of a deletion (§34.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CacheInvalidation {
@@ -312,6 +325,7 @@ pub enum CacheInvalidation {
 }
 
 /// One projection entry of a [`DeletionReceipt`].
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProjectionStatus {
     /// Projection name, for example `lexical_index`.
@@ -321,7 +335,9 @@ pub struct ProjectionStatus {
 }
 
 /// Address of one memory record.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "MemoryRef"))]
 pub struct Ref {
     /// Memory id.
     pub id: String,
@@ -343,7 +359,9 @@ impl Ref {
 }
 
 /// Evidence supporting a claim (§21.1 `provenance_refs`, §34.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "MemoryEvidence"))]
 pub struct Evidence {
     /// Evidence id.
     pub evidence_id: String,
@@ -375,6 +393,7 @@ impl Evidence {
 }
 
 /// Summary view of a memory record (§34.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MemoryView {
     /// Address.
@@ -404,6 +423,7 @@ pub struct MemoryView {
 }
 
 /// Search request (§34.1 `MemoryQuery`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MemoryQuery {
     /// Free-text query.
@@ -427,6 +447,7 @@ pub struct MemoryQuery {
 }
 
 /// Input of `memory.put_working_block` (§34.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct WorkingBlockInput {
     /// Session the block belongs to.
@@ -448,6 +469,7 @@ pub struct WorkingBlockInput {
 }
 
 /// Input of `memory.store_episode` (§34.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EpisodeInput {
     /// Session id.
@@ -477,6 +499,7 @@ pub struct EpisodeInput {
 }
 
 /// Input of `memory.fold` (§34.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FoldInput {
     /// Episodes (or blocks) to fold.
@@ -490,6 +513,7 @@ pub struct FoldInput {
 }
 
 /// Result of folding (§34.1, §21.5).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FoldedResult {
     /// Summary text.
@@ -511,6 +535,7 @@ pub struct FoldedResult {
 }
 
 /// Receipt of a paging operation (§34.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PagingReceipt {
     /// Block that was paged.
@@ -524,6 +549,7 @@ pub struct PagingReceipt {
 }
 
 /// Outcome of a paging operation.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PagingStatus {
@@ -536,6 +562,7 @@ pub enum PagingStatus {
 }
 
 /// Reconsolidation window (§23.4, §34.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReconsolidationWindow {
     /// Fact the window applies to.
@@ -549,6 +576,7 @@ pub struct ReconsolidationWindow {
 }
 
 /// Delegation grant handed to a sub-agent (§26.4, §34.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentScopeGrant {
     /// Parent agent.
@@ -572,6 +600,7 @@ pub struct AgentScopeGrant {
 }
 
 /// View of an open agent scope.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AgentScopeView {
     /// Scope id.
@@ -584,6 +613,7 @@ pub struct AgentScopeView {
 ///
 /// Only the folded result, its evidence references and a status cross the
 /// agent boundary (§26.4): full episodes and working memory never do.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CloseScopeResult {
     /// Whether the scope was open and is now closed.
@@ -597,6 +627,7 @@ pub struct CloseScopeResult {
 }
 
 /// Sub-agent lifecycle (§26.4).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AgentStatus {
@@ -656,6 +687,7 @@ impl AgentStatus {
 }
 
 /// Receipt of a deletion (forget or working-block removal) (§34.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DeletionReceipt {
     /// Memory that was deleted.
@@ -673,7 +705,9 @@ pub struct DeletionReceipt {
 }
 
 /// Cursor page request (§31.4).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "MemoryPageRequest"))]
 pub struct PageRequest {
     /// Opaque cursor.
     pub cursor: Option<String>,
@@ -727,6 +761,7 @@ impl PageRequest {
 }
 
 /// One page of results.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Page<T> {
     /// Items.
@@ -761,7 +796,9 @@ impl<T> Page<T> {
 }
 
 /// Bookkeeping receipt of a mutation.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "MemoryChangeReceipt"))]
 pub struct ChangeReceipt {
     /// Resource affected.
     pub resource_id: String,
@@ -774,6 +811,7 @@ pub struct ChangeReceipt {
 }
 
 /// Patch applied by `memory.update_revision` / `commit_reconsolidation`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct MemoryPatch {
     /// Replacement summary.
@@ -823,6 +861,7 @@ impl MemoryPatch {
 // ---------------------------------------------------------------------------
 
 /// `memory.open_agent_scope` (MAPI-01).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct OpenAgentScope {
     /// Delegation grant.
@@ -830,6 +869,7 @@ pub struct OpenAgentScope {
 }
 
 /// `memory.close_agent_scope` (MAPI-02).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CloseAgentScope {
     /// Scope to close.
@@ -841,6 +881,7 @@ pub struct CloseAgentScope {
 }
 
 /// `memory.put_working_block` (MAPI-03).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PutWorkingBlock {
     /// Block to write.
@@ -850,6 +891,7 @@ pub struct PutWorkingBlock {
 }
 
 /// `memory.list_working_blocks` (MAPI-04).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ListWorkingBlocks {
     /// Session to list.
@@ -861,6 +903,7 @@ pub struct ListWorkingBlocks {
 }
 
 /// `memory.remove_working_block` (MAPI-05).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RemoveWorkingBlock {
     /// Block to remove.
@@ -870,6 +913,7 @@ pub struct RemoveWorkingBlock {
 }
 
 /// `memory.store_episode` (MAPI-06).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct StoreEpisode {
     /// Episode to store.
@@ -877,6 +921,7 @@ pub struct StoreEpisode {
 }
 
 /// `memory.search` (MAPI-07).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SearchMemory {
     /// Query.
@@ -884,6 +929,7 @@ pub struct SearchMemory {
 }
 
 /// `memory.retrieve` (MAPI-08).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RetrieveMemory {
     /// Record to retrieve.
@@ -895,6 +941,7 @@ pub struct RetrieveMemory {
 }
 
 /// `memory.update_revision` (MAPI-09).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UpdateMemory {
     /// Record to update.
@@ -906,6 +953,7 @@ pub struct UpdateMemory {
 }
 
 /// `memory.fold` (MAPI-13).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FoldMemory {
     /// Fold input.
@@ -915,6 +963,7 @@ pub struct FoldMemory {
 }
 
 /// `memory.page_out` (MAPI-14).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PageOut {
     /// Block to page out.
@@ -924,6 +973,7 @@ pub struct PageOut {
 }
 
 /// `memory.page_in` (MAPI-15).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PageIn {
     /// Page reference.
@@ -933,6 +983,7 @@ pub struct PageIn {
 }
 
 /// Result of `memory.page_in`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PageInResult {
     /// Restored block.
@@ -942,6 +993,7 @@ pub struct PageInResult {
 }
 
 /// `memory.begin_reconsolidation` (MAPI-16).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BeginReconsolidation {
     /// Fact whose window opens.
@@ -953,6 +1005,7 @@ pub struct BeginReconsolidation {
 }
 
 /// `memory.commit_reconsolidation` (MAPI-17).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CommitReconsolidation {
     /// Window to commit.
@@ -966,6 +1019,7 @@ pub struct CommitReconsolidation {
 }
 
 /// `memory.forget` (MAPI-23).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ForgetMemory {
     /// Record to delete.
@@ -977,6 +1031,7 @@ pub struct ForgetMemory {
 }
 
 /// Input of `memory.propose_fact` (§34.1, MAPI-10 — implemented in P6).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SemanticFactInput {
     /// Subject of the claim.
@@ -994,6 +1049,7 @@ pub struct SemanticFactInput {
 }
 
 /// `memory.propose_fact` (MAPI-10 — implemented in P6).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ProposeFact {
     /// Claim to propose.
@@ -1001,6 +1057,7 @@ pub struct ProposeFact {
 }
 
 /// Review decision of `memory.verify_fact` (§34.2).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FactDecision {
@@ -1011,6 +1068,7 @@ pub enum FactDecision {
 }
 
 /// `memory.verify_fact` (MAPI-11 — implemented in P6).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct VerifyFact {
     /// Claim under review.
@@ -1024,6 +1082,7 @@ pub struct VerifyFact {
 }
 
 /// `memory.find_conflicts` (MAPI-12 — implemented in P6).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FindConflicts {
     /// Claim to compare against.
@@ -1033,6 +1092,7 @@ pub struct FindConflicts {
 }
 
 /// `memory.consolidate` (MAPI-18 — implemented in P6).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Consolidate {
     /// Episodes to consolidate.
@@ -1044,7 +1104,9 @@ pub struct Consolidate {
 }
 
 /// Handle of an accepted asynchronous job.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "MemoryJobHandle"))]
 pub struct JobHandle {
     /// Job id.
     pub job_id: String,
@@ -1055,7 +1117,9 @@ pub struct JobHandle {
 }
 
 /// Live view of an asynchronous job.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "MemoryJobView"))]
 pub struct JobView {
     /// Job id.
     pub job_id: String,
@@ -1070,6 +1134,7 @@ pub struct JobView {
 }
 
 /// `memory.get_consolidation_job` (MAPI-19 — implemented in P6).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GetMemoryJob {
     /// Job id.
@@ -1077,6 +1142,7 @@ pub struct GetMemoryJob {
 }
 
 /// Draft of a procedure (§34.1, MAPI-20 — implemented in P6).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ProcedureDraft {
     /// Procedure name.
@@ -1096,6 +1162,7 @@ pub struct ProcedureDraft {
 }
 
 /// `memory.register_procedure_candidate` (MAPI-20 — implemented in P6).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RegisterProcedure {
     /// Draft to register.
@@ -1103,6 +1170,7 @@ pub struct RegisterProcedure {
 }
 
 /// Procedure lifecycle state (§27.2).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ProcedureState {
@@ -1121,6 +1189,7 @@ pub enum ProcedureState {
 }
 
 /// View of a procedure (§34.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ProcedureView {
     /// Address.
@@ -1138,6 +1207,7 @@ pub struct ProcedureView {
 }
 
 /// Review decision of `memory.review_procedure` (§34.2).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ProcedureDecision {
@@ -1150,6 +1220,7 @@ pub enum ProcedureDecision {
 }
 
 /// `memory.review_procedure` (MAPI-21 — implemented in P6).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReviewProcedure {
     /// Procedure under review.
@@ -1163,6 +1234,7 @@ pub struct ReviewProcedure {
 }
 
 /// `memory.record_procedure_outcome` (MAPI-22 — implemented in P6).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RecordProcedureOutcome {
     /// Procedure that ran.
@@ -1176,6 +1248,7 @@ pub struct RecordProcedureOutcome {
 }
 
 /// `memory.evaluate_eviction` (MAPI-24).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EvaluateEviction {
     /// Agent whose working memory is evaluated.
@@ -1191,6 +1264,7 @@ pub struct EvaluateEviction {
 }
 
 /// Plan produced by `memory.evaluate_eviction`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EvictionPlan {
     /// Every candidate considered.
@@ -1212,6 +1286,7 @@ pub struct EvictionPlan {
 }
 
 /// `memory.get_budget` (MAPI-25).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GetMemoryBudget {
     /// Agent whose budget is reported.
@@ -1221,6 +1296,7 @@ pub struct GetMemoryBudget {
 }
 
 /// Budget view (§10.2, §22.1, MAPI-25).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BudgetView {
     /// `W_model`.

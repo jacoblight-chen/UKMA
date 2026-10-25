@@ -13,6 +13,18 @@
     "consistency": "eventual"
   },
   "input": {
-    "input": null
+    "input": {
+      "agent_depth": 0,
+      "agent_id": "x",
+      "episode_type": "conversation_turn",
+      "evidence": [],
+      "importance_score": 1,
+      "key_facts": [],
+      "language": "x",
+      "outcome": "success",
+      "session_id": "x",
+      "source_refs": [],
+      "summary": "x"
+    }
   }
 }

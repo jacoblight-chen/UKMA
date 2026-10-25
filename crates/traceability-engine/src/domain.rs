@@ -11,6 +11,7 @@ use std::fmt;
 pub const SCHEMA_VERSION: &str = "1.2.3";
 
 /// Workflow state of a link (§35.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TraceState {
@@ -48,6 +49,7 @@ impl TraceState {
 }
 
 /// Relation kind of a link (§35.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TraceKind {
@@ -90,6 +92,7 @@ impl TraceKind {
 }
 
 /// How a trace endpoint is classified for coverage and gap analysis.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EndpointKind {
@@ -106,6 +109,7 @@ pub enum EndpointKind {
 }
 
 /// Historical truth of a link at its asserted revision (§40.3).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum HistoricalValidity {
@@ -118,6 +122,7 @@ pub enum HistoricalValidity {
 }
 
 /// Whether the link still applies to the current heads (§40.3).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CurrentApplicability {
@@ -132,6 +137,7 @@ pub enum CurrentApplicability {
 }
 
 /// Freshness of the index backing the link (§40.3).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum IndexFreshness {
@@ -148,6 +154,7 @@ pub enum IndexFreshness {
 }
 
 /// The three independent validity dimensions (§40.3).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ValidityVector {
     /// Historical truth.
@@ -167,7 +174,9 @@ pub struct ValidityVector {
 }
 
 /// Address of a trace object.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "TraceabilityRef"))]
 pub struct Ref {
     /// Object id.
     pub id: String,
@@ -193,7 +202,9 @@ impl Ref {
 }
 
 /// Evidence supporting a link.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "TraceabilityEvidence"))]
 pub struct Evidence {
     /// Evidence id.
     pub evidence_id: String,
@@ -204,6 +215,7 @@ pub struct Evidence {
 }
 
 /// One trace link (§35.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TraceLink {
     /// Address of the link itself.
@@ -235,6 +247,7 @@ pub struct TraceLink {
 }
 
 /// Input of `traceability.propose_link` (§35.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TraceLinkInput {
     /// Source endpoint.
@@ -250,7 +263,9 @@ pub struct TraceLinkInput {
 }
 
 /// Cursor page request (§31.4).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "TraceabilityPageRequest"))]
 pub struct PageRequest {
     /// Opaque cursor.
     pub cursor: Option<String>,
@@ -304,6 +319,7 @@ impl PageRequest {
 }
 
 /// One page of results.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Page<T> {
     /// Items.
@@ -338,7 +354,9 @@ impl<T> Page<T> {
 }
 
 /// Handle of an accepted asynchronous job.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "TraceabilityJobHandle"))]
 pub struct JobHandle {
     /// Job id.
     pub job_id: String,
@@ -349,7 +367,9 @@ pub struct JobHandle {
 }
 
 /// Live view of an asynchronous job.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "TraceabilityJobView"))]
 pub struct JobView {
     /// Job id.
     pub job_id: String,
@@ -368,6 +388,7 @@ pub struct JobView {
 // ---------------------------------------------------------------------------
 
 /// `traceability.propose_link` (TAPI-01).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ProposeLink {
     /// Link to propose.
@@ -375,6 +396,7 @@ pub struct ProposeLink {
 }
 
 /// `traceability.validate_link` (TAPI-02).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ValidateLink {
     /// Link under validation.
@@ -386,6 +408,7 @@ pub struct ValidateLink {
 }
 
 /// Decision of `traceability.accept_link` (§35.2).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AcceptDecision {
@@ -396,6 +419,7 @@ pub enum AcceptDecision {
 }
 
 /// `traceability.accept_link` (TAPI-03).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AcceptLink {
     /// Link under review.
@@ -407,6 +431,7 @@ pub struct AcceptLink {
 }
 
 /// `traceability.revoke_link` (TAPI-04).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RevokeLink {
     /// Link to revoke.
@@ -418,6 +443,7 @@ pub struct RevokeLink {
 }
 
 /// `traceability.get_link` (TAPI-05).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GetLink {
     /// Link to read.
@@ -425,6 +451,7 @@ pub struct GetLink {
 }
 
 /// `traceability.list_links` (TAPI-06).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ListLinks {
     /// Endpoint to list around.
@@ -438,6 +465,7 @@ pub struct ListLinks {
 }
 
 /// `traceability.query_coverage` (TAPI-07, §35.1 `CoverageQuery`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CoverageQuery {
     /// Tenant/project the requirements live in.
@@ -455,6 +483,7 @@ pub struct CoverageQuery {
 }
 
 /// Tenant/project scope, kept local so the crate has no wire dependency.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScopeRef {
     /// Tenant.
@@ -464,6 +493,7 @@ pub struct ScopeRef {
 }
 
 /// Coverage report (§35.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CoverageReport {
     /// Requirements with a qualifying implementation link.
@@ -487,6 +517,7 @@ pub struct CoverageReport {
 }
 
 /// `traceability.analyze_change_impact` (TAPI-08, §35.1 `TraceImpactQuery`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TraceImpactQuery {
     /// Changed endpoints.
@@ -500,6 +531,7 @@ pub struct TraceImpactQuery {
 }
 
 /// Impact analysis result (§35.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TraceImpact {
     /// Everything reachable from the change.
@@ -515,6 +547,7 @@ pub struct TraceImpact {
 }
 
 /// Completeness marker shared by the analysis responses.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Completeness {
@@ -525,6 +558,7 @@ pub enum Completeness {
 }
 
 /// `traceability.find_design_gaps` (TAPI-09).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GapQuery {
     /// Tenant/project scope.
@@ -534,6 +568,7 @@ pub struct GapQuery {
 }
 
 /// Gap report (§35.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GapReport {
     /// Requirements with no implementation link.
@@ -549,6 +584,7 @@ pub struct GapReport {
 }
 
 /// `traceability.compare_revisions` (TAPI-10).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TraceRevisionDiff {
     /// Baseline snapshot.
@@ -560,6 +596,7 @@ pub struct TraceRevisionDiff {
 }
 
 /// Result of `traceability.compare_revisions` (§35.2).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TraceRevisionDiffResult {
     /// Links only in `to`.
@@ -571,6 +608,7 @@ pub struct TraceRevisionDiffResult {
 }
 
 /// `traceability.explain_with_evidence` (TAPI-11).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExplainEvidence {
     /// Claim to explain.
@@ -582,6 +620,7 @@ pub struct ExplainEvidence {
 }
 
 /// Conclusion of an evidence report (§35.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Conclusion {
@@ -594,6 +633,7 @@ pub enum Conclusion {
 }
 
 /// Evidence report (§35.1).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EvidenceReport {
     /// Claim that was explained.
@@ -611,6 +651,7 @@ pub struct EvidenceReport {
 }
 
 /// `traceability.revalidate_stale` (TAPI-12).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RevalidateStale {
     /// Links to revalidate.
@@ -622,6 +663,7 @@ pub struct RevalidateStale {
 }
 
 /// `traceability.get_revalidation_job` (TAPI-13).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GetTraceJob {
     /// Job id.

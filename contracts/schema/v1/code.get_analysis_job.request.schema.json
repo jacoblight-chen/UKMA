@@ -21,16 +21,7 @@
       "$ref": "shared.schema.json#/$defs/RequestContext"
     },
     "input": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "job_id": {
-          "$ref": "shared.schema.json#/$defs/ID"
-        }
-      },
-      "required": [
-        "job_id"
-      ]
+      "$ref": "wire.schema.json#/$defs/CodeGetJob"
     }
   }
 }

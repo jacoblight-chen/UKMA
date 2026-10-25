@@ -3,8 +3,12 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
+  "data": {
+    "closed": true,
+    "evidence_refs": [],
+    "status": "starting"
+  },
   "warnings": [],
   "partial_reasons": [],
-  "freshness": "current",
-  "data": null
+  "freshness": "current"
 }

@@ -13,16 +13,11 @@
     "consistency": "eventual"
   },
   "input": {
+    "expected_hash": "x",
     "page_ref": {
-      "domain": "code",
-      "kind": "x",
       "id": "x",
-      "revision": "x",
-      "scope": {
-        "tenant_id": "x",
-        "project_id": "x"
-      }
-    },
-    "expected_hash": "x"
+      "kind": "working",
+      "revision": "x"
+    }
   }
 }

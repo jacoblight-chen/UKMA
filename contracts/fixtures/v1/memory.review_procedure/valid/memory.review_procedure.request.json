@@ -13,16 +13,13 @@
     "consistency": "eventual"
   },
   "input": {
+    "decision": "activate",
+    "evidence_ids": [],
+    "expected_etag": "x",
     "procedure": {
-      "domain": "code",
-      "kind": "x",
       "id": "x",
-      "revision": "x",
-      "scope": {
-        "tenant_id": "x",
-        "project_id": "x"
-      }
-    },
-    "decision": null
+      "kind": "working",
+      "revision": "x"
+    }
   }
 }

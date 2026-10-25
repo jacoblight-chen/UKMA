@@ -333,6 +333,7 @@ flowchart LR
 | G7 Production | Security、Perf、DR、license audit | P10 | 🟡 **部分達標**（授權審計+LICENSE/NOTICE+SBOM 完成、DR 演練與 cutover 狀態機可執行、1M 效能基準完成；尚欠 SBOM 簽章、profile C、schema migration） |
 | DOC-01..04 | 65 ops 唯一、ErrorCode 封閉、單一 budget 演算法、狀態分離 | P0 | 🟢 **已達**（checker 實際執行驗證） |
 | SCHEMA-01/02 | 69×2 schemas + 事件 envelope/payload | P0 | 🟢 **已達**（138 + 35 payload schemas） |
+| SCHEMA-03 | payload closure: every operation payload is a typed schema generated from the Rust wire types (184 $defs, 65 operations, drift test) | P0 + P11 | DONE (ADR-058; 5411 contract checks, 0 failed) |
 | TEST-01 | CAPI/DAPI/MAPI/TAPI/SYS 實際通過 | P3–P8 | 🟢 **已達**（`cargo test --workspace --all-targets` 實際執行；evidence 見 implementation-status.yaml） |
 | DB-01 | ≥2 production backend（禁只用 in-memory） | P10 | 🟢 **已達**（embedded JSON + SQLite 兩個 production-capable 後端跑同一份契約且寫入結果一致；profile C 仍需 PostgreSQL/Qdrant/Neo4j，記於 ADR-057） |
 | MIG-01 | 上游 SHA + golden fixtures + ledger | S0/S1 已達；S2..S7 缺 | 🟡 |
@@ -364,7 +365,7 @@ cargo run -p ukma-contract-check -- --registry contracts/api/operation-registry.
 
 ```yaml
 meta: {plan_version, spec_version, api_major, last_updated}
-claim_level: {catalog_defined: true, schema_closed: false, implementation_compliant: false, production_ready: false}
+claim_level: {catalog_defined: true, schema_closed: true, implementation_compliant: false, production_ready: false}
 gates: {G0: ..., G1: ..., DOC-01: ..., SCHEMA-01: ...}
 phases:
   - id: P0

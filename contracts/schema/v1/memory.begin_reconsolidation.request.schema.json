@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.ukma.dev/v1/memory.begin_reconsolidation.request.schema.json",
-  "title": "memory.begin_reconsolidation Request [PHASE2 PROVISIONAL]",
+  "title": "memory.begin_reconsolidation Request",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -21,22 +21,7 @@
       "$ref": "shared.schema.json#/$defs/RequestContext"
     },
     "input": {
-      "type": "object",
-      "properties": {
-        "fact": {
-          "$ref": "shared.schema.json#/$defs/Ref"
-        },
-        "expected_etag": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "required": [
-        "fact",
-        "expected_etag"
-      ],
-      "additionalProperties": false
+      "$ref": "wire.schema.json#/$defs/BeginReconsolidation"
     }
-  },
-  "$comment": "NOT A CLOSED INPUT CONTRACT: inferred from normative markdown table; require exact IDL and invariants."
+  }
 }

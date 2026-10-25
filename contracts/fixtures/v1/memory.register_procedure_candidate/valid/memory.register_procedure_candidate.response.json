@@ -3,8 +3,19 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
+  "data": {
+    "evidence": [],
+    "permissions": [],
+    "reference": {
+      "id": "x",
+      "kind": "working",
+      "revision": "x"
+    },
+    "run_count": 0,
+    "state": "learn",
+    "success_rate": 1
+  },
   "warnings": [],
   "partial_reasons": [],
-  "freshness": "current",
-  "data": null
+  "freshness": "current"
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.ukma.dev/v1/traceability.get_link.response.schema.json",
-  "title": "traceability.get_link response [PROVISIONAL]",
+  "title": "traceability.get_link response",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -31,7 +31,7 @@
       ]
     },
     "data": {
-      "$comment": "RESPONSE TYPE NOT CLOSED: `TraceLink`"
+      "$ref": "wire.schema.json#/$defs/TraceLink"
     },
     "error": {
       "$ref": "shared.schema.json#/$defs/ErrorDetail"
@@ -189,6 +189,5 @@
         }
       }
     }
-  ],
-  "$comment": "NOT A CLOSED RESPONSE CONTRACT: data payload unresolved."
+  ]
 }

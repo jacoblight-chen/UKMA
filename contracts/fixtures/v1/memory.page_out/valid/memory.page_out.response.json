@@ -3,8 +3,16 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
+  "data": {
+    "block": {
+      "id": "x",
+      "kind": "working",
+      "revision": "x"
+    },
+    "integrity_hash": "x",
+    "status": "paged_out"
+  },
   "warnings": [],
   "partial_reasons": [],
-  "freshness": "current",
-  "data": null
+  "freshness": "current"
 }

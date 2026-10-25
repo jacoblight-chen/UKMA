@@ -21,16 +21,7 @@
       "$ref": "shared.schema.json#/$defs/RequestContext"
     },
     "input": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "symbol": {
-          "$ref": "shared.schema.json#/$defs/Ref"
-        }
-      },
-      "required": [
-        "symbol"
-      ]
+      "$ref": "wire.schema.json#/$defs/GetSymbol"
     }
   }
 }

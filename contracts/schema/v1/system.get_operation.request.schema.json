@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.ukma.dev/v1/system.get_operation.request.schema.json",
-  "title": "system.get_operation Request (provisional system API — ADR-047)",
+  "title": "system.get_operation Request",
   "type": "object",
   "additionalProperties": false,
   "required": [

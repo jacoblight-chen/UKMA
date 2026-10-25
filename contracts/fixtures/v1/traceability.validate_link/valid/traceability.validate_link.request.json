@@ -13,17 +13,12 @@
     "consistency": "eventual"
   },
   "input": {
-    "link": {
-      "domain": "code",
-      "kind": "x",
-      "id": "x",
-      "revision": "x",
-      "scope": {
-        "tenant_id": "x",
-        "project_id": "x"
-      }
-    },
     "evidence_ids": [],
-    "expected_etag": "x"
+    "expected_etag": "x",
+    "link": {
+      "id": "x",
+      "kind": "x",
+      "revision": "x"
+    }
   }
 }

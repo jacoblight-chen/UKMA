@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::{CodeEdge, CodeEdgeKind, CodeLocation, Symbol, SymbolKind};
 
 /// Which revision of a repository a request is bound to (`§32.1 RepoRevision`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RepoRevision {
     /// Repository resource id.
@@ -65,6 +66,7 @@ fn is_full_sha(value: &str) -> bool {
 }
 
 /// Dirty-worktree handling (§32.1 `dirty_policy`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DirtyPolicy {
@@ -75,6 +77,7 @@ pub enum DirtyPolicy {
 }
 
 /// One source file of a repository snapshot.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SourceFile {
     /// Repository-relative path with `/` separators.
@@ -102,6 +105,7 @@ impl SourceFile {
 }
 
 /// A resolved source snapshot for one revision (§4.1: never a floating branch).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SourceSnapshot {
     /// Commit the snapshot was taken from.
@@ -113,7 +117,9 @@ pub struct SourceSnapshot {
 }
 
 /// A page request (§31.4). `limit` is bounded; `cursor` is opaque.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "CodePageRequest"))]
 pub struct PageRequest {
     /// Opaque cursor from a previous page.
     pub cursor: Option<String>,
@@ -167,6 +173,7 @@ impl PageRequest {
 }
 
 /// One page of results.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Page<T> {
     /// Items in this page.
@@ -200,7 +207,9 @@ impl<T> Page<T> {
 }
 
 /// Handle returned by an accepted analysis job.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "CodeJobHandle"))]
 pub struct JobHandle {
     /// Job id.
     pub job_id: String,
@@ -211,7 +220,9 @@ pub struct JobHandle {
 }
 
 /// Live view of a job (`JobView` in §32.2).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "CodeJobView"))]
 pub struct JobView {
     /// Job id.
     pub job_id: String,
@@ -229,6 +240,7 @@ pub struct JobView {
 }
 
 /// Request: start (or join) a repository analysis (`CAPI-01`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AnalyzeRepository {
     /// Revision to analyze.
@@ -244,14 +256,18 @@ pub struct AnalyzeRepository {
 }
 
 /// Request: read a job (`CAPI-02`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "CodeGetJob"))]
 pub struct GetJob {
     /// Job id.
     pub job_id: String,
 }
 
 /// Request: cancel a job (`CAPI-03`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "CodeCancelJob"))]
 pub struct CancelJob {
     /// Job id.
     pub job_id: String,
@@ -260,6 +276,7 @@ pub struct CancelJob {
 }
 
 /// Request: get one symbol by id (`CAPI-04`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GetSymbol {
     /// Symbol id.
@@ -267,6 +284,7 @@ pub struct GetSymbol {
 }
 
 /// Request: symbol search (`CAPI-05`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SymbolQuery {
     /// Repository the query is bound to.
@@ -286,6 +304,7 @@ pub struct SymbolQuery {
 }
 
 /// Request: references to a symbol (`CAPI-06`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReferenceQuery {
     /// Symbol id whose references are wanted.
@@ -299,6 +318,7 @@ pub struct ReferenceQuery {
 }
 
 /// Direction of a traversal (`§32.1 TraversalQuery.direction`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Direction {
@@ -309,6 +329,7 @@ pub enum Direction {
 }
 
 /// Request: bounded traversal of the code graph (`CAPI-07/08/09`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TraversalQuery {
     /// Start symbol.
@@ -326,6 +347,7 @@ pub struct TraversalQuery {
 }
 
 /// Request: impact analysis (`CAPI-10`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImpactQuery {
     /// Changed symbols.
@@ -343,6 +365,7 @@ pub struct ImpactQuery {
 }
 
 /// Result of `code.analyze_impact` (`§32.1 ImpactReport`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ImpactReport {
     /// Impacted symbol ids, ordered by distance then id.
@@ -360,6 +383,7 @@ pub struct ImpactReport {
 }
 
 /// Request: assemble edit context (`CAPI-11`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EditContextQuery {
     /// Caller intent, recorded for audit.
@@ -375,6 +399,7 @@ pub struct EditContextQuery {
 }
 
 /// One block of `EditContextResult`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ContextBlock {
     /// Symbol the block belongs to.
@@ -388,6 +413,7 @@ pub struct ContextBlock {
 }
 
 /// Result of `code.get_edit_context` (`§32.1 EditContextResult`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EditContextResult {
     /// Included blocks, in request order.
@@ -401,6 +427,7 @@ pub struct EditContextResult {
 }
 
 /// Change kind between two revisions.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ChangeKind {
@@ -413,6 +440,7 @@ pub enum ChangeKind {
 }
 
 /// One entry of `code.compare_revisions`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CodeChange {
     /// Change classification.
@@ -426,6 +454,7 @@ pub struct CodeChange {
 }
 
 /// Request: diff two revisions (`CAPI-12`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CodeRevisionDiff {
     /// Repository.
@@ -439,6 +468,7 @@ pub struct CodeRevisionDiff {
 }
 
 /// Request: invalidate a revision (`CAPI-13`).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InvalidateCodeRevision {
     /// Repository.
@@ -452,7 +482,9 @@ pub struct InvalidateCodeRevision {
 }
 
 /// Receipt of a mutation.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", schemars(rename = "CodeChangeReceipt"))]
 pub struct ChangeReceipt {
     /// Resource affected.
     pub resource_id: String,
@@ -465,6 +497,7 @@ pub struct ChangeReceipt {
 }
 
 /// One resolved reference location.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReferenceLocation {
     /// Symbol that owns the reference site.

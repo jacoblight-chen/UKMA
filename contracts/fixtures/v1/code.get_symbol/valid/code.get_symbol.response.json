@@ -3,50 +3,22 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
-  "warnings": [],
-  "partial_reasons": [],
-  "freshness": "current",
   "data": {
-    "ref": {
-      "domain": "code",
-      "kind": "x",
-      "id": "x",
-      "revision": "x",
-      "scope": {
-        "tenant_id": "x",
-        "project_id": "x"
-      }
+    "definition": {
+      "file_id": "x",
+      "line_end": 0,
+      "line_start": 0,
+      "revision": "x"
     },
+    "evidence_ids": [],
+    "id": "x",
+    "kind": "module",
+    "language": "x",
     "name": "x",
     "qualified_name": "x",
-    "symbol_kind": "module",
-    "definition": {
-      "file": {
-        "domain": "code",
-        "kind": "x",
-        "id": "x",
-        "revision": "x",
-        "scope": {
-          "tenant_id": "x",
-          "project_id": "x"
-        }
-      },
-      "span": {
-        "source": {
-          "domain": "code",
-          "kind": "x",
-          "id": "x",
-          "revision": "x",
-          "scope": {
-            "tenant_id": "x",
-            "project_id": "x"
-          }
-        },
-        "media_type": "x"
-      }
-    },
-    "language": "x",
-    "resolution": "resolved",
-    "evidence": []
-  }
+    "resolution": "resolved"
+  },
+  "warnings": [],
+  "partial_reasons": [],
+  "freshness": "current"
 }

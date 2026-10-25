@@ -21,30 +21,7 @@
       "$ref": "shared.schema.json#/$defs/RequestContext"
     },
     "input": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "repository": {
-          "$ref": "shared.schema.json#/$defs/Ref"
-        },
-        "revision": {
-          "$ref": "shared.schema.json#/$defs/ID"
-        },
-        "reason": {
-          "type": "string",
-          "minLength": 1
-        },
-        "expected_etag": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "required": [
-        "repository",
-        "revision",
-        "reason",
-        "expected_etag"
-      ]
+      "$ref": "wire.schema.json#/$defs/InvalidateCodeRevision"
     }
   }
 }

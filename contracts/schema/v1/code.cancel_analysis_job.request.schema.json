@@ -21,21 +21,7 @@
       "$ref": "shared.schema.json#/$defs/RequestContext"
     },
     "input": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "job_id": {
-          "$ref": "shared.schema.json#/$defs/ID"
-        },
-        "reason": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "required": [
-        "job_id",
-        "reason"
-      ]
+      "$ref": "wire.schema.json#/$defs/CodeCancelJob"
     }
   }
 }

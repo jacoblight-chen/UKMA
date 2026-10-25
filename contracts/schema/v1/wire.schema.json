@@ -1,0 +1,6806 @@
+{
+  "$comment": "Generated from the Rust domain types by tools/wire-schema. Do not edit by hand.",
+  "$defs": {
+    "AcceptDecision": {
+      "description": "Decision of `traceability.accept_link` (§35.2).",
+      "oneOf": [
+        {
+          "description": "Accept the link.",
+          "enum": [
+            "accept"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Reject the link.",
+          "enum": [
+            "reject"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "AcceptLink": {
+      "description": "`traceability.accept_link` (TAPI-03).",
+      "properties": {
+        "decision": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/AcceptDecision"
+            }
+          ],
+          "description": "Decision."
+        },
+        "expected_etag": {
+          "description": "Caller's etag.",
+          "type": "string"
+        },
+        "link": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/TraceabilityRef"
+            }
+          ],
+          "description": "Link under review."
+        }
+      },
+      "required": [
+        "decision",
+        "expected_etag",
+        "link"
+      ],
+      "type": "object"
+    },
+    "AgentScopeGrant": {
+      "description": "Delegation grant handed to a sub-agent (§26.4, §34.1).",
+      "properties": {
+        "allowed_scopes": {
+          "description": "Scopes the child may use; must be a subset of the parent's.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "allowed_tools": {
+          "description": "Tools the child may use; must be a subset of the parent's.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "child_agent_id": {
+          "description": "Child agent instance.",
+          "type": "string"
+        },
+        "depth": {
+          "description": "Depth the child will run at.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "expires_at": {
+          "description": "Expiry of the grant.",
+          "type": "string"
+        },
+        "max_context_tokens": {
+          "description": "Context tokens the child may use.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "parent_agent_id": {
+          "description": "Parent agent.",
+          "type": "string"
+        },
+        "session_id": {
+          "description": "Session the grant is bound to.",
+          "type": "string"
+        },
+        "task_id": {
+          "description": "Task the child works on.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "allowed_scopes",
+        "allowed_tools",
+        "child_agent_id",
+        "depth",
+        "expires_at",
+        "max_context_tokens",
+        "parent_agent_id",
+        "session_id",
+        "task_id"
+      ],
+      "type": "object"
+    },
+    "AgentScopeView": {
+      "description": "View of an open agent scope.",
+      "properties": {
+        "expires_at": {
+          "description": "Instant the scope expires.",
+          "type": "string"
+        },
+        "scope_id": {
+          "description": "Scope id.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "expires_at",
+        "scope_id"
+      ],
+      "type": "object"
+    },
+    "AgentStatus": {
+      "description": "Sub-agent lifecycle (§26.4).",
+      "oneOf": [
+        {
+          "description": "Starting up.",
+          "enum": [
+            "starting"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Executing.",
+          "enum": [
+            "running"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Waiting on the parent or a tool.",
+          "enum": [
+            "waiting"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Finished successfully.",
+          "enum": [
+            "completed"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Finished partially.",
+          "enum": [
+            "partial"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Failed.",
+          "enum": [
+            "failed"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Cancelled by the parent.",
+          "enum": [
+            "cancelled"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Exceeded `subagent_timeout`.",
+          "enum": [
+            "timed_out"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Producing the folded result.",
+          "enum": [
+            "folding"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Folded and immutable.",
+          "enum": [
+            "sealed"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Eligible for cleanup.",
+          "enum": [
+            "cleanup_eligible"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "AnalyzeRepository": {
+      "description": "Request: start (or join) a repository analysis (`CAPI-01`).",
+      "properties": {
+        "asynchronous": {
+          "description": "Callers must pass `true`; a synchronous contract would hide job state.",
+          "type": "boolean"
+        },
+        "exclude_globs": {
+          "description": "Exclude globs.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "include_globs": {
+          "description": "Include globs (empty means \"everything the parser supports\").",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "parser_profile": {
+          "description": "Parser profile the caller requires.",
+          "type": "string"
+        },
+        "revision": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/RepoRevision"
+            }
+          ],
+          "description": "Revision to analyze."
+        }
+      },
+      "required": [
+        "asynchronous",
+        "exclude_globs",
+        "include_globs",
+        "parser_profile",
+        "revision"
+      ],
+      "type": "object"
+    },
+    "BeginReconsolidation": {
+      "description": "`memory.begin_reconsolidation` (MAPI-16).",
+      "properties": {
+        "expected_etag": {
+          "description": "Caller's etag.",
+          "type": "string"
+        },
+        "fact": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryRef"
+            }
+          ],
+          "description": "Fact whose window opens."
+        },
+        "window_hours": {
+          "description": "Window length in hours; defaults to 4 and is clamped to 1..=12.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "expected_etag",
+        "fact"
+      ],
+      "type": "object"
+    },
+    "BudgetView": {
+      "description": "Budget view (§10.2, §22.1, MAPI-25).",
+      "properties": {
+        "agent_budget": {
+          "description": "`B_eff(depth)`.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "available": {
+          "description": "`C_usable`.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "core": {
+          "description": "Core knowledge share.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "model_context": {
+          "description": "`W_model`.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "ring": {
+          "description": "Message ring share.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "used": {
+          "description": "Tokens currently used by active working blocks.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "wm": {
+          "description": "Working memory share.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "agent_budget",
+        "available",
+        "core",
+        "model_context",
+        "ring",
+        "used",
+        "wm"
+      ],
+      "type": "object"
+    },
+    "CacheInvalidation": {
+      "description": "State of the cache invalidation step of a deletion (§34.1).",
+      "oneOf": [
+        {
+          "description": "Not yet attempted.",
+          "enum": [
+            "pending"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Every cache entry dropped.",
+          "enum": [
+            "complete"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "At least one cache entry could not be dropped.",
+          "enum": [
+            "failed"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "ChangeKind": {
+      "description": "Change kind between two revisions.",
+      "oneOf": [
+        {
+          "description": "Present only in the new revision.",
+          "enum": [
+            "added"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Present only in the old revision.",
+          "enum": [
+            "removed"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Present in both with a different signature or span.",
+          "enum": [
+            "modified"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "CloseAgentScope": {
+      "description": "`memory.close_agent_scope` (MAPI-02).",
+      "properties": {
+        "fold_on_close": {
+          "description": "Whether the child should hand a folded result to the parent.",
+          "type": "boolean"
+        },
+        "reason": {
+          "description": "Why it is being closed.",
+          "type": "string"
+        },
+        "scope_id": {
+          "description": "Scope to close.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "fold_on_close",
+        "reason",
+        "scope_id"
+      ],
+      "type": "object"
+    },
+    "CloseScopeResult": {
+      "description": "Result of closing an agent scope.\n\nOnly the folded result, its evidence references and a status cross the agent boundary (§26.4): full episodes and working memory never do.",
+      "properties": {
+        "closed": {
+          "description": "Whether the scope was open and is now closed.",
+          "type": "boolean"
+        },
+        "evidence_refs": {
+          "description": "Evidence the parent may look up.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "folded_result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FoldedResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Folded hand-over to the parent, when a fold was requested."
+        },
+        "status": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/AgentStatus"
+            }
+          ],
+          "description": "Terminal status of the child agent."
+        }
+      },
+      "required": [
+        "closed",
+        "evidence_refs",
+        "status"
+      ],
+      "type": "object"
+    },
+    "CodeCancelJob": {
+      "description": "Request: cancel a job (`CAPI-03`).",
+      "properties": {
+        "job_id": {
+          "description": "Job id.",
+          "type": "string"
+        },
+        "reason": {
+          "description": "Reason recorded on the job.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "job_id",
+        "reason"
+      ],
+      "type": "object"
+    },
+    "CodeChange": {
+      "description": "One entry of `code.compare_revisions`.",
+      "properties": {
+        "change_kind": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ChangeKind"
+            }
+          ],
+          "description": "Change classification."
+        },
+        "evidence_ids": {
+          "description": "Evidence ids.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "new_symbol": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CodeSymbol"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "New symbol, when present."
+        },
+        "old_symbol": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CodeSymbol"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Old symbol, when present."
+        }
+      },
+      "required": [
+        "change_kind",
+        "evidence_ids"
+      ],
+      "type": "object"
+    },
+    "CodeChangeReceipt": {
+      "description": "Receipt of a mutation.",
+      "properties": {
+        "changed": {
+          "description": "Whether anything actually changed.",
+          "type": "boolean"
+        },
+        "etag": {
+          "description": "New resource etag.",
+          "type": "string"
+        },
+        "events": {
+          "description": "Events that would be published for this change.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "resource_id": {
+          "description": "Resource affected.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "changed",
+        "etag",
+        "events",
+        "resource_id"
+      ],
+      "type": "object"
+    },
+    "CodeEdge": {
+      "description": "A code edge (§32.1 `CodeEdge`).",
+      "properties": {
+        "confidence": {
+          "description": "Confidence in `0.0..=1.0`, when the extractor can estimate it.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "evidence_ids": {
+          "description": "Evidence ids.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "kind": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CodeEdgeKind"
+            }
+          ],
+          "description": "Edge kind."
+        },
+        "resolution": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/EdgeResolution"
+            }
+          ],
+          "description": "Resolution state."
+        },
+        "source": {
+          "description": "Source symbol id.",
+          "type": "string"
+        },
+        "target": {
+          "description": "Target symbol id, when known.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "evidence_ids",
+        "kind",
+        "resolution",
+        "source"
+      ],
+      "type": "object"
+    },
+    "CodeEdgeKind": {
+      "description": "Edge kind (§32.1 `CodeEdge.kind`).",
+      "oneOf": [
+        {
+          "description": "Function call.",
+          "enum": [
+            "calls"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Import.",
+          "enum": [
+            "imports"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Dependency.",
+          "enum": [
+            "depends_on"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Implements a trait/interface.",
+          "enum": [
+            "implements"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Generic reference.",
+          "enum": [
+            "references"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Defines.",
+          "enum": [
+            "defines"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "CodeGetJob": {
+      "description": "Request: read a job (`CAPI-02`).",
+      "properties": {
+        "job_id": {
+          "description": "Job id.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "job_id"
+      ],
+      "type": "object"
+    },
+    "CodeJobHandle": {
+      "description": "Handle returned by an accepted analysis job.",
+      "properties": {
+        "job_id": {
+          "description": "Job id.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Job kind (`code.analyze_repository`).",
+          "type": "string"
+        },
+        "stage": {
+          "description": "Stage at the time the handle was produced.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "job_id",
+        "kind",
+        "stage"
+      ],
+      "type": "object"
+    },
+    "CodeJobView": {
+      "description": "Live view of a job (`JobView` in §32.2).",
+      "properties": {
+        "canonical_committed": {
+          "description": "Whether canonical data was committed. Never inferred from `stage` alone (§40.4).",
+          "type": "boolean"
+        },
+        "diagnostics": {
+          "description": "Diagnostics collected while running.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "job_id": {
+          "description": "Job id.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Job kind.",
+          "type": "string"
+        },
+        "result_ref": {
+          "description": "Reference to the authoritative manifest, available only after commit.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stage": {
+          "description": "Canonical stage name.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "canonical_committed",
+        "diagnostics",
+        "job_id",
+        "kind",
+        "stage"
+      ],
+      "type": "object"
+    },
+    "CodeLocation": {
+      "description": "A source location with 1-based lines (§31.3 span rules).",
+      "properties": {
+        "file_id": {
+          "description": "File identity (logical ref id).",
+          "type": "string"
+        },
+        "line_end": {
+          "description": "1-based last line, inclusive.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "line_start": {
+          "description": "1-based first line.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "qualified_name": {
+          "description": "Qualified name when known.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revision": {
+          "description": "Source revision.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file_id",
+        "line_end",
+        "line_start",
+        "revision"
+      ],
+      "type": "object"
+    },
+    "CodePageRequest": {
+      "description": "A page request (§31.4). `limit` is bounded; `cursor` is opaque.",
+      "properties": {
+        "cursor": {
+          "description": "Opaque cursor from a previous page.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limit": {
+          "description": "Maximum items to return (1..=200).",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "limit"
+      ],
+      "type": "object"
+    },
+    "CodeRevisionDiff": {
+      "description": "Request: diff two revisions (`CAPI-12`).",
+      "properties": {
+        "from_revision": {
+          "description": "Old revision.",
+          "type": "string"
+        },
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CodePageRequest"
+            }
+          ],
+          "description": "Page."
+        },
+        "repository_id": {
+          "description": "Repository.",
+          "type": "string"
+        },
+        "to_revision": {
+          "description": "New revision.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "from_revision",
+        "page",
+        "repository_id",
+        "to_revision"
+      ],
+      "type": "object"
+    },
+    "CodeSymbol": {
+      "description": "A symbol definition (§32.1 `Symbol`).",
+      "properties": {
+        "definition": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CodeLocation"
+            }
+          ],
+          "description": "Declaration site."
+        },
+        "evidence_ids": {
+          "description": "Evidence ids backing the claim.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "description": "Stable logical id.",
+          "type": "string"
+        },
+        "kind": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/SymbolKind"
+            }
+          ],
+          "description": "Kind."
+        },
+        "language": {
+          "description": "Language identifier.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Simple name.",
+          "type": "string"
+        },
+        "qualified_name": {
+          "description": "Qualified name (may equal `name`).",
+          "type": "string"
+        },
+        "resolution": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Resolution"
+            }
+          ],
+          "description": "Resolution state."
+        },
+        "signature": {
+          "description": "Declaration signature (part of the §32.3 identity).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "visibility": {
+          "description": "Declared visibility, when the language has one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "definition",
+        "evidence_ids",
+        "id",
+        "kind",
+        "language",
+        "name",
+        "qualified_name",
+        "resolution"
+      ],
+      "type": "object"
+    },
+    "CommitReconsolidation": {
+      "description": "`memory.commit_reconsolidation` (MAPI-17).",
+      "properties": {
+        "evidence": {
+          "description": "Evidence supporting the change.",
+          "items": {
+            "$ref": "#/$defs/MemoryEvidence"
+          },
+          "type": "array"
+        },
+        "expected_etag": {
+          "description": "Caller's etag.",
+          "type": "string"
+        },
+        "patch": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryPatch"
+            }
+          ],
+          "description": "Patch to apply."
+        },
+        "window_id": {
+          "description": "Window to commit.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "evidence",
+        "expected_etag",
+        "patch",
+        "window_id"
+      ],
+      "type": "object"
+    },
+    "Completeness": {
+      "description": "Completeness marker shared by the analysis responses.",
+      "oneOf": [
+        {
+          "description": "Every conclusion could be reached.",
+          "enum": [
+            "complete"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Something could not be decided.",
+          "enum": [
+            "partial"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "Conclusion": {
+      "description": "Conclusion of an evidence report (§35.1).",
+      "oneOf": [
+        {
+          "description": "The links support the claim.",
+          "enum": [
+            "supported"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A contradicting link exists.",
+          "enum": [
+            "contradicted"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Not enough evidence.",
+          "enum": [
+            "insufficient"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "ConsistencyCategory": {
+      "description": "Category of a consistency finding.",
+      "oneOf": [
+        {
+          "description": "Two statements cannot both hold.",
+          "enum": [
+            "contradiction"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A referenced thing does not exist.",
+          "enum": [
+            "missing_reference"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A candidate was never reviewed.",
+          "enum": [
+            "unverified"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Wording allows more than one reading.",
+          "enum": [
+            "ambiguity"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Implementation looks older than the document.",
+          "enum": [
+            "stale_implementation"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "ConsistencyFinding": {
+      "description": "One consistency finding (`§33.1 ConsistencyFinding`).",
+      "properties": {
+        "category": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ConsistencyCategory"
+            }
+          ],
+          "description": "Category."
+        },
+        "confidence": {
+          "description": "Confidence in percent.",
+          "format": "uint8",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "evidence": {
+          "description": "Evidence ids.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "description": "Finding id.",
+          "type": "string"
+        },
+        "refs": {
+          "description": "Refs involved.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Severity"
+            }
+          ],
+          "description": "Severity."
+        },
+        "verification": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ValidationState"
+            }
+          ],
+          "description": "Verification state."
+        }
+      },
+      "required": [
+        "category",
+        "evidence",
+        "id",
+        "refs",
+        "severity",
+        "verification"
+      ],
+      "type": "object"
+    },
+    "ConsistencyReport": {
+      "description": "Result of `document.verify_consistency` (`§33.1 ConsistencyReport`).",
+      "properties": {
+        "analyzed_refs": {
+          "description": "Refs that were analysed.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "completeness": {
+          "description": "`complete` only when nothing was skipped or truncated.",
+          "type": "string"
+        },
+        "findings": {
+          "description": "Findings, ordered by category then id.",
+          "items": {
+            "$ref": "#/$defs/ConsistencyFinding"
+          },
+          "type": "array"
+        },
+        "skipped_reasons": {
+          "description": "Why each skipped ref was skipped.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "skipped_refs": {
+          "description": "Refs that were skipped (with the reason in `skipped_reasons`).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "snapshot_id": {
+          "description": "Snapshot the report was computed against.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "analyzed_refs",
+        "completeness",
+        "findings",
+        "skipped_reasons",
+        "skipped_refs",
+        "snapshot_id"
+      ],
+      "type": "object"
+    },
+    "Consolidate": {
+      "description": "`memory.consolidate` (MAPI-18 — implemented in P6).",
+      "properties": {
+        "asynchronous": {
+          "description": "Must be `true`: consolidation is asynchronous (§34.2).",
+          "type": "boolean"
+        },
+        "episode_refs": {
+          "description": "Episodes to consolidate.",
+          "items": {
+            "$ref": "#/$defs/MemoryRef"
+          },
+          "type": "array"
+        },
+        "policy_id": {
+          "description": "Pipeline policy.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "asynchronous",
+        "episode_refs",
+        "policy_id"
+      ],
+      "type": "object"
+    },
+    "ContextBlock": {
+      "description": "One block of `EditContextResult`.",
+      "properties": {
+        "content": {
+          "description": "Source text of the symbol's definition.",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "description": "Evidence ids.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "symbol_id": {
+          "description": "Symbol the block belongs to.",
+          "type": "string"
+        },
+        "token_count": {
+          "description": "Estimated tokens.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "content",
+        "evidence_ids",
+        "symbol_id",
+        "token_count"
+      ],
+      "type": "object"
+    },
+    "CoverageQuery": {
+      "description": "`traceability.query_coverage` (TAPI-07, §35.1 `CoverageQuery`).",
+      "properties": {
+        "accepted_only": {
+          "description": "Only count accepted links.",
+          "type": "boolean"
+        },
+        "implementation_kinds": {
+          "description": "Kinds that count as implementation.",
+          "items": {
+            "$ref": "#/$defs/TraceKind"
+          },
+          "type": "array"
+        },
+        "include_unindexed": {
+          "description": "Count links whose index is lagging.",
+          "type": "boolean"
+        },
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/TraceabilityPageRequest"
+            }
+          ],
+          "description": "Page request."
+        },
+        "requirement_refs": {
+          "description": "Explicit requirement subset; empty means every in-scope requirement.",
+          "items": {
+            "$ref": "#/$defs/TraceabilityRef"
+          },
+          "type": "array"
+        },
+        "requirement_scope": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ScopeRef"
+            }
+          ],
+          "description": "Tenant/project the requirements live in."
+        }
+      },
+      "required": [
+        "accepted_only",
+        "implementation_kinds",
+        "include_unindexed",
+        "page",
+        "requirement_refs",
+        "requirement_scope"
+      ],
+      "type": "object"
+    },
+    "CoverageReport": {
+      "description": "Coverage report (§35.1).",
+      "properties": {
+        "coverage_incomplete": {
+          "description": "Whether the analysis was incomplete.",
+          "type": "boolean"
+        },
+        "coverage_ratio": {
+          "description": "`numerator/denominator`, `None` when the denominator is zero.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "covered": {
+          "description": "Covered requirements.",
+          "items": {
+            "$ref": "#/$defs/TraceabilityRef"
+          },
+          "type": "array"
+        },
+        "denominator": {
+          "description": "Authorised in-scope requirements.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "excluded_count": {
+          "description": "Requirements excluded because they are out of scope or unauthorised.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "numerator": {
+          "description": "Requirements with a qualifying implementation link.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "snapshot_id": {
+          "description": "Snapshot the report was computed against.",
+          "type": "string"
+        },
+        "uncovered": {
+          "description": "Requirements without a qualifying link.",
+          "items": {
+            "$ref": "#/$defs/TraceabilityRef"
+          },
+          "type": "array"
+        },
+        "unknown": {
+          "description": "Requirements whose coverage cannot be decided.",
+          "items": {
+            "$ref": "#/$defs/TraceabilityRef"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "coverage_incomplete",
+        "covered",
+        "denominator",
+        "excluded_count",
+        "numerator",
+        "snapshot_id",
+        "uncovered",
+        "unknown"
+      ],
+      "type": "object"
+    },
+    "CurrentApplicability": {
+      "description": "Whether the link still applies to the current heads (§40.3).",
+      "oneOf": [
+        {
+          "description": "Applies to the observed heads.",
+          "enum": [
+            "applicable"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A source moved on; the link must be revalidated.",
+          "enum": [
+            "requires_revalidation"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "The relation no longer holds.",
+          "enum": [
+            "not_applicable"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Heads unknown, so applicability cannot be decided.",
+          "enum": [
+            "unknown"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "DeletionReceipt": {
+      "description": "Receipt of a deletion (forget or working-block removal) (§34.1).",
+      "properties": {
+        "backup_expiry_at": {
+          "description": "When the backup copy expires, if a backup exists.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cache_invalidation": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CacheInvalidation"
+            }
+          ],
+          "description": "Cache invalidation state."
+        },
+        "legal_hold": {
+          "description": "Whether a legal hold kept any authority from being touched.",
+          "type": "boolean"
+        },
+        "memory": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryRef"
+            }
+          ],
+          "description": "Memory that was deleted."
+        },
+        "projections": {
+          "description": "Per-projection revocation.",
+          "items": {
+            "$ref": "#/$defs/ProjectionStatus"
+          },
+          "type": "array"
+        },
+        "tombstone_revision": {
+          "description": "Revision that carries the tombstone.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "cache_invalidation",
+        "legal_hold",
+        "memory",
+        "projections",
+        "tombstone_revision"
+      ],
+      "type": "object"
+    },
+    "DetailLevel": {
+      "description": "Requested response detail (§34.1 `MemoryQuery.detail`).",
+      "oneOf": [
+        {
+          "description": "Identification only.",
+          "enum": [
+            "title"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Key facts only.",
+          "enum": [
+            "facts"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Summary plus evidence references.",
+          "enum": [
+            "summary"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Full authorised content.",
+          "enum": [
+            "full"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "Direction": {
+      "description": "Direction of a traversal (`§32.1 TraversalQuery.direction`).",
+      "oneOf": [
+        {
+          "description": "Callers / incoming edges.",
+          "enum": [
+            "in"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Callees / outgoing edges.",
+          "enum": [
+            "out"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "DirtyPolicy": {
+      "description": "Dirty-worktree handling (§32.1 `dirty_policy`).",
+      "oneOf": [
+        {
+          "description": "Refuse to analyze a dirty worktree.",
+          "enum": [
+            "reject"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Analyze the dirty content and record it as a snapshot.",
+          "enum": [
+            "snapshot"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "DocChange": {
+      "description": "One change between two revisions (`§33.1 DocDiff`).",
+      "properties": {
+        "evidence": {
+          "description": "Evidence ids.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "kind": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/DocChangeKind"
+            }
+          ],
+          "description": "Change kind."
+        },
+        "new": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DocumentBlock"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "New block, when present."
+        },
+        "old": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DocumentBlock"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Old block, when present."
+        }
+      },
+      "required": [
+        "evidence",
+        "kind"
+      ],
+      "type": "object"
+    },
+    "DocChangeKind": {
+      "description": "Kind of document change.",
+      "oneOf": [
+        {
+          "description": "Only in the new revision.",
+          "enum": [
+            "added"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Only in the old revision.",
+          "enum": [
+            "removed"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Present in both with different text.",
+          "enum": [
+            "modified"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Present in both with the same text at a different position.",
+          "enum": [
+            "moved"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "DocCompleteness": {
+      "description": "Completeness of a parsed document (`§33.1 completeness`).",
+      "oneOf": [
+        {
+          "description": "Everything was parsed.",
+          "enum": [
+            "complete"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Something was skipped; the diagnostics say what.",
+          "enum": [
+            "partial"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "The format is not supported at all.",
+          "enum": [
+            "unsupported"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "DocDiff": {
+      "description": "Result of `document.compare_revisions` (`§33.1 DocDiff`).",
+      "properties": {
+        "changes": {
+          "description": "Changes.",
+          "items": {
+            "$ref": "#/$defs/DocChange"
+          },
+          "type": "array"
+        },
+        "completeness": {
+          "description": "Completeness.",
+          "type": "string"
+        },
+        "from": {
+          "description": "Old revision label.",
+          "type": "string"
+        },
+        "to": {
+          "description": "New revision label.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "changes",
+        "completeness",
+        "from",
+        "to"
+      ],
+      "type": "object"
+    },
+    "DocumentBlock": {
+      "description": "One block of a parsed document (`§33.1 DocumentBlock`).",
+      "properties": {
+        "id": {
+          "description": "Block id (deterministic, revision-scoped).",
+          "type": "string"
+        },
+        "kind": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/DocumentBlockKind"
+            }
+          ],
+          "description": "Block kind."
+        },
+        "language": {
+          "description": "Fenced code language.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "level": {
+          "description": "Heading level (1-6) for headings and list depth for list items.",
+          "format": "uint8",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "order": {
+          "description": "Document order.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "parent_id": {
+          "description": "Parent block (heading or list), when any.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "parse_status": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ParseStatus"
+            }
+          ],
+          "description": "Parse status."
+        },
+        "span": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Span"
+            }
+          ],
+          "description": "Location in the artifact."
+        },
+        "text": {
+          "description": "Text content, when parsed.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "order",
+        "parse_status",
+        "span"
+      ],
+      "type": "object"
+    },
+    "DocumentBlockKind": {
+      "description": "Kind of a document block (`§33.1 DocumentBlock.kind`).",
+      "oneOf": [
+        {
+          "description": "Section heading.",
+          "enum": [
+            "heading"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Paragraph.",
+          "enum": [
+            "paragraph"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Table.",
+          "enum": [
+            "table"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Table cell.",
+          "enum": [
+            "table_cell"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "List (container).",
+          "enum": [
+            "list"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Code block.",
+          "enum": [
+            "code"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Image; without OCR it stays `unparsed`.",
+          "enum": [
+            "image"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Footnote.",
+          "enum": [
+            "footnote"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Anything else.",
+          "enum": [
+            "other"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "DocumentCancelJob": {
+      "description": "`document.cancel_ingest_job` (DAPI-03).",
+      "properties": {
+        "job_id": {
+          "description": "Job id.",
+          "type": "string"
+        },
+        "reason": {
+          "description": "Reason.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "job_id",
+        "reason"
+      ],
+      "type": "object"
+    },
+    "DocumentChangeReceipt": {
+      "description": "Bookkeeping receipt of a mutation.",
+      "properties": {
+        "changed": {
+          "description": "Whether anything changed.",
+          "type": "boolean"
+        },
+        "etag": {
+          "description": "New etag.",
+          "type": "string"
+        },
+        "events": {
+          "description": "Events a gateway must publish.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "resource_id": {
+          "description": "Resource affected.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "changed",
+        "etag",
+        "events",
+        "resource_id"
+      ],
+      "type": "object"
+    },
+    "DocumentGetJob": {
+      "description": "`document.get_ingest_job` (DAPI-02).",
+      "properties": {
+        "job_id": {
+          "description": "Job id.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "job_id"
+      ],
+      "type": "object"
+    },
+    "DocumentIngest": {
+      "description": "`document.ingest` (DAPI-01).",
+      "properties": {
+        "asynchronous": {
+          "description": "Must be `true`; a synchronous contract would hide job state.",
+          "type": "boolean"
+        },
+        "include_images": {
+          "description": "Include images (they stay unparsed without OCR).",
+          "type": "boolean"
+        },
+        "parser_profile": {
+          "description": "Parser profile the caller requires.",
+          "type": "string"
+        },
+        "source": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/DocumentSource"
+            }
+          ],
+          "description": "Source description."
+        }
+      },
+      "required": [
+        "asynchronous",
+        "include_images",
+        "parser_profile",
+        "source"
+      ],
+      "type": "object"
+    },
+    "DocumentJobHandle": {
+      "description": "Handle of an accepted ingest job.",
+      "properties": {
+        "job_id": {
+          "description": "Job id.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Job kind.",
+          "type": "string"
+        },
+        "stage": {
+          "description": "Stage when the handle was produced.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "job_id",
+        "kind",
+        "stage"
+      ],
+      "type": "object"
+    },
+    "DocumentJobView": {
+      "description": "Live job view.",
+      "properties": {
+        "canonical_committed": {
+          "description": "Whether canonical data was committed.",
+          "type": "boolean"
+        },
+        "diagnostics": {
+          "description": "Diagnostics.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "job_id": {
+          "description": "Job id.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Job kind.",
+          "type": "string"
+        },
+        "partial_ratio": {
+          "description": "Unparsed block ratio in percent when the document is partial.",
+          "format": "uint8",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "result_ref": {
+          "description": "Reference to the parsed result, available after the commit.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stage": {
+          "description": "Stage.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "canonical_committed",
+        "diagnostics",
+        "job_id",
+        "kind",
+        "stage"
+      ],
+      "type": "object"
+    },
+    "DocumentPageRequest": {
+      "description": "Page request (§31.4). Kept local so the crate has no wire dependency.",
+      "properties": {
+        "cursor": {
+          "description": "Opaque cursor.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limit": {
+          "description": "Maximum items.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "limit"
+      ],
+      "type": "object"
+    },
+    "DocumentRevisionDiff": {
+      "description": "`document.compare_revisions` (DAPI-12).",
+      "properties": {
+        "from": {
+          "description": "Old document id.",
+          "type": "string"
+        },
+        "to": {
+          "description": "New document id.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "type": "object"
+    },
+    "DocumentSource": {
+      "description": "Where a document came from (`§33.1 DocumentSource`).",
+      "properties": {
+        "artifact_ref": {
+          "description": "Artifact reference.",
+          "type": "string"
+        },
+        "content_hash": {
+          "description": "`sha256:<hex>` of the artifact bytes.",
+          "type": "string"
+        },
+        "language_hint": {
+          "description": "Language hint used by the parser.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "media_type": {
+          "description": "Media type of the artifact.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Caller-provided revision label.",
+          "type": "string"
+        },
+        "source_uri": {
+          "description": "Original URI (informational; the artifact is the authority).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_ref",
+        "content_hash",
+        "media_type",
+        "revision",
+        "source_uri"
+      ],
+      "type": "object"
+    },
+    "DocumentView": {
+      "description": "Result of `document.get_document`.",
+      "properties": {
+        "blocks": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Page_for_DocumentBlock"
+            }
+          ],
+          "description": "Blocks (a page when `include_blocks`)."
+        },
+        "completeness": {
+          "description": "Completeness.",
+          "type": "string"
+        },
+        "document_id": {
+          "description": "Document id.",
+          "type": "string"
+        },
+        "etag": {
+          "description": "Artifact etag for optimistic concurrency.",
+          "type": "string"
+        },
+        "source": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/DocumentSource"
+            }
+          ],
+          "description": "Source description."
+        }
+      },
+      "required": [
+        "blocks",
+        "completeness",
+        "document_id",
+        "etag",
+        "source"
+      ],
+      "type": "object"
+    },
+    "EdgeResolution": {
+      "description": "Edge resolution (§32.1 `CodeEdge.resolution`).",
+      "oneOf": [
+        {
+          "description": "Statically certain.",
+          "enum": [
+            "static_exact"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Statically possible (dynamic dispatch, reflection, …).",
+          "enum": [
+            "static_possible"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Unresolved.",
+          "enum": [
+            "unresolved"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "EditContextQuery": {
+      "description": "Request: assemble edit context (`CAPI-11`).",
+      "properties": {
+        "intent": {
+          "description": "Caller intent, recorded for audit.",
+          "type": "string"
+        },
+        "max_tokens": {
+          "description": "Hard token budget.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "repository_id": {
+          "description": "Repository the request is bound to.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Revision (commit SHA).",
+          "type": "string"
+        },
+        "target_refs": {
+          "description": "Symbols whose source is wanted.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "intent",
+        "max_tokens",
+        "repository_id",
+        "revision",
+        "target_refs"
+      ],
+      "type": "object"
+    },
+    "EditContextResult": {
+      "description": "Result of `code.get_edit_context` (`§32.1 EditContextResult`).",
+      "properties": {
+        "blocks": {
+          "description": "Included blocks, in request order.",
+          "items": {
+            "$ref": "#/$defs/ContextBlock"
+          },
+          "type": "array"
+        },
+        "omitted_refs": {
+          "description": "Symbols that did not fit the budget.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "total_tokens": {
+          "description": "Sum of the block token counts.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "truncation": {
+          "description": "Whether anything was dropped.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "blocks",
+        "omitted_refs",
+        "total_tokens",
+        "truncation"
+      ],
+      "type": "object"
+    },
+    "EpisodeInput": {
+      "description": "Input of `memory.store_episode` (§34.1).",
+      "properties": {
+        "agent_depth": {
+          "description": "Delegation depth of the writing agent.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "agent_id": {
+          "description": "Agent id.",
+          "type": "string"
+        },
+        "episode_type": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/EpisodeType"
+            }
+          ],
+          "description": "Episode type."
+        },
+        "evidence": {
+          "description": "Evidence supporting the episode.",
+          "items": {
+            "$ref": "#/$defs/MemoryEvidence"
+          },
+          "type": "array"
+        },
+        "full_text_ref": {
+          "description": "Reference to the full text artifact, if any.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "importance_score": {
+          "description": "Importance in `[0,1]`.",
+          "format": "double",
+          "type": "number"
+        },
+        "key_facts": {
+          "description": "Key facts.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "language": {
+          "description": "BCP-47 language.",
+          "type": "string"
+        },
+        "outcome": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/EpisodeOutcome"
+            }
+          ],
+          "description": "Outcome."
+        },
+        "session_id": {
+          "description": "Session id.",
+          "type": "string"
+        },
+        "source_refs": {
+          "description": "Sources the episode derives from.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "summary": {
+          "description": "Summary text.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "agent_depth",
+        "agent_id",
+        "episode_type",
+        "evidence",
+        "importance_score",
+        "key_facts",
+        "language",
+        "outcome",
+        "session_id",
+        "source_refs",
+        "summary"
+      ],
+      "type": "object"
+    },
+    "EpisodeOutcome": {
+      "description": "Outcome of the work an episode records (§21.3).",
+      "oneOf": [
+        {
+          "description": "Finished successfully.",
+          "enum": [
+            "success"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Partially finished.",
+          "enum": [
+            "partial"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Failed.",
+          "enum": [
+            "failure"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "EpisodeType": {
+      "description": "Episode type (§21.3).",
+      "oneOf": [
+        {
+          "description": "One conversation turn.",
+          "enum": [
+            "conversation_turn"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "One tool execution.",
+          "enum": [
+            "tool_execution"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A reflection episode.",
+          "enum": [
+            "reflection"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "An episode synthesised from a sub-agent.",
+          "enum": [
+            "folded_subagent"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "EvaluateEviction": {
+      "description": "`memory.evaluate_eviction` (MAPI-24).",
+      "properties": {
+        "agent_id": {
+          "description": "Agent whose working memory is evaluated.",
+          "type": "string"
+        },
+        "dry_run": {
+          "description": "Whether to only plan.",
+          "type": "boolean"
+        },
+        "policy_id": {
+          "description": "Policy id: `deterministic-v1` or a shadow policy id.",
+          "type": "string"
+        },
+        "required_tokens": {
+          "description": "Tokens that must be freed.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "session_id": {
+          "description": "Session that holds the blocks.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "agent_id",
+        "dry_run",
+        "policy_id",
+        "required_tokens",
+        "session_id"
+      ],
+      "type": "object"
+    },
+    "EvictionPlan": {
+      "description": "Plan produced by `memory.evaluate_eviction`.",
+      "properties": {
+        "candidates": {
+          "description": "Every candidate considered.",
+          "items": {
+            "$ref": "#/$defs/MemoryRef"
+          },
+          "type": "array"
+        },
+        "decision_reason": {
+          "description": "Why the plan looks the way it does.",
+          "type": "string"
+        },
+        "deterministic_fallback": {
+          "description": "Whether the deterministic policy was authoritative.",
+          "type": "boolean"
+        },
+        "model_profile": {
+          "description": "Model profile behind the proposal, when one ran.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "overflow_safe_failure": {
+          "description": "Whether the policy could not free enough without touching protected work.",
+          "type": "boolean"
+        },
+        "policy_version": {
+          "description": "Stable policy identifier.",
+          "type": "string"
+        },
+        "protected": {
+          "description": "Candidates that may never be evicted.",
+          "items": {
+            "$ref": "#/$defs/MemoryRef"
+          },
+          "type": "array"
+        },
+        "selected": {
+          "description": "Blocks the policy selected.",
+          "items": {
+            "$ref": "#/$defs/MemoryRef"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "candidates",
+        "decision_reason",
+        "deterministic_fallback",
+        "overflow_safe_failure",
+        "policy_version",
+        "protected",
+        "selected"
+      ],
+      "type": "object"
+    },
+    "EvidenceReport": {
+      "description": "Evidence report (§35.1).",
+      "properties": {
+        "claim": {
+          "description": "Claim that was explained.",
+          "type": "string"
+        },
+        "completeness": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Completeness"
+            }
+          ],
+          "description": "Whether the report is partial."
+        },
+        "conclusion": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Conclusion"
+            }
+          ],
+          "description": "Conclusion."
+        },
+        "evidence": {
+          "description": "Evidence gathered.",
+          "items": {
+            "$ref": "#/$defs/TraceabilityEvidence"
+          },
+          "type": "array"
+        },
+        "links": {
+          "description": "Links used.",
+          "items": {
+            "$ref": "#/$defs/TraceLink"
+          },
+          "type": "array"
+        },
+        "omitted_due_to_access": {
+          "description": "References withheld because the caller cannot read them.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "claim",
+        "completeness",
+        "conclusion",
+        "evidence",
+        "links",
+        "omitted_due_to_access"
+      ],
+      "type": "object"
+    },
+    "ExplainEvidence": {
+      "description": "`traceability.explain_with_evidence` (TAPI-11).",
+      "properties": {
+        "claim": {
+          "description": "Claim to explain.",
+          "type": "string"
+        },
+        "max_tokens": {
+          "description": "Token ceiling of the answer.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "refs": {
+          "description": "Endpoints the claim is about.",
+          "items": {
+            "$ref": "#/$defs/TraceabilityRef"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "claim",
+        "max_tokens",
+        "refs"
+      ],
+      "type": "object"
+    },
+    "ExtractRelations": {
+      "description": "`document.extract_relations` (DAPI-08).",
+      "properties": {
+        "document_id": {
+          "description": "Document id.",
+          "type": "string"
+        },
+        "extractor_profile": {
+          "description": "Extractor profile.",
+          "type": "string"
+        },
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/DocumentPageRequest"
+            }
+          ],
+          "description": "Page."
+        },
+        "relation_kinds": {
+          "description": "Relation kinds to extract.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "target_project_id": {
+          "description": "Target project.",
+          "type": "string"
+        },
+        "target_tenant_id": {
+          "description": "Scope the targets live in.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document_id",
+        "extractor_profile",
+        "page",
+        "relation_kinds",
+        "target_project_id",
+        "target_tenant_id"
+      ],
+      "type": "object"
+    },
+    "ExtractRequirements": {
+      "description": "`document.extract_requirements` (DAPI-07).",
+      "properties": {
+        "document_id": {
+          "description": "Document id.",
+          "type": "string"
+        },
+        "extractor_profile": {
+          "description": "Extractor profile.",
+          "type": "string"
+        },
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/DocumentPageRequest"
+            }
+          ],
+          "description": "Page."
+        },
+        "section_refs": {
+          "description": "Restrict to these section (heading) block ids.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "document_id",
+        "extractor_profile",
+        "page",
+        "section_refs"
+      ],
+      "type": "object"
+    },
+    "ExtractedRelation": {
+      "description": "An extracted relation between two refs (`§33.1 ExtractedRelation`).",
+      "properties": {
+        "confidence": {
+          "description": "Confidence in percent.",
+          "format": "uint8",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "evidence": {
+          "description": "Evidence ids.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "relation_kind": {
+          "description": "Relation kind (`references`, `implements`, `contradicts`, …).",
+          "type": "string"
+        },
+        "source": {
+          "description": "Source ref.",
+          "type": "string"
+        },
+        "target": {
+          "description": "Target ref.",
+          "type": "string"
+        },
+        "verification": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ValidationState"
+            }
+          ],
+          "description": "Verification state."
+        }
+      },
+      "required": [
+        "confidence",
+        "evidence",
+        "relation_kind",
+        "source",
+        "target",
+        "verification"
+      ],
+      "type": "object"
+    },
+    "FactDecision": {
+      "description": "Review decision of `memory.verify_fact` (§34.2).",
+      "oneOf": [
+        {
+          "description": "Accept the claim.",
+          "enum": [
+            "verify"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Reject the claim.",
+          "enum": [
+            "reject"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "FindConflicts": {
+      "description": "`memory.find_conflicts` (MAPI-12 — implemented in P6).",
+      "properties": {
+        "fact": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryRef"
+            }
+          ],
+          "description": "Claim to compare against."
+        },
+        "max_results": {
+          "description": "Maximum number of conflicts to return.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "fact",
+        "max_results"
+      ],
+      "type": "object"
+    },
+    "FoldInput": {
+      "description": "Input of `memory.fold` (§34.1).",
+      "properties": {
+        "episode_refs": {
+          "description": "Episodes (or blocks) to fold.",
+          "items": {
+            "$ref": "#/$defs/MemoryRef"
+          },
+          "type": "array"
+        },
+        "max_tokens": {
+          "description": "Token ceiling of the result.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "policy_id": {
+          "description": "Policy that authorises the fold.",
+          "type": "string"
+        },
+        "target_agent_id": {
+          "description": "Agent the folded result belongs to.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "episode_refs",
+        "max_tokens",
+        "policy_id",
+        "target_agent_id"
+      ],
+      "type": "object"
+    },
+    "FoldMemory": {
+      "description": "`memory.fold` (MAPI-13).",
+      "properties": {
+        "input": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/FoldInput"
+            }
+          ],
+          "description": "Fold input."
+        },
+        "model_score": {
+          "description": "Optional model score for the fold level; absent means deterministic.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "input"
+      ],
+      "type": "object"
+    },
+    "FoldedResult": {
+      "description": "Result of folding (§34.1, §21.5).",
+      "properties": {
+        "fold_level": {
+          "description": "Fold depth; each fold increments it.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "forced_preserve": {
+          "description": "Whether safety rules forced a lossless result.",
+          "type": "boolean"
+        },
+        "key_facts": {
+          "description": "Facts that survived the fold.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "protected_evidence_refs": {
+          "description": "Evidence that must never be dropped.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "source_refs": {
+          "description": "Sources the summary derives from.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "summary": {
+          "description": "Summary text.",
+          "type": "string"
+        },
+        "token_count": {
+          "description": "Tokens in the summary.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "trust_score": {
+          "description": "`T_orig * exp(-0.15 * fold_level)` bounded to `[0,1]`.",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "fold_level",
+        "forced_preserve",
+        "key_facts",
+        "protected_evidence_refs",
+        "source_refs",
+        "summary",
+        "token_count",
+        "trust_score"
+      ],
+      "type": "object"
+    },
+    "ForgetMemory": {
+      "description": "`memory.forget` (MAPI-23).",
+      "properties": {
+        "expected_etag": {
+          "description": "Caller's etag.",
+          "type": "string"
+        },
+        "memory": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryRef"
+            }
+          ],
+          "description": "Record to delete."
+        },
+        "reason": {
+          "description": "Why it is deleted.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "expected_etag",
+        "memory",
+        "reason"
+      ],
+      "type": "object"
+    },
+    "GapQuery": {
+      "description": "`traceability.find_design_gaps` (TAPI-09).",
+      "properties": {
+        "requirement_refs": {
+          "description": "Requirement subset; empty means every in-scope requirement.",
+          "items": {
+            "$ref": "#/$defs/TraceabilityRef"
+          },
+          "type": "array"
+        },
+        "scope": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ScopeRef"
+            }
+          ],
+          "description": "Tenant/project scope."
+        }
+      },
+      "required": [
+        "requirement_refs",
+        "scope"
+      ],
+      "type": "object"
+    },
+    "GapReport": {
+      "description": "Gap report (§35.1).",
+      "properties": {
+        "coverage_incomplete": {
+          "description": "Whether the analysis was incomplete.",
+          "type": "boolean"
+        },
+        "missing_implementation": {
+          "description": "Requirements with no implementation link.",
+          "items": {
+            "$ref": "#/$defs/TraceabilityRef"
+          },
+          "type": "array"
+        },
+        "missing_tests": {
+          "description": "Implementations with no verifying test.",
+          "items": {
+            "$ref": "#/$defs/TraceabilityRef"
+          },
+          "type": "array"
+        },
+        "stale_links": {
+          "description": "Links that need revalidation.",
+          "items": {
+            "$ref": "#/$defs/TraceabilityRef"
+          },
+          "type": "array"
+        },
+        "unverifiable": {
+          "description": "Links that could not be verified.",
+          "items": {
+            "$ref": "#/$defs/TraceabilityRef"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "coverage_incomplete",
+        "missing_implementation",
+        "missing_tests",
+        "stale_links",
+        "unverifiable"
+      ],
+      "type": "object"
+    },
+    "GetDocument": {
+      "description": "`document.get_document` (DAPI-04).",
+      "properties": {
+        "document_id": {
+          "description": "Document id.",
+          "type": "string"
+        },
+        "include_blocks": {
+          "description": "Whether blocks should be returned.",
+          "type": "boolean"
+        },
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/DocumentPageRequest"
+            }
+          ],
+          "description": "Page over the blocks."
+        }
+      },
+      "required": [
+        "document_id",
+        "include_blocks",
+        "page"
+      ],
+      "type": "object"
+    },
+    "GetLink": {
+      "description": "`traceability.get_link` (TAPI-05).",
+      "properties": {
+        "link": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/TraceabilityRef"
+            }
+          ],
+          "description": "Link to read."
+        }
+      },
+      "required": [
+        "link"
+      ],
+      "type": "object"
+    },
+    "GetMemoryBudget": {
+      "description": "`memory.get_budget` (MAPI-25).",
+      "properties": {
+        "agent_id": {
+          "description": "Agent whose budget is reported.",
+          "type": "string"
+        },
+        "session_id": {
+          "description": "Session whose budget is reported.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "agent_id",
+        "session_id"
+      ],
+      "type": "object"
+    },
+    "GetMemoryJob": {
+      "description": "`memory.get_consolidation_job` (MAPI-19 — implemented in P6).",
+      "properties": {
+        "job_id": {
+          "description": "Job id.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "job_id"
+      ],
+      "type": "object"
+    },
+    "GetSourceSpan": {
+      "description": "`document.get_source_span` (DAPI-14).",
+      "properties": {
+        "document_id": {
+          "description": "Document id.",
+          "type": "string"
+        },
+        "max_bytes": {
+          "description": "Maximum bytes the caller accepts.",
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "span": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Span"
+            }
+          ],
+          "description": "Requested span."
+        }
+      },
+      "required": [
+        "document_id",
+        "max_bytes",
+        "span"
+      ],
+      "type": "object"
+    },
+    "GetSymbol": {
+      "description": "Request: get one symbol by id (`CAPI-04`).",
+      "properties": {
+        "symbol_id": {
+          "description": "Symbol id.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol_id"
+      ],
+      "type": "object"
+    },
+    "GetTraceJob": {
+      "description": "`traceability.get_revalidation_job` (TAPI-13).",
+      "properties": {
+        "job_id": {
+          "description": "Job id.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "job_id"
+      ],
+      "type": "object"
+    },
+    "HistoricalValidity": {
+      "description": "Historical truth of a link at its asserted revision (§40.3).",
+      "oneOf": [
+        {
+          "description": "The link was true for the revision it asserted.",
+          "enum": [
+            "valid"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "The link was never true for that revision.",
+          "enum": [
+            "invalid"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Never assessed.",
+          "enum": [
+            "unverified"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "ImpactQuery": {
+      "description": "Request: impact analysis (`CAPI-10`).",
+      "properties": {
+        "changed": {
+          "description": "Changed symbols.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "edge_kinds": {
+          "description": "Edge kinds to follow (empty means calls/references/implements).",
+          "items": {
+            "$ref": "#/$defs/CodeEdgeKind"
+          },
+          "type": "array"
+        },
+        "include_test_candidates": {
+          "description": "Whether test candidates should be reported.",
+          "type": "boolean"
+        },
+        "max_depth": {
+          "description": "Maximum hops.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "max_nodes": {
+          "description": "Maximum visited nodes.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "revision": {
+          "description": "Revision the analysis is bound to.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "changed",
+        "edge_kinds",
+        "include_test_candidates",
+        "max_depth",
+        "max_nodes",
+        "revision"
+      ],
+      "type": "object"
+    },
+    "ImpactReport": {
+      "description": "Result of `code.analyze_impact` (`§32.1 ImpactReport`).",
+      "properties": {
+        "completeness": {
+          "description": "`complete` only when nothing was truncated and no dynamic call was seen.",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "description": "Evidence for the report itself.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "impacted": {
+          "description": "Impacted symbol ids, ordered by distance then id.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "paths": {
+          "description": "One edge path per impacted symbol, from a changed symbol.",
+          "items": {
+            "items": {
+              "$ref": "#/$defs/CodeEdge"
+            },
+            "type": "array"
+          },
+          "type": "array"
+        },
+        "test_candidates": {
+          "description": "Symbols that look like tests.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "unresolved_dynamic_calls": {
+          "description": "Call edges that could not be resolved and were therefore not followed.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "completeness",
+        "evidence_ids",
+        "impacted",
+        "paths",
+        "test_candidates",
+        "unresolved_dynamic_calls"
+      ],
+      "type": "object"
+    },
+    "IndexFreshness": {
+      "description": "Freshness of the index backing the link (§40.3).",
+      "oneOf": [
+        {
+          "description": "Index is at the observed generation.",
+          "enum": [
+            "current"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Index lags the observed generation.",
+          "enum": [
+            "lagging"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Index is being rebuilt.",
+          "enum": [
+            "rebuilding"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Index is unavailable.",
+          "enum": [
+            "unavailable"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Unknown.",
+          "enum": [
+            "unknown"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "InvalidateCodeRevision": {
+      "description": "Request: invalidate a revision (`CAPI-13`).",
+      "properties": {
+        "expected_etag": {
+          "description": "Optimistic concurrency token of the revision index.",
+          "type": "string"
+        },
+        "reason": {
+          "description": "Reason recorded on the receipt.",
+          "type": "string"
+        },
+        "repository_id": {
+          "description": "Repository.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Revision to invalidate.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "expected_etag",
+        "reason",
+        "repository_id",
+        "revision"
+      ],
+      "type": "object"
+    },
+    "InvalidateDocumentRevision": {
+      "description": "`document.invalidate_revision` (DAPI-13).",
+      "properties": {
+        "document_id": {
+          "description": "Document id.",
+          "type": "string"
+        },
+        "expected_etag": {
+          "description": "Current etag.",
+          "type": "string"
+        },
+        "reason": {
+          "description": "Reason.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document_id",
+        "expected_etag",
+        "reason"
+      ],
+      "type": "object"
+    },
+    "ListLinks": {
+      "description": "`traceability.list_links` (TAPI-06).",
+      "properties": {
+        "endpoint": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/TraceabilityRef"
+            }
+          ],
+          "description": "Endpoint to list around."
+        },
+        "kinds": {
+          "description": "Kinds to include; empty means all.",
+          "items": {
+            "$ref": "#/$defs/TraceKind"
+          },
+          "type": "array"
+        },
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/TraceabilityPageRequest"
+            }
+          ],
+          "description": "Page request."
+        },
+        "states": {
+          "description": "States to include; empty means all.",
+          "items": {
+            "$ref": "#/$defs/TraceState"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "endpoint",
+        "kinds",
+        "page",
+        "states"
+      ],
+      "type": "object"
+    },
+    "ListRequirements": {
+      "description": "`document.list_requirements` (DAPI-10).",
+      "properties": {
+        "document_id": {
+          "description": "Document id.",
+          "type": "string"
+        },
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/DocumentPageRequest"
+            }
+          ],
+          "description": "Page."
+        },
+        "statuses": {
+          "description": "Restrict to these statuses.",
+          "items": {
+            "$ref": "#/$defs/RequirementStatus"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "document_id",
+        "page",
+        "statuses"
+      ],
+      "type": "object"
+    },
+    "ListWorkingBlocks": {
+      "description": "`memory.list_working_blocks` (MAPI-04).",
+      "properties": {
+        "agent_id": {
+          "description": "Agent to list.",
+          "type": "string"
+        },
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryPageRequest"
+            }
+          ],
+          "description": "Page request."
+        },
+        "session_id": {
+          "description": "Session to list.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "agent_id",
+        "page",
+        "session_id"
+      ],
+      "type": "object"
+    },
+    "MemoryBlockKind": {
+      "description": "Kind of working memory block (§21.2).",
+      "oneOf": [
+        {
+          "description": "What the task currently is.",
+          "enum": [
+            "task_state"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Output of a tool call.",
+          "enum": [
+            "tool_output"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Recent conversation content.",
+          "enum": [
+            "recent_message"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Context the agent asked to keep.",
+          "enum": [
+            "active_context"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Result of folding a sub-agent scope.",
+          "enum": [
+            "folded_result"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "MemoryChangeReceipt": {
+      "description": "Bookkeeping receipt of a mutation.",
+      "properties": {
+        "changed": {
+          "description": "Whether anything changed.",
+          "type": "boolean"
+        },
+        "etag": {
+          "description": "New etag.",
+          "type": "string"
+        },
+        "events": {
+          "description": "Events a gateway must publish.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "resource_id": {
+          "description": "Resource affected.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "changed",
+        "etag",
+        "events",
+        "resource_id"
+      ],
+      "type": "object"
+    },
+    "MemoryEvidence": {
+      "description": "Evidence supporting a claim (§21.1 `provenance_refs`, §34.1).",
+      "properties": {
+        "confidence": {
+          "description": "Confidence the extractor assigned to this piece of evidence.",
+          "format": "double",
+          "type": "number"
+        },
+        "evidence_id": {
+          "description": "Evidence id.",
+          "type": "string"
+        },
+        "source_group": {
+          "description": "Independent source group used for promotion counting (§27.1).",
+          "type": "string"
+        },
+        "source_ref": {
+          "description": "Where the evidence came from, for example `artifact:sha256:...`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "confidence",
+        "evidence_id",
+        "source_group",
+        "source_ref"
+      ],
+      "type": "object"
+    },
+    "MemoryJobHandle": {
+      "description": "Handle of an accepted asynchronous job.",
+      "properties": {
+        "job_id": {
+          "description": "Job id.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Job kind.",
+          "type": "string"
+        },
+        "stage": {
+          "description": "Stage when the handle was produced.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "job_id",
+        "kind",
+        "stage"
+      ],
+      "type": "object"
+    },
+    "MemoryJobView": {
+      "description": "Live view of an asynchronous job.",
+      "properties": {
+        "canonical_committed": {
+          "description": "Whether the canonical data was committed.",
+          "type": "boolean"
+        },
+        "diagnostics": {
+          "description": "Diagnostics.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "job_id": {
+          "description": "Job id.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Job kind.",
+          "type": "string"
+        },
+        "stage": {
+          "description": "Current stage.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "canonical_committed",
+        "diagnostics",
+        "job_id",
+        "kind",
+        "stage"
+      ],
+      "type": "object"
+    },
+    "MemoryKind": {
+      "description": "Which memory store an item lives in (§34.1).",
+      "oneOf": [
+        {
+          "description": "Working memory: session/agent scoped and budgeted.",
+          "enum": [
+            "working"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Episodic memory: TTL and FSRS driven.",
+          "enum": [
+            "episodic"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Semantic memory: versioned, evidence-backed facts.",
+          "enum": [
+            "semantic"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Procedural memory: abstract procedures only, never tool grants.",
+          "enum": [
+            "procedural"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "MemoryPageRequest": {
+      "description": "Cursor page request (§31.4).",
+      "properties": {
+        "cursor": {
+          "description": "Opaque cursor.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limit": {
+          "description": "Maximum items.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "limit"
+      ],
+      "type": "object"
+    },
+    "MemoryPatch": {
+      "description": "Patch applied by `memory.update_revision` / `commit_reconsolidation`.",
+      "properties": {
+        "content": {
+          "description": "Replacement body.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "importance_score": {
+          "description": "Replacement importance.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "key_facts": {
+          "description": "Replacement key facts.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "language": {
+          "description": "Replacement language.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "summary": {
+          "description": "Replacement summary.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "trust": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Trust"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Replacement trust columns."
+        }
+      },
+      "type": "object"
+    },
+    "MemoryQuery": {
+      "description": "Search request (§34.1 `MemoryQuery`).",
+      "properties": {
+        "after": {
+          "description": "Only records created at or after this instant.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "before": {
+          "description": "Only records created at or before this instant.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "detail": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/DetailLevel"
+            }
+          ],
+          "description": "Requested detail."
+        },
+        "kinds": {
+          "description": "Stores to search.",
+          "items": {
+            "$ref": "#/$defs/MemoryKind"
+          },
+          "type": "array"
+        },
+        "language": {
+          "description": "Optional language filter (BCP-47).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "max_results": {
+          "description": "Maximum number of results.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "max_tokens": {
+          "description": "Token budget for the response.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "min_trust": {
+          "description": "Minimum ranking trust, in `[0,1]`.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "query": {
+          "description": "Free-text query.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "detail",
+        "kinds",
+        "max_results",
+        "max_tokens",
+        "query"
+      ],
+      "type": "object"
+    },
+    "MemoryRef": {
+      "description": "Address of one memory record.",
+      "properties": {
+        "id": {
+          "description": "Memory id.",
+          "type": "string"
+        },
+        "kind": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryKind"
+            }
+          ],
+          "description": "Store the id belongs to."
+        },
+        "revision": {
+          "description": "Revision or content tag the caller observed.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "revision"
+      ],
+      "type": "object"
+    },
+    "MemoryView": {
+      "description": "Summary view of a memory record (§34.1).",
+      "properties": {
+        "content": {
+          "description": "Body, only for [`DetailLevel::Full`].",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence": {
+          "description": "Evidence references.",
+          "items": {
+            "$ref": "#/$defs/MemoryEvidence"
+          },
+          "type": "array"
+        },
+        "folded": {
+          "description": "Whether the record is a folded derivation.",
+          "type": "boolean"
+        },
+        "kind": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryKind"
+            }
+          ],
+          "description": "Store."
+        },
+        "language": {
+          "description": "Language of the content (BCP-47).",
+          "type": "string"
+        },
+        "redacted": {
+          "description": "Whether the body was withheld by policy.",
+          "type": "boolean"
+        },
+        "reference": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryRef"
+            }
+          ],
+          "description": "Address."
+        },
+        "state": {
+          "description": "State token of the owning store.",
+          "type": "string"
+        },
+        "summary": {
+          "description": "Summary, when the requested detail allows it.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "token_count": {
+          "description": "Token count of the body.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "trust": {
+          "description": "Bounded ranking trust.",
+          "format": "double",
+          "type": "number"
+        },
+        "version": {
+          "description": "Revision of the returned record.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "evidence",
+        "folded",
+        "kind",
+        "language",
+        "redacted",
+        "reference",
+        "state",
+        "token_count",
+        "trust",
+        "version"
+      ],
+      "type": "object"
+    },
+    "NormativeStrength": {
+      "description": "How strongly a statement is expressed (`§33.1 normative_strength`).",
+      "oneOf": [
+        {
+          "description": "Mandatory.",
+          "enum": [
+            "must"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Recommended.",
+          "enum": [
+            "should"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Optional.",
+          "enum": [
+            "may"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "No normative keyword found.",
+          "enum": [
+            "unknown"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "OpenAgentScope": {
+      "description": "`memory.open_agent_scope` (MAPI-01).",
+      "properties": {
+        "grant": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/AgentScopeGrant"
+            }
+          ],
+          "description": "Delegation grant."
+        }
+      },
+      "required": [
+        "grant"
+      ],
+      "type": "object"
+    },
+    "PageIn": {
+      "description": "`memory.page_in` (MAPI-15).",
+      "properties": {
+        "expected_hash": {
+          "description": "Hash the caller expects.",
+          "type": "string"
+        },
+        "page_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryRef"
+            }
+          ],
+          "description": "Page reference."
+        }
+      },
+      "required": [
+        "expected_hash",
+        "page_ref"
+      ],
+      "type": "object"
+    },
+    "PageInResult": {
+      "description": "Result of `memory.page_in`.",
+      "properties": {
+        "block": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryView"
+            }
+          ],
+          "description": "Restored block."
+        },
+        "receipt": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/PagingReceipt"
+            }
+          ],
+          "description": "Paging receipt."
+        }
+      },
+      "required": [
+        "block",
+        "receipt"
+      ],
+      "type": "object"
+    },
+    "PageOut": {
+      "description": "`memory.page_out` (MAPI-14).",
+      "properties": {
+        "block": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryRef"
+            }
+          ],
+          "description": "Block to page out."
+        },
+        "policy_id": {
+          "description": "Policy authorising the paging.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "block",
+        "policy_id"
+      ],
+      "type": "object"
+    },
+    "Page_for_CodeChange": {
+      "description": "One page of results.",
+      "properties": {
+        "items": {
+          "description": "Items in this page.",
+          "items": {
+            "$ref": "#/$defs/CodeChange"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "description": "Cursor for the next page, when more items exist.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "type": "object"
+    },
+    "Page_for_CodeEdge": {
+      "description": "One page of results.",
+      "properties": {
+        "items": {
+          "description": "Items in this page.",
+          "items": {
+            "$ref": "#/$defs/CodeEdge"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "description": "Cursor for the next page, when more items exist.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "type": "object"
+    },
+    "Page_for_CodeSymbol": {
+      "description": "One page of results.",
+      "properties": {
+        "items": {
+          "description": "Items in this page.",
+          "items": {
+            "$ref": "#/$defs/CodeSymbol"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "description": "Cursor for the next page, when more items exist.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "type": "object"
+    },
+    "Page_for_DocumentBlock": {
+      "description": "One page of results.",
+      "properties": {
+        "items": {
+          "description": "Items.",
+          "items": {
+            "$ref": "#/$defs/DocumentBlock"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "description": "Cursor for the next page.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "type": "object"
+    },
+    "Page_for_ExtractedRelation": {
+      "description": "One page of results.",
+      "properties": {
+        "items": {
+          "description": "Items.",
+          "items": {
+            "$ref": "#/$defs/ExtractedRelation"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "description": "Cursor for the next page.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "type": "object"
+    },
+    "Page_for_MemoryView": {
+      "description": "One page of results.",
+      "properties": {
+        "items": {
+          "description": "Items.",
+          "items": {
+            "$ref": "#/$defs/MemoryView"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "description": "Cursor for the next page.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "type": "object"
+    },
+    "Page_for_ReferenceLocation": {
+      "description": "One page of results.",
+      "properties": {
+        "items": {
+          "description": "Items in this page.",
+          "items": {
+            "$ref": "#/$defs/ReferenceLocation"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "description": "Cursor for the next page, when more items exist.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "type": "object"
+    },
+    "Page_for_RequirementCandidate": {
+      "description": "One page of results.",
+      "properties": {
+        "items": {
+          "description": "Items.",
+          "items": {
+            "$ref": "#/$defs/RequirementCandidate"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "description": "Cursor for the next page.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "type": "object"
+    },
+    "Page_for_SearchHit": {
+      "description": "One page of results.",
+      "properties": {
+        "items": {
+          "description": "Items.",
+          "items": {
+            "$ref": "#/$defs/SearchHit"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "description": "Cursor for the next page.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "type": "object"
+    },
+    "Page_for_TraceLink": {
+      "description": "One page of results.",
+      "properties": {
+        "items": {
+          "description": "Items.",
+          "items": {
+            "$ref": "#/$defs/TraceLink"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "description": "Cursor for the next page.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "type": "object"
+    },
+    "PagingReceipt": {
+      "description": "Receipt of a paging operation (§34.1).",
+      "properties": {
+        "block": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryRef"
+            }
+          ],
+          "description": "Block that was paged."
+        },
+        "integrity_hash": {
+          "description": "`sha256:` hash of the paged payload.",
+          "type": "string"
+        },
+        "page_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MemoryRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Page that now holds it."
+        },
+        "status": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/PagingStatus"
+            }
+          ],
+          "description": "Outcome token."
+        }
+      },
+      "required": [
+        "block",
+        "integrity_hash",
+        "status"
+      ],
+      "type": "object"
+    },
+    "PagingStatus": {
+      "description": "Outcome of a paging operation.",
+      "oneOf": [
+        {
+          "description": "The block left working memory.",
+          "enum": [
+            "paged_out"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "The block came back.",
+          "enum": [
+            "paged_in"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "The page could not be opened.",
+          "enum": [
+            "unavailable"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "ParseDiagnostic": {
+      "description": "One parse diagnostic (`§33.1 diagnostics[]`).",
+      "properties": {
+        "code": {
+          "description": "Stable code.",
+          "type": "string"
+        },
+        "message": {
+          "description": "Safe message.",
+          "type": "string"
+        },
+        "severity": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Severity"
+            }
+          ],
+          "description": "Severity."
+        },
+        "span": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Span"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Where it happened."
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "severity"
+      ],
+      "type": "object"
+    },
+    "ParsePreview": {
+      "description": "`document.parse_preview` (DAPI-05): parse without persisting.",
+      "properties": {
+        "max_bytes": {
+          "description": "Maximum bytes to parse (bounded work).",
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "parser_profile": {
+          "description": "Parser profile.",
+          "type": "string"
+        },
+        "source": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/DocumentSource"
+            }
+          ],
+          "description": "Source description."
+        }
+      },
+      "required": [
+        "max_bytes",
+        "parser_profile",
+        "source"
+      ],
+      "type": "object"
+    },
+    "ParseStatus": {
+      "description": "Parse status of one block (`§33.1 parse_status`).",
+      "oneOf": [
+        {
+          "description": "Fully parsed.",
+          "enum": [
+            "complete"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Partially parsed.",
+          "enum": [
+            "partial"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Not parsed at all (for example an image without OCR).",
+          "enum": [
+            "unparsed"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "ParsedDocument": {
+      "description": "Result of parsing one artifact (`§33.1 ParsedDocument`).",
+      "properties": {
+        "blocks": {
+          "description": "Blocks in document order.",
+          "items": {
+            "$ref": "#/$defs/DocumentBlock"
+          },
+          "type": "array"
+        },
+        "completeness": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/DocCompleteness"
+            }
+          ],
+          "description": "Completeness."
+        },
+        "diagnostics": {
+          "description": "Diagnostics.",
+          "items": {
+            "$ref": "#/$defs/ParseDiagnostic"
+          },
+          "type": "array"
+        },
+        "document_id": {
+          "description": "Document id.",
+          "type": "string"
+        },
+        "parser_id": {
+          "description": "Parser id.",
+          "type": "string"
+        },
+        "parser_version": {
+          "description": "Parser version.",
+          "type": "string"
+        },
+        "source": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/DocumentSource"
+            }
+          ],
+          "description": "Source description."
+        }
+      },
+      "required": [
+        "blocks",
+        "completeness",
+        "diagnostics",
+        "document_id",
+        "parser_id",
+        "parser_version",
+        "source"
+      ],
+      "type": "object"
+    },
+    "ProcedureDecision": {
+      "description": "Review decision of `memory.review_procedure` (§34.2).",
+      "oneOf": [
+        {
+          "description": "Activate the procedure.",
+          "enum": [
+            "activate"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Send it back for refinement.",
+          "enum": [
+            "refine"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Disable it.",
+          "enum": [
+            "disable"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "ProcedureDraft": {
+      "description": "Draft of a procedure (§34.1, MAPI-20 — implemented in P6).",
+      "properties": {
+        "evidence": {
+          "description": "Evidence.",
+          "items": {
+            "$ref": "#/$defs/MemoryEvidence"
+          },
+          "type": "array"
+        },
+        "language": {
+          "description": "BCP-47 language.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Procedure name.",
+          "type": "string"
+        },
+        "permissions": {
+          "description": "Permissions the procedure needs from the host.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "preconditions": {
+          "description": "Preconditions.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "source_episodes": {
+          "description": "Episodes the procedure was learned from.",
+          "items": {
+            "$ref": "#/$defs/MemoryRef"
+          },
+          "type": "array"
+        },
+        "steps": {
+          "description": "Steps.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "evidence",
+        "language",
+        "name",
+        "permissions",
+        "preconditions",
+        "source_episodes",
+        "steps"
+      ],
+      "type": "object"
+    },
+    "ProcedureState": {
+      "description": "Procedure lifecycle state (§27.2).",
+      "oneOf": [
+        {
+          "description": "Learned but not yet extracted into a recipe.",
+          "enum": [
+            "learn"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Candidate recipe, not usable.",
+          "enum": [
+            "candidate"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Approved by consolidation, not yet activated.",
+          "enum": [
+            "consolidated"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Approved for application.",
+          "enum": [
+            "active"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Under refinement.",
+          "enum": [
+            "refining"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Disabled by policy.",
+          "enum": [
+            "disabled"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "ProcedureView": {
+      "description": "View of a procedure (§34.1).",
+      "properties": {
+        "evidence": {
+          "description": "Evidence.",
+          "items": {
+            "$ref": "#/$defs/MemoryEvidence"
+          },
+          "type": "array"
+        },
+        "permissions": {
+          "description": "Permissions required from the host (never granted by memory).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "reference": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryRef"
+            }
+          ],
+          "description": "Address."
+        },
+        "run_count": {
+          "description": "Number of observed runs.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "state": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ProcedureState"
+            }
+          ],
+          "description": "Lifecycle state."
+        },
+        "success_rate": {
+          "description": "Observed success rate in `[0,1]`.",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "evidence",
+        "permissions",
+        "reference",
+        "run_count",
+        "state",
+        "success_rate"
+      ],
+      "type": "object"
+    },
+    "ProjectionState": {
+      "description": "State of one index projection after a deletion (§34.1).",
+      "oneOf": [
+        {
+          "description": "Revocation not yet attempted.",
+          "enum": [
+            "pending"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Revoked.",
+          "enum": [
+            "cleared"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Revocation failed and must be retried.",
+          "enum": [
+            "failed"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "ProjectionStatus": {
+      "description": "One projection entry of a [`DeletionReceipt`].",
+      "properties": {
+        "name": {
+          "description": "Projection name, for example `lexical_index`.",
+          "type": "string"
+        },
+        "state": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ProjectionState"
+            }
+          ],
+          "description": "Whether that projection has been revoked."
+        }
+      },
+      "required": [
+        "name",
+        "state"
+      ],
+      "type": "object"
+    },
+    "ProposeFact": {
+      "description": "`memory.propose_fact` (MAPI-10 — implemented in P6).",
+      "properties": {
+        "input": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/SemanticFactInput"
+            }
+          ],
+          "description": "Claim to propose."
+        }
+      },
+      "required": [
+        "input"
+      ],
+      "type": "object"
+    },
+    "ProposeLink": {
+      "description": "`traceability.propose_link` (TAPI-01).",
+      "properties": {
+        "link": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/TraceLinkInput"
+            }
+          ],
+          "description": "Link to propose."
+        }
+      },
+      "required": [
+        "link"
+      ],
+      "type": "object"
+    },
+    "PutWorkingBlock": {
+      "description": "`memory.put_working_block` (MAPI-03).",
+      "properties": {
+        "automatic": {
+          "description": "Whether the block was auto-generated by the runtime this turn.",
+          "type": "boolean"
+        },
+        "input": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/WorkingBlockInput"
+            }
+          ],
+          "description": "Block to write."
+        }
+      },
+      "required": [
+        "automatic",
+        "input"
+      ],
+      "type": "object"
+    },
+    "ReconsolidationWindow": {
+      "description": "Reconsolidation window (§23.4, §34.1).",
+      "properties": {
+        "expires_at": {
+          "description": "Instant the window closes for writes.",
+          "type": "string"
+        },
+        "fact": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryRef"
+            }
+          ],
+          "description": "Fact the window applies to."
+        },
+        "state": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/WindowState"
+            }
+          ],
+          "description": "Window state."
+        },
+        "window_id": {
+          "description": "Window id.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "expires_at",
+        "fact",
+        "state",
+        "window_id"
+      ],
+      "type": "object"
+    },
+    "RecordProcedureOutcome": {
+      "description": "`memory.record_procedure_outcome` (MAPI-22 — implemented in P6).",
+      "properties": {
+        "evidence": {
+          "description": "Evidence of the run.",
+          "items": {
+            "$ref": "#/$defs/MemoryEvidence"
+          },
+          "type": "array"
+        },
+        "expected_etag": {
+          "description": "Caller's etag.",
+          "type": "string"
+        },
+        "procedure": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryRef"
+            }
+          ],
+          "description": "Procedure that ran."
+        },
+        "success": {
+          "description": "Whether the run succeeded.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "evidence",
+        "expected_etag",
+        "procedure",
+        "success"
+      ],
+      "type": "object"
+    },
+    "ReferenceLocation": {
+      "description": "One resolved reference location.",
+      "properties": {
+        "kind": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CodeEdgeKind"
+            }
+          ],
+          "description": "Edge kind."
+        },
+        "location": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CodeLocation"
+            }
+          ],
+          "description": "Where the reference is written."
+        },
+        "symbol_id": {
+          "description": "Symbol that owns the reference site.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "location",
+        "symbol_id"
+      ],
+      "type": "object"
+    },
+    "ReferenceQuery": {
+      "description": "Request: references to a symbol (`CAPI-06`).",
+      "properties": {
+        "include_declaration": {
+          "description": "Include the declaration itself.",
+          "type": "boolean"
+        },
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CodePageRequest"
+            }
+          ],
+          "description": "Page."
+        },
+        "relation_kinds": {
+          "description": "Restrict to these edge kinds (empty means every kind).",
+          "items": {
+            "$ref": "#/$defs/CodeEdgeKind"
+          },
+          "type": "array"
+        },
+        "symbol_id": {
+          "description": "Symbol id whose references are wanted.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "include_declaration",
+        "page",
+        "relation_kinds",
+        "symbol_id"
+      ],
+      "type": "object"
+    },
+    "RegisterProcedure": {
+      "description": "`memory.register_procedure_candidate` (MAPI-20 — implemented in P6).",
+      "properties": {
+        "draft": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ProcedureDraft"
+            }
+          ],
+          "description": "Draft to register."
+        }
+      },
+      "required": [
+        "draft"
+      ],
+      "type": "object"
+    },
+    "RemoveWorkingBlock": {
+      "description": "`memory.remove_working_block` (MAPI-05).",
+      "properties": {
+        "block": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryRef"
+            }
+          ],
+          "description": "Block to remove."
+        },
+        "expected_etag": {
+          "description": "Caller's etag.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "block",
+        "expected_etag"
+      ],
+      "type": "object"
+    },
+    "RepoRevision": {
+      "description": "Which revision of a repository a request is bound to (`§32.1 RepoRevision`).",
+      "properties": {
+        "commit_sha": {
+          "description": "Full commit SHA the request is bound to.",
+          "type": "string"
+        },
+        "dirty_policy": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/DirtyPolicy"
+            }
+          ],
+          "description": "What to do when the worktree is dirty."
+        },
+        "repository_id": {
+          "description": "Repository resource id.",
+          "type": "string"
+        },
+        "tree_sha": {
+          "description": "Optional tree SHA.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vcs": {
+          "description": "Version control system; only `git` is supported today.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "commit_sha",
+        "dirty_policy",
+        "repository_id",
+        "vcs"
+      ],
+      "type": "object"
+    },
+    "RequirementCandidate": {
+      "description": "An extracted requirement (`§33.1 RequirementCandidate`).",
+      "properties": {
+        "confidence": {
+          "description": "Extractor confidence in percent (0-100; no floating point in the identity).",
+          "format": "uint8",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "etag": {
+          "description": "E-tag of the candidate (optimistic concurrency for review).",
+          "type": "string"
+        },
+        "extracted_from": {
+          "description": "Evidence ids (block ids plus content hash).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "description": "Candidate id.",
+          "type": "string"
+        },
+        "normative_strength": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/NormativeStrength"
+            }
+          ],
+          "description": "Normative strength."
+        },
+        "requirement_id": {
+          "description": "Optional external requirement id (for example `REQ-12` when the text has one).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revision": {
+          "description": "Document revision the candidate was extracted from.",
+          "type": "string"
+        },
+        "status": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/RequirementStatus"
+            }
+          ],
+          "description": "Lifecycle status: always `candidate` until a reviewer acts."
+        },
+        "text": {
+          "description": "The sentence the requirement was extracted from.",
+          "type": "string"
+        },
+        "verification": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ValidationState"
+            }
+          ],
+          "description": "Verification state: always `unverified` until a reviewer acts."
+        }
+      },
+      "required": [
+        "confidence",
+        "etag",
+        "extracted_from",
+        "id",
+        "normative_strength",
+        "revision",
+        "status",
+        "text",
+        "verification"
+      ],
+      "type": "object"
+    },
+    "RequirementReviewResult": {
+      "description": "Result of `document.review_requirement`.",
+      "properties": {
+        "receipt": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/DocumentChangeReceipt"
+            }
+          ],
+          "description": "Receipt of the change."
+        },
+        "requirement": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/RequirementCandidate"
+            }
+          ],
+          "description": "The updated candidate."
+        }
+      },
+      "required": [
+        "receipt",
+        "requirement"
+      ],
+      "type": "object"
+    },
+    "RequirementStatus": {
+      "description": "Lifecycle of a requirement candidate (`§33.1 status`).",
+      "oneOf": [
+        {
+          "description": "Proposed by an extractor; never authoritative.",
+          "enum": [
+            "candidate"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Accepted by a reviewer.",
+          "enum": [
+            "approved"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Rejected by a reviewer.",
+          "enum": [
+            "rejected"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Replaced by a newer revision.",
+          "enum": [
+            "superseded"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "Resolution": {
+      "description": "How confident the resolver is (§32.1 `Symbol.resolution`).",
+      "oneOf": [
+        {
+          "description": "Fully resolved.",
+          "enum": [
+            "resolved"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Partially resolved (some references unresolved).",
+          "enum": [
+            "partial"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Not resolved.",
+          "enum": [
+            "unresolved"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "RetrieveMemory": {
+      "description": "`memory.retrieve` (MAPI-08).",
+      "properties": {
+        "detail": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/DetailLevel"
+            }
+          ],
+          "description": "Requested detail."
+        },
+        "max_tokens": {
+          "description": "Token ceiling of the response.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "memory": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryRef"
+            }
+          ],
+          "description": "Record to retrieve."
+        }
+      },
+      "required": [
+        "detail",
+        "max_tokens",
+        "memory"
+      ],
+      "type": "object"
+    },
+    "RevalidateStale": {
+      "description": "`traceability.revalidate_stale` (TAPI-12).",
+      "properties": {
+        "asynchronous": {
+          "description": "Must be `true`: revalidation is asynchronous (§35.2).",
+          "type": "boolean"
+        },
+        "link_refs": {
+          "description": "Links to revalidate.",
+          "items": {
+            "$ref": "#/$defs/TraceabilityRef"
+          },
+          "type": "array"
+        },
+        "policy_id": {
+          "description": "Policy that authorises the revalidation.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "asynchronous",
+        "link_refs",
+        "policy_id"
+      ],
+      "type": "object"
+    },
+    "ReviewDecision": {
+      "description": "Review decision.",
+      "oneOf": [
+        {
+          "description": "Accept the candidate.",
+          "enum": [
+            "approve"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Reject the candidate.",
+          "enum": [
+            "reject"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "ReviewProcedure": {
+      "description": "`memory.review_procedure` (MAPI-21 — implemented in P6).",
+      "properties": {
+        "decision": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ProcedureDecision"
+            }
+          ],
+          "description": "Decision."
+        },
+        "evidence_ids": {
+          "description": "Evidence used for the decision.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "expected_etag": {
+          "description": "Caller's etag.",
+          "type": "string"
+        },
+        "procedure": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryRef"
+            }
+          ],
+          "description": "Procedure under review."
+        }
+      },
+      "required": [
+        "decision",
+        "evidence_ids",
+        "expected_etag",
+        "procedure"
+      ],
+      "type": "object"
+    },
+    "ReviewRequirement": {
+      "description": "`document.review_requirement` (DAPI-09).",
+      "properties": {
+        "candidate_id": {
+          "description": "Candidate id.",
+          "type": "string"
+        },
+        "decision": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ReviewDecision"
+            }
+          ],
+          "description": "`approve` or `reject`."
+        },
+        "evidence_ids": {
+          "description": "Evidence supporting the decision; empty means the review is rejected.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "expected_etag": {
+          "description": "Candidate etag for optimistic concurrency.",
+          "type": "string"
+        },
+        "rationale": {
+          "description": "Reviewer rationale.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "decision",
+        "evidence_ids",
+        "expected_etag",
+        "rationale"
+      ],
+      "type": "object"
+    },
+    "RevokeLink": {
+      "description": "`traceability.revoke_link` (TAPI-04).",
+      "properties": {
+        "expected_etag": {
+          "description": "Caller's etag.",
+          "type": "string"
+        },
+        "link": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/TraceabilityRef"
+            }
+          ],
+          "description": "Link to revoke."
+        },
+        "reason": {
+          "description": "Why.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "expected_etag",
+        "link",
+        "reason"
+      ],
+      "type": "object"
+    },
+    "ScopeRef": {
+      "description": "Tenant/project scope, kept local so the crate has no wire dependency.",
+      "properties": {
+        "project_id": {
+          "description": "Project.",
+          "type": "string"
+        },
+        "tenant_id": {
+          "description": "Tenant.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "project_id",
+        "tenant_id"
+      ],
+      "type": "object"
+    },
+    "SearchDocument": {
+      "description": "`document.search` (DAPI-06).",
+      "properties": {
+        "block_kinds": {
+          "description": "Restrict to these block kinds.",
+          "items": {
+            "$ref": "#/$defs/DocumentBlockKind"
+          },
+          "type": "array"
+        },
+        "document_refs": {
+          "description": "Restrict to these documents.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "languages": {
+          "description": "Restrict to these languages.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/DocumentPageRequest"
+            }
+          ],
+          "description": "Page."
+        },
+        "project_id": {
+          "description": "Project.",
+          "type": "string"
+        },
+        "query": {
+          "description": "Query string.",
+          "type": "string"
+        },
+        "tenant_id": {
+          "description": "Scope the search runs in.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "block_kinds",
+        "document_refs",
+        "languages",
+        "page",
+        "project_id",
+        "query",
+        "tenant_id"
+      ],
+      "type": "object"
+    },
+    "SearchHit": {
+      "description": "One search hit (`§33.2 document.search`).",
+      "properties": {
+        "block_id": {
+          "description": "Block id.",
+          "type": "string"
+        },
+        "document_id": {
+          "description": "Document id.",
+          "type": "string"
+        },
+        "kind": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/DocumentBlockKind"
+            }
+          ],
+          "description": "Block kind."
+        },
+        "score": {
+          "description": "Score in percent (deterministic term match).",
+          "format": "uint8",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "snippet": {
+          "description": "Matching text (whole block, trimmed to the caller's budget by the caller).",
+          "type": "string"
+        },
+        "span": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Span"
+            }
+          ],
+          "description": "Block span."
+        }
+      },
+      "required": [
+        "block_id",
+        "document_id",
+        "kind",
+        "score",
+        "snippet",
+        "span"
+      ],
+      "type": "object"
+    },
+    "SearchMemory": {
+      "description": "`memory.search` (MAPI-07).",
+      "properties": {
+        "query": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryQuery"
+            }
+          ],
+          "description": "Query."
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "type": "object"
+    },
+    "SemanticFactInput": {
+      "description": "Input of `memory.propose_fact` (§34.1, MAPI-10 — implemented in P6).",
+      "properties": {
+        "confidence": {
+          "description": "Confidence in `[0,1]`.",
+          "format": "double",
+          "type": "number"
+        },
+        "evidence": {
+          "description": "Evidence that supports the claim.",
+          "items": {
+            "$ref": "#/$defs/MemoryEvidence"
+          },
+          "type": "array"
+        },
+        "language": {
+          "description": "BCP-47 language of the claim.",
+          "type": "string"
+        },
+        "object": {
+          "description": "Object of the claim.",
+          "type": "string"
+        },
+        "predicate": {
+          "description": "Predicate.",
+          "type": "string"
+        },
+        "subject": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryRef"
+            }
+          ],
+          "description": "Subject of the claim."
+        }
+      },
+      "required": [
+        "confidence",
+        "evidence",
+        "language",
+        "object",
+        "predicate",
+        "subject"
+      ],
+      "type": "object"
+    },
+    "Severity": {
+      "description": "Diagnostic severity (`§33.1`).",
+      "oneOf": [
+        {
+          "description": "Informational.",
+          "enum": [
+            "info"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Warning.",
+          "enum": [
+            "warning"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Error.",
+          "enum": [
+            "error"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "SourceSpanView": {
+      "description": "Result of `document.get_source_span`.",
+      "properties": {
+        "artifact_ref": {
+          "description": "Artifact the span belongs to.",
+          "type": "string"
+        },
+        "redacted": {
+          "description": "Whether the content was withheld.",
+          "type": "boolean"
+        },
+        "span": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Span"
+            }
+          ],
+          "description": "The requested span."
+        },
+        "text": {
+          "description": "Text, omitted when redacted or unavailable.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "artifact_ref",
+        "redacted",
+        "span"
+      ],
+      "type": "object"
+    },
+    "Span": {
+      "description": "Half-open byte range plus 1-based lines inside one artifact.",
+      "properties": {
+        "byte_end": {
+          "description": "End byte offset (exclusive).",
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "byte_start": {
+          "description": "First byte offset.",
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "line_end": {
+          "description": "Last line (1-based, inclusive).",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "line_start": {
+          "description": "First line (1-based).",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "byte_end",
+        "byte_start",
+        "line_end",
+        "line_start"
+      ],
+      "type": "object"
+    },
+    "StoreEpisode": {
+      "description": "`memory.store_episode` (MAPI-06).",
+      "properties": {
+        "input": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/EpisodeInput"
+            }
+          ],
+          "description": "Episode to store."
+        }
+      },
+      "required": [
+        "input"
+      ],
+      "type": "object"
+    },
+    "SymbolKind": {
+      "description": "Symbol kind (§32.1 `Symbol.symbol_kind`).",
+      "oneOf": [
+        {
+          "description": "Module or package.",
+          "enum": [
+            "module"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Class.",
+          "enum": [
+            "class"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Struct.",
+          "enum": [
+            "struct"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Trait.",
+          "enum": [
+            "trait"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Interface.",
+          "enum": [
+            "interface"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Free function.",
+          "enum": [
+            "function"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Method.",
+          "enum": [
+            "method"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Struct/class field.",
+          "enum": [
+            "field"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Variable.",
+          "enum": [
+            "variable"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Constant.",
+          "enum": [
+            "constant"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Enum.",
+          "enum": [
+            "enum"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Anything else.",
+          "enum": [
+            "other"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "SymbolQuery": {
+      "description": "Request: symbol search (`CAPI-05`).",
+      "properties": {
+        "kinds": {
+          "description": "Restrict to these kinds (empty means all).",
+          "items": {
+            "$ref": "#/$defs/SymbolKind"
+          },
+          "type": "array"
+        },
+        "language": {
+          "description": "Restrict to this language.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CodePageRequest"
+            }
+          ],
+          "description": "Page."
+        },
+        "path_glob": {
+          "description": "Restrict to this path glob.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "query": {
+          "description": "Case-insensitive substring matched against name and qualified name.",
+          "type": "string"
+        },
+        "repository_id": {
+          "description": "Repository the query is bound to.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Revision (commit SHA).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kinds",
+        "page",
+        "query",
+        "repository_id",
+        "revision"
+      ],
+      "type": "object"
+    },
+    "TraceImpact": {
+      "description": "Impact analysis result (§35.1).",
+      "properties": {
+        "completeness": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Completeness"
+            }
+          ],
+          "description": "`complete` or `partial`."
+        },
+        "impacted": {
+          "description": "Everything reachable from the change.",
+          "items": {
+            "$ref": "#/$defs/TraceabilityRef"
+          },
+          "type": "array"
+        },
+        "links": {
+          "description": "Links traversed.",
+          "items": {
+            "$ref": "#/$defs/TraceLink"
+          },
+          "type": "array"
+        },
+        "paths": {
+          "description": "One path per impacted endpoint.",
+          "items": {
+            "items": {
+              "$ref": "#/$defs/TraceabilityRef"
+            },
+            "type": "array"
+          },
+          "type": "array"
+        },
+        "unknown_due_to_stale": {
+          "description": "Endpoints that could not be expanded because a link is stale.",
+          "items": {
+            "$ref": "#/$defs/TraceabilityRef"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "completeness",
+        "impacted",
+        "links",
+        "paths",
+        "unknown_due_to_stale"
+      ],
+      "type": "object"
+    },
+    "TraceImpactQuery": {
+      "description": "`traceability.analyze_change_impact` (TAPI-08, §35.1 `TraceImpactQuery`).",
+      "properties": {
+        "changed": {
+          "description": "Changed endpoints.",
+          "items": {
+            "$ref": "#/$defs/TraceabilityRef"
+          },
+          "type": "array"
+        },
+        "kinds": {
+          "description": "Kinds to follow; empty means all.",
+          "items": {
+            "$ref": "#/$defs/TraceKind"
+          },
+          "type": "array"
+        },
+        "max_depth": {
+          "description": "Maximum traversal depth.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/TraceabilityPageRequest"
+            }
+          ],
+          "description": "Page request for the returned links."
+        }
+      },
+      "required": [
+        "changed",
+        "kinds",
+        "max_depth",
+        "page"
+      ],
+      "type": "object"
+    },
+    "TraceKind": {
+      "description": "Relation kind of a link (§35.1).",
+      "oneOf": [
+        {
+          "description": "Requirement specifies an artefact.",
+          "enum": [
+            "SPECIFIES"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Code implements a requirement.",
+          "enum": [
+            "IMPLEMENTS"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Test verifies an implementation.",
+          "enum": [
+            "VERIFIES"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Plain reference.",
+          "enum": [
+            "REFERENCES"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Explicit contradiction.",
+          "enum": [
+            "CONTRADICTS"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Derived from another artefact.",
+          "enum": [
+            "DERIVED_FROM"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "TraceLink": {
+      "description": "One trace link (§35.1).",
+      "properties": {
+        "created_at": {
+          "description": "Creation instant.",
+          "type": "string"
+        },
+        "etag": {
+          "description": "Content tag.",
+          "type": "string"
+        },
+        "evidence": {
+          "description": "Evidence. Immutable once accepted.",
+          "items": {
+            "$ref": "#/$defs/TraceabilityEvidence"
+          },
+          "type": "array"
+        },
+        "kind": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/TraceKind"
+            }
+          ],
+          "description": "Relation kind."
+        },
+        "rationale": {
+          "description": "Why the link exists.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reference": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/TraceabilityRef"
+            }
+          ],
+          "description": "Address of the link itself."
+        },
+        "source": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/TraceabilityRef"
+            }
+          ],
+          "description": "Source endpoint."
+        },
+        "source_revision": {
+          "description": "Source revision asserted by the link.",
+          "type": "string"
+        },
+        "state": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/TraceState"
+            }
+          ],
+          "description": "Workflow state."
+        },
+        "target": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/TraceabilityRef"
+            }
+          ],
+          "description": "Target endpoint."
+        },
+        "target_revision": {
+          "description": "Target revision asserted by the link.",
+          "type": "string"
+        },
+        "validity": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ValidityVector"
+            }
+          ],
+          "description": "Three-dimensional validity."
+        },
+        "verified_at": {
+          "description": "Instant of the last verification.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "created_at",
+        "etag",
+        "evidence",
+        "kind",
+        "reference",
+        "source",
+        "source_revision",
+        "state",
+        "target",
+        "target_revision",
+        "validity"
+      ],
+      "type": "object"
+    },
+    "TraceLinkInput": {
+      "description": "Input of `traceability.propose_link` (§35.1).",
+      "properties": {
+        "evidence": {
+          "description": "Evidence.",
+          "items": {
+            "$ref": "#/$defs/TraceabilityEvidence"
+          },
+          "type": "array"
+        },
+        "kind": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/TraceKind"
+            }
+          ],
+          "description": "Relation kind."
+        },
+        "rationale": {
+          "description": "Optional rationale.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/TraceabilityRef"
+            }
+          ],
+          "description": "Source endpoint."
+        },
+        "target": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/TraceabilityRef"
+            }
+          ],
+          "description": "Target endpoint."
+        }
+      },
+      "required": [
+        "evidence",
+        "kind",
+        "source",
+        "target"
+      ],
+      "type": "object"
+    },
+    "TraceRevisionDiff": {
+      "description": "`traceability.compare_revisions` (TAPI-10).",
+      "properties": {
+        "from_revision": {
+          "description": "Baseline snapshot.",
+          "type": "string"
+        },
+        "scope": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ScopeRef"
+            }
+          ],
+          "description": "Tenant/project scope."
+        },
+        "to_revision": {
+          "description": "Comparison snapshot.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "from_revision",
+        "scope",
+        "to_revision"
+      ],
+      "type": "object"
+    },
+    "TraceRevisionDiffResult": {
+      "description": "Result of `traceability.compare_revisions` (§35.2).",
+      "properties": {
+        "added": {
+          "description": "Links only in `to`.",
+          "items": {
+            "$ref": "#/$defs/TraceLink"
+          },
+          "type": "array"
+        },
+        "changed": {
+          "description": "Links whose state or etag changed.",
+          "items": {
+            "$ref": "#/$defs/TraceLink"
+          },
+          "type": "array"
+        },
+        "removed": {
+          "description": "Links only in `from`.",
+          "items": {
+            "$ref": "#/$defs/TraceLink"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "added",
+        "changed",
+        "removed"
+      ],
+      "type": "object"
+    },
+    "TraceState": {
+      "description": "Workflow state of a link (§35.1).",
+      "oneOf": [
+        {
+          "description": "Proposed, not yet verified.",
+          "enum": [
+            "proposed"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Verified, awaiting approval.",
+          "enum": [
+            "validated"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Approved.",
+          "enum": [
+            "accepted"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Refused; terminal.",
+          "enum": [
+            "rejected"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Queued for revalidation after a source revision change.",
+          "enum": [
+            "stale"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Withdrawn by an approved operator; terminal.",
+          "enum": [
+            "revoked"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "TraceabilityEvidence": {
+      "description": "Evidence supporting a link.",
+      "properties": {
+        "confidence": {
+          "description": "Confidence in `[0,1]`.",
+          "format": "double",
+          "type": "number"
+        },
+        "evidence_id": {
+          "description": "Evidence id.",
+          "type": "string"
+        },
+        "source_ref": {
+          "description": "Where it came from.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "confidence",
+        "evidence_id",
+        "source_ref"
+      ],
+      "type": "object"
+    },
+    "TraceabilityJobHandle": {
+      "description": "Handle of an accepted asynchronous job.",
+      "properties": {
+        "job_id": {
+          "description": "Job id.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Job kind.",
+          "type": "string"
+        },
+        "stage": {
+          "description": "Stage when the handle was produced.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "job_id",
+        "kind",
+        "stage"
+      ],
+      "type": "object"
+    },
+    "TraceabilityJobView": {
+      "description": "Live view of an asynchronous job.",
+      "properties": {
+        "canonical_committed": {
+          "description": "Whether canonical data was committed.",
+          "type": "boolean"
+        },
+        "diagnostics": {
+          "description": "Diagnostics.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "job_id": {
+          "description": "Job id.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Job kind.",
+          "type": "string"
+        },
+        "stage": {
+          "description": "Current stage.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "canonical_committed",
+        "diagnostics",
+        "job_id",
+        "kind",
+        "stage"
+      ],
+      "type": "object"
+    },
+    "TraceabilityPageRequest": {
+      "description": "Cursor page request (§31.4).",
+      "properties": {
+        "cursor": {
+          "description": "Opaque cursor.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limit": {
+          "description": "Maximum items.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "limit"
+      ],
+      "type": "object"
+    },
+    "TraceabilityRef": {
+      "description": "Address of a trace object.",
+      "properties": {
+        "id": {
+          "description": "Object id.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Object kind.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Observed revision.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "revision"
+      ],
+      "type": "object"
+    },
+    "TraversalQuery": {
+      "description": "Request: bounded traversal of the code graph (`CAPI-07/08/09`).",
+      "properties": {
+        "direction": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Direction"
+            }
+          ],
+          "description": "Direction."
+        },
+        "edge_kinds": {
+          "description": "Edge kinds to follow (empty means every kind).",
+          "items": {
+            "$ref": "#/$defs/CodeEdgeKind"
+          },
+          "type": "array"
+        },
+        "max_depth": {
+          "description": "Maximum hops.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "max_nodes": {
+          "description": "Maximum visited nodes.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CodePageRequest"
+            }
+          ],
+          "description": "Page over the collected edges."
+        },
+        "symbol_id": {
+          "description": "Start symbol.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "direction",
+        "edge_kinds",
+        "max_depth",
+        "max_nodes",
+        "page",
+        "symbol_id"
+      ],
+      "type": "object"
+    },
+    "Trust": {
+      "description": "Trust columns of a memory object (§21.1, kept separate from authorization).",
+      "properties": {
+        "agent": {
+          "description": "Confidence attributed to the indirect agent.",
+          "format": "double",
+          "type": "number"
+        },
+        "extraction": {
+          "description": "Confidence of the extractor that produced the record.",
+          "format": "double",
+          "type": "number"
+        },
+        "source": {
+          "description": "Reliability of the asserting source.",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "agent",
+        "extraction",
+        "source"
+      ],
+      "type": "object"
+    },
+    "UpdateMemory": {
+      "description": "`memory.update_revision` (MAPI-09).",
+      "properties": {
+        "expected_etag": {
+          "description": "Caller's etag.",
+          "type": "string"
+        },
+        "memory": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryRef"
+            }
+          ],
+          "description": "Record to update."
+        },
+        "patch": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryPatch"
+            }
+          ],
+          "description": "Patch to apply."
+        }
+      },
+      "required": [
+        "expected_etag",
+        "memory",
+        "patch"
+      ],
+      "type": "object"
+    },
+    "ValidateLink": {
+      "description": "`traceability.validate_link` (TAPI-02).",
+      "properties": {
+        "evidence_ids": {
+          "description": "Evidence ids used for the decision.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "expected_etag": {
+          "description": "Caller's etag.",
+          "type": "string"
+        },
+        "link": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/TraceabilityRef"
+            }
+          ],
+          "description": "Link under validation."
+        }
+      },
+      "required": [
+        "evidence_ids",
+        "expected_etag",
+        "link"
+      ],
+      "type": "object"
+    },
+    "ValidationState": {
+      "description": "Validation state of an extracted claim (`§33.1 ValidationState`).",
+      "oneOf": [
+        {
+          "description": "Extracted but not checked by a human or a verifier.",
+          "enum": [
+            "unverified"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Confirmed by a review step.",
+          "enum": [
+            "verified"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Rejected by a review step.",
+          "enum": [
+            "rejected"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "ValidityVector": {
+      "description": "The three independent validity dimensions (§40.3).",
+      "properties": {
+        "asserted_source_revision": {
+          "description": "Revision the link asserted.",
+          "type": "string"
+        },
+        "assessed_at": {
+          "description": "When this assessment was made.",
+          "type": "string"
+        },
+        "current_applicability": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CurrentApplicability"
+            }
+          ],
+          "description": "Current applicability."
+        },
+        "evidence_refs": {
+          "description": "Evidence the assessment rests on.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "historical_validity": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/HistoricalValidity"
+            }
+          ],
+          "description": "Historical truth."
+        },
+        "index_freshness": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/IndexFreshness"
+            }
+          ],
+          "description": "Index freshness."
+        },
+        "observed_head_revision": {
+          "description": "Observed head revision, when known.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "asserted_source_revision",
+        "assessed_at",
+        "current_applicability",
+        "evidence_refs",
+        "historical_validity",
+        "index_freshness"
+      ],
+      "type": "object"
+    },
+    "VerifyConsistency": {
+      "description": "`document.verify_consistency` (DAPI-11).",
+      "properties": {
+        "compare_code": {
+          "description": "Whether to compare against code (requires `code:read`).",
+          "type": "boolean"
+        },
+        "document_refs": {
+          "description": "Documents to include.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "max_findings": {
+          "description": "Maximum findings.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "compare_code",
+        "document_refs",
+        "max_findings"
+      ],
+      "type": "object"
+    },
+    "VerifyFact": {
+      "description": "`memory.verify_fact` (MAPI-11 — implemented in P6).",
+      "properties": {
+        "decision": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/FactDecision"
+            }
+          ],
+          "description": "Decision."
+        },
+        "evidence_ids": {
+          "description": "Independent evidence used for the decision.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "expected_etag": {
+          "description": "Caller's etag.",
+          "type": "string"
+        },
+        "fact": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryRef"
+            }
+          ],
+          "description": "Claim under review."
+        }
+      },
+      "required": [
+        "decision",
+        "evidence_ids",
+        "expected_etag",
+        "fact"
+      ],
+      "type": "object"
+    },
+    "WindowState": {
+      "description": "State of a reconsolidation window (§23.4, §34.1).",
+      "oneOf": [
+        {
+          "description": "Accepting a patch until `labile_until`.",
+          "enum": [
+            "open"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Patch committed inside the window.",
+          "enum": [
+            "committed"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Closed by the owner without a patch.",
+          "enum": [
+            "cancelled"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Closed by time.",
+          "enum": [
+            "expired"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "WorkingBlockInput": {
+      "description": "Input of `memory.put_working_block` (§34.1).",
+      "properties": {
+        "agent_id": {
+          "description": "Agent the block belongs to.",
+          "type": "string"
+        },
+        "block_type": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryBlockKind"
+            }
+          ],
+          "description": "Block kind."
+        },
+        "content": {
+          "description": "Block content.",
+          "type": "string"
+        },
+        "expires_after_turns": {
+          "description": "Optional turn-based expiry.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "language": {
+          "description": "BCP-47 language.",
+          "type": "string"
+        },
+        "priority": {
+          "description": "Priority in `[0,1]`.",
+          "format": "double",
+          "type": "number"
+        },
+        "protected": {
+          "description": "Whether the block is pinned by the user (§22.2 R6).",
+          "type": "boolean"
+        },
+        "session_id": {
+          "description": "Session the block belongs to.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "agent_id",
+        "block_type",
+        "content",
+        "language",
+        "priority",
+        "protected",
+        "session_id"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.ukma.dev/v1/wire.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UKMA v1 wire payload types",
+  "x-operations": {
+    "code.analyze_impact": {
+      "request": "ImpactQuery",
+      "response": "ImpactReport"
+    },
+    "code.analyze_repository": {
+      "request": "AnalyzeRepository",
+      "response": "CodeJobHandle"
+    },
+    "code.cancel_analysis_job": {
+      "request": "CodeCancelJob",
+      "response": "CodeJobView"
+    },
+    "code.compare_revisions": {
+      "request": "CodeRevisionDiff",
+      "response": "Page_for_CodeChange"
+    },
+    "code.find_references": {
+      "request": "ReferenceQuery",
+      "response": "Page_for_ReferenceLocation"
+    },
+    "code.find_symbols": {
+      "request": "SymbolQuery",
+      "response": "Page_for_CodeSymbol"
+    },
+    "code.get_analysis_job": {
+      "request": "CodeGetJob",
+      "response": "CodeJobView"
+    },
+    "code.get_edit_context": {
+      "request": "EditContextQuery",
+      "response": "EditContextResult"
+    },
+    "code.get_symbol": {
+      "request": "GetSymbol",
+      "response": "CodeSymbol"
+    },
+    "code.invalidate_revision": {
+      "request": "InvalidateCodeRevision",
+      "response": "CodeChangeReceipt"
+    },
+    "code.query_callees": {
+      "request": "TraversalQuery",
+      "response": "Page_for_CodeEdge"
+    },
+    "code.query_callers": {
+      "request": "TraversalQuery",
+      "response": "Page_for_CodeEdge"
+    },
+    "code.query_dependencies": {
+      "request": "TraversalQuery",
+      "response": "Page_for_CodeEdge"
+    },
+    "document.cancel_ingest_job": {
+      "request": "DocumentCancelJob",
+      "response": "DocumentJobView"
+    },
+    "document.compare_revisions": {
+      "request": "DocumentRevisionDiff",
+      "response": "DocDiff"
+    },
+    "document.extract_relations": {
+      "request": "ExtractRelations",
+      "response": "Page_for_ExtractedRelation"
+    },
+    "document.extract_requirements": {
+      "request": "ExtractRequirements",
+      "response": "Page_for_RequirementCandidate"
+    },
+    "document.get_document": {
+      "request": "GetDocument",
+      "response": "DocumentView"
+    },
+    "document.get_ingest_job": {
+      "request": "DocumentGetJob",
+      "response": "DocumentJobView"
+    },
+    "document.get_source_span": {
+      "request": "GetSourceSpan",
+      "response": "SourceSpanView"
+    },
+    "document.ingest": {
+      "request": "DocumentIngest",
+      "response": "DocumentJobHandle"
+    },
+    "document.invalidate_revision": {
+      "request": "InvalidateDocumentRevision",
+      "response": "DocumentChangeReceipt"
+    },
+    "document.list_requirements": {
+      "request": "ListRequirements",
+      "response": "Page_for_RequirementCandidate"
+    },
+    "document.parse_preview": {
+      "request": "ParsePreview",
+      "response": "ParsedDocument"
+    },
+    "document.review_requirement": {
+      "request": "ReviewRequirement",
+      "response": "RequirementReviewResult"
+    },
+    "document.search": {
+      "request": "SearchDocument",
+      "response": "Page_for_SearchHit"
+    },
+    "document.verify_consistency": {
+      "request": "VerifyConsistency",
+      "response": "ConsistencyReport"
+    },
+    "memory.begin_reconsolidation": {
+      "request": "BeginReconsolidation",
+      "response": "ReconsolidationWindow"
+    },
+    "memory.close_agent_scope": {
+      "request": "CloseAgentScope",
+      "response": "CloseScopeResult"
+    },
+    "memory.commit_reconsolidation": {
+      "request": "CommitReconsolidation",
+      "response": "MemoryChangeReceipt"
+    },
+    "memory.consolidate": {
+      "request": "Consolidate",
+      "response": "MemoryJobHandle"
+    },
+    "memory.evaluate_eviction": {
+      "request": "EvaluateEviction",
+      "response": "EvictionPlan"
+    },
+    "memory.find_conflicts": {
+      "request": "FindConflicts",
+      "response": "Page_for_MemoryView"
+    },
+    "memory.fold": {
+      "request": "FoldMemory",
+      "response": "FoldedResult"
+    },
+    "memory.forget": {
+      "request": "ForgetMemory",
+      "response": "DeletionReceipt"
+    },
+    "memory.get_budget": {
+      "request": "GetMemoryBudget",
+      "response": "BudgetView"
+    },
+    "memory.get_consolidation_job": {
+      "request": "GetMemoryJob",
+      "response": "MemoryJobView"
+    },
+    "memory.list_working_blocks": {
+      "request": "ListWorkingBlocks",
+      "response": "Page_for_MemoryView"
+    },
+    "memory.open_agent_scope": {
+      "request": "OpenAgentScope",
+      "response": "AgentScopeView"
+    },
+    "memory.page_in": {
+      "request": "PageIn",
+      "response": "PageInResult"
+    },
+    "memory.page_out": {
+      "request": "PageOut",
+      "response": "PagingReceipt"
+    },
+    "memory.propose_fact": {
+      "request": "ProposeFact",
+      "response": "MemoryRef"
+    },
+    "memory.put_working_block": {
+      "request": "PutWorkingBlock",
+      "response": "MemoryRef"
+    },
+    "memory.record_procedure_outcome": {
+      "request": "RecordProcedureOutcome",
+      "response": "MemoryChangeReceipt"
+    },
+    "memory.register_procedure_candidate": {
+      "request": "RegisterProcedure",
+      "response": "ProcedureView"
+    },
+    "memory.remove_working_block": {
+      "request": "RemoveWorkingBlock",
+      "response": "DeletionReceipt"
+    },
+    "memory.retrieve": {
+      "request": "RetrieveMemory",
+      "response": "MemoryView"
+    },
+    "memory.review_procedure": {
+      "request": "ReviewProcedure",
+      "response": "ProcedureView"
+    },
+    "memory.search": {
+      "request": "SearchMemory",
+      "response": "Page_for_MemoryView"
+    },
+    "memory.store_episode": {
+      "request": "StoreEpisode",
+      "response": "MemoryChangeReceipt"
+    },
+    "memory.update_revision": {
+      "request": "UpdateMemory",
+      "response": "MemoryChangeReceipt"
+    },
+    "memory.verify_fact": {
+      "request": "VerifyFact",
+      "response": "MemoryChangeReceipt"
+    },
+    "traceability.accept_link": {
+      "request": "AcceptLink",
+      "response": "TraceLink"
+    },
+    "traceability.analyze_change_impact": {
+      "request": "TraceImpactQuery",
+      "response": "TraceImpact"
+    },
+    "traceability.compare_revisions": {
+      "request": "TraceRevisionDiff",
+      "response": "TraceRevisionDiffResult"
+    },
+    "traceability.explain_with_evidence": {
+      "request": "ExplainEvidence",
+      "response": "EvidenceReport"
+    },
+    "traceability.find_design_gaps": {
+      "request": "GapQuery",
+      "response": "GapReport"
+    },
+    "traceability.get_link": {
+      "request": "GetLink",
+      "response": "TraceLink"
+    },
+    "traceability.get_revalidation_job": {
+      "request": "GetTraceJob",
+      "response": "TraceabilityJobView"
+    },
+    "traceability.list_links": {
+      "request": "ListLinks",
+      "response": "Page_for_TraceLink"
+    },
+    "traceability.propose_link": {
+      "request": "ProposeLink",
+      "response": "TraceLink"
+    },
+    "traceability.query_coverage": {
+      "request": "CoverageQuery",
+      "response": "CoverageReport"
+    },
+    "traceability.revalidate_stale": {
+      "request": "RevalidateStale",
+      "response": "TraceabilityJobHandle"
+    },
+    "traceability.revoke_link": {
+      "request": "RevokeLink",
+      "response": "TraceLink"
+    },
+    "traceability.validate_link": {
+      "request": "ValidateLink",
+      "response": "TraceLink"
+    }
+  }
+}

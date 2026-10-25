@@ -39,14 +39,14 @@ baseline:
   - ukma-server
   s0_upstream_baseline: done
   s1_graph_slice: done
-  schemas_total: 139
+  schemas_total: 140
   system_schemas: 8
   crates_deprecated:
   - ukma-code-runtime
   event_payload_schemas: 35
-  fixtures: 414 (69 ops x {2 valid, 4 invalid})
+  fixtures: 414 (69 ops x {2 valid, 4 invalid}); the 130 valid domain fixtures are generated from the schemas
   mcp_tools: 69
-  contract_check: cargo run -p ukma-contract-check => 4745 checks passed, 0 failed
+  contract_check: cargo run -p ukma-contract-check => 5411 checks passed, 0 failed
   workspace_crates: 26
 gates:
   G0_specification: passed
@@ -63,6 +63,7 @@ gates:
   DOC-04: passed
   SCHEMA-01: passed
   SCHEMA-02: passed
+  SCHEMA-03: passed
   TEST-01: passed
   DB-01: passed
   MIG-01: partial
@@ -454,4 +455,5 @@ notes:
 - P8 done = 69/69 handlers (65 domain + 4 system); manifest, routes and error sets are projected from the registry with empty drift; ScopeResolver-injected authz returns NOT_FOUND for a foreign scope; typed SDK plus ukma-server (std::net HTTP) and ukma CLI; legacy alias layer inert with zero aliases; gaps remain (no persistence, development auth profile, no streaming/rate limit/TLS, schemas still preliminary)
 - P9 done = 12 E2E, 10 properties and 3 chaos tests through the public API in crates/ukma-integration; section 17.1 and 29.4 fully classified in contracts/testing/test-coverage.json (69/69; covered 59, partial 5, gap 5) with a gate that rejects unclassified ids or evidence pointing at a missing test; dependency acyclicity, no-vendor-SDK and two-store graph portability are real tests; full-green is NOT claimed
 - P10 done = three-profile parity report (A only available, B/C declared unavailable), nine-state cutover with fencing and a rollback drill, reproducible benchmark (2k baseline + 20k scale probe, RSS/VRAM not measured), disaster recovery drill (backup/restore/re-index/rollback) and the licence audit with LICENSE/NOTICE plus a Cargo.lock-aligned inventory. REP-003 and OPS-001 closed; FM-010 partial (1M episodes blocked by MAX_CANDIDATES and O(n) lexical search); SR-004 and DB-01 remain red (no second live backend)
-- ADR-057 fix-up = SQLite second backend (profile B available, two-way equivalence verified), candidate index removed the 10k search ceiling (1M episodes benchmarked with zero failures), RSS and SQL on-disk size measured, BackupScheduler with retention plus a restore drill, CycloneDX 1.5 SBOM with a SHA-256 digest gate. Coverage 69/69 classified: covered 63, partial 5, gap 1 (FM-006 schema migration). Remaining items are profile C needs PostgreSQL/Qdrant/Neo4j, an unsigned SBOM, JSON Schema closure needing owner approval
+- ADR-057 fix-up = SQLite second backend (profile B available, two-way equivalence verified), candidate index removed the 10k search ceiling (1M episodes benchmarked with zero failures), RSS and SQL on-disk size measured, BackupScheduler with retention plus a restore drill, CycloneDX 1.5 SBOM with a SHA-256 digest gate. Coverage 69/69 classified: covered 63, partial 5, gap 1 (FM-006 schema migration). Remaining items are profile C needs PostgreSQL/Qdrant/Neo4j, an unsigned SBOM, JSON Schema closure, delivered by ADR-058
+- ADR-058 schema closure = the wire payload schemas are generated from the Rust types (184 $defs, 65 operations) behind the opt-in `schema` feature; the 65 domain envelopes now reference wire.schema.json instead of carrying UNRESOLVED placeholders, the 130 valid domain fixtures are generated from those schemas, and gate SCHEMA-03 proves every payload is typed (5411 contract checks). Remaining: profile C needs PostgreSQL/Qdrant/Neo4j, the SBOM is unsigned, FM-006 schema migration is still a gap

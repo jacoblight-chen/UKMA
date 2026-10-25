@@ -376,6 +376,8 @@ fn the_release_evidence_pack_is_complete() {
         "docs/adr/ADR-055.md",
         "docs/adr/ADR-056.md",
         "docs/adr/ADR-057.md",
+        "docs/adr/ADR-058.md",
+        "contracts/schema/v1/wire.schema.json",
         "contracts/testing/sbom.cyclonedx.json",
         "contracts/testing/sbom.digest.json",
     ] {

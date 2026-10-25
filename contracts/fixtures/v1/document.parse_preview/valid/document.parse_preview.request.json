@@ -13,8 +13,14 @@
     "consistency": "eventual"
   },
   "input": {
-    "source": null,
+    "max_bytes": 0,
     "parser_profile": "x",
-    "limits": null
+    "source": {
+      "artifact_ref": "x",
+      "content_hash": "x",
+      "media_type": "x",
+      "revision": "x",
+      "source_uri": "x"
+    }
   }
 }

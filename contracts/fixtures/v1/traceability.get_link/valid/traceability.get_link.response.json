@@ -3,8 +3,39 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
+  "data": {
+    "created_at": "x",
+    "etag": "x",
+    "evidence": [],
+    "kind": "SPECIFIES",
+    "reference": {
+      "id": "x",
+      "kind": "x",
+      "revision": "x"
+    },
+    "source": {
+      "id": "x",
+      "kind": "x",
+      "revision": "x"
+    },
+    "source_revision": "x",
+    "state": "proposed",
+    "target": {
+      "id": "x",
+      "kind": "x",
+      "revision": "x"
+    },
+    "target_revision": "x",
+    "validity": {
+      "asserted_source_revision": "x",
+      "assessed_at": "x",
+      "current_applicability": "applicable",
+      "evidence_refs": [],
+      "historical_validity": "valid",
+      "index_freshness": "current"
+    }
+  },
   "warnings": [],
   "partial_reasons": [],
-  "freshness": "current",
-  "data": null
+  "freshness": "current"
 }

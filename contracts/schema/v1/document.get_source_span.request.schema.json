@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.ukma.dev/v1/document.get_source_span.request.schema.json",
-  "title": "document.get_source_span Request [PHASE2 PROVISIONAL]",
+  "title": "document.get_source_span Request",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -21,21 +21,7 @@
       "$ref": "shared.schema.json#/$defs/RequestContext"
     },
     "input": {
-      "type": "object",
-      "properties": {
-        "span": {
-          "$comment": "UNRESOLVED TYPE: Span"
-        },
-        "max_bytes": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "span",
-        "max_bytes"
-      ],
-      "additionalProperties": false
+      "$ref": "wire.schema.json#/$defs/GetSourceSpan"
     }
-  },
-  "$comment": "NOT A CLOSED INPUT CONTRACT: inferred from normative markdown table; require exact IDL and invariants."
+  }
 }

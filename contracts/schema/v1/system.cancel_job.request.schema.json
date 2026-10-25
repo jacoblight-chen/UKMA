@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.ukma.dev/v1/system.cancel_job.request.schema.json",
-  "title": "system.cancel_job Request (provisional system API — ADR-047)",
+  "title": "system.cancel_job Request",
   "type": "object",
   "additionalProperties": false,
   "required": [

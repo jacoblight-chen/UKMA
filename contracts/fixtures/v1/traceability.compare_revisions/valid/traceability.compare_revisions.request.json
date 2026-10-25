@@ -14,7 +14,10 @@
   },
   "input": {
     "from_revision": "x",
-    "to_revision": "x",
-    "scope": null
+    "scope": {
+      "project_id": "x",
+      "tenant_id": "x"
+    },
+    "to_revision": "x"
   }
 }

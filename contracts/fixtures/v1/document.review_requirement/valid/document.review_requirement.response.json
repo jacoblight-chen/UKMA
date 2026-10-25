@@ -3,8 +3,26 @@
   "request_id": "x",
   "trace_id": "x",
   "status": "ok",
+  "data": {
+    "receipt": {
+      "changed": true,
+      "etag": "x",
+      "events": [],
+      "resource_id": "x"
+    },
+    "requirement": {
+      "confidence": 0,
+      "etag": "x",
+      "extracted_from": [],
+      "id": "x",
+      "normative_strength": "must",
+      "revision": "x",
+      "status": "candidate",
+      "text": "x",
+      "verification": "unverified"
+    }
+  },
   "warnings": [],
   "partial_reasons": [],
-  "freshness": "current",
-  "data": null
+  "freshness": "current"
 }

@@ -13,6 +13,11 @@
     "consistency": "eventual"
   },
   "input": {
-    "input": null
+    "input": {
+      "episode_refs": [],
+      "max_tokens": 0,
+      "policy_id": "x",
+      "target_agent_id": "x"
+    }
   }
 }
