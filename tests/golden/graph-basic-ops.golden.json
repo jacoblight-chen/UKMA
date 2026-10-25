@@ -1,0 +1,50 @@
+{
+  "fixture_id": "graph-basic-ops",
+  "purpose": "S0 golden fixture: minimal graph construction + query semantics, taken from observed upstream test behavior (crates/codegraph/tests/unit/graph_ops_test.rs at the locked SHA). Validated against UKMA S1 by a Rust golden test.",
+  "upstream": {
+    "repository": "https://github.com/codegraph-ai/CodeGraph",
+    "commit": "590c2ca7dd7b37bd1d41caf45fac535b6522f969",
+    "source_files": [
+      "crates/codegraph/tests/unit/graph_ops_test.rs",
+      "crates/codegraph/src/graph/types.rs"
+    ]
+  },
+  "scenario": {
+    "backend": "in-memory",
+    "operations": [
+      { "op": "add_node", "args": { "node_type": "Function", "properties": { "name": "test_func" } } },
+      { "op": "add_node", "args": { "node_type": "Function", "properties": {} } },
+      { "op": "add_edge", "args": { "source": 0, "target": 1, "edge_type": "Calls", "properties": { "line": 42 } } },
+      { "op": "get_node", "args": { "id": 0 } },
+      { "op": "get_edge", "args": { "id": 0 } },
+      { "op": "get_neighbors", "args": { "node_id": 0, "direction": "Outgoing" } },
+      { "op": "add_edge", "args": { "source": 100, "target": 200, "edge_type": "Calls", "properties": {} } },
+      { "op": "get_node", "args": { "id": 999 } }
+    ]
+  },
+  "expected": {
+    "observed_upstream_semantics": {
+      "add_node_first": "id == 0 (monotonic counter)",
+      "add_edge_first": "id == 0 (monotonic counter)",
+      "get_node_0": { "node_type": "Function", "name": "test_func" },
+      "get_edge_0": { "source_id": 0, "target_id": 1, "edge_type": "Calls", "line": 42 },
+      "get_neighbors_0_outgoing": [1],
+      "add_edge_missing_nodes": "Err",
+      "get_node_missing": "Err"
+    },
+    "ukma_s1_expectations": {
+      "node_count": 2,
+      "edge_count": 1,
+      "neighbors_of_first_node_outgoing": "exactly one target (the second node)",
+      "edge_between": "exactly one Calls edge from first node to second node",
+      "missing_node_or_edge_ops": "typed error (NotFound), never panics"
+    }
+  },
+  "legitimate_expected_differences": [
+    "IDs: upstream NodeId/EdgeId are vendor-internal u64 monotonic counters; UKMA canonical IDs MUST be stable across adapter substitution and MUST NOT reuse the vendor counters as external IDs (S1 rule). The fixture's 'id == 0' assertions bind to upstream semantics only.",
+    "ACL: upstream graph has no ACL/tenant layer; UKMA S1 traversal MUST filter by AuthContext before returning nodes/edges, so UKMA results may be a filtered subset for unauthorized scopes.",
+    "Errors: upstream uses thiserror Result types; UKMA maps them to the v1.2.3 ErrorContract codes (e.g. NotFound / Conflict / CAPABILITY_UNAVAILABLE).",
+    "Backend: upstream default feature is rocksdb-backend (KV trait + RocksDB impl); UKMA keeps RocksDB as an optional adapter behind the Storage Port — no SDK import in Domain crates.",
+    "Properties: upstream PropertyMap is untyped key-value; UKMA preserves the property bag but versioned schema validation applies at the boundary."
+  ]
+}

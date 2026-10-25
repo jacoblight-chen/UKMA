@@ -1,0 +1,38 @@
+# UKMA Phase 7 Migration Ledger — S0 entry
+# Template per docs/PHASE7_CODEGRAPH_MIGRATION_PLAN.md §7.
+# S0 migrates NO source; this entry records the baseline itself.
+
+slice_id: S0-upstream-baseline
+upstream:
+  repository: https://github.com/codegraph-ai/CodeGraph
+  commit: "590c2ca7dd7b37bd1d41caf45fac535b6522f969"
+  paths:
+    # Read-only mirror + reference checkout preserved OUTSIDE the UKMA git repo
+    - "f:\\codegraph-workspace\\codegraph-upstream.git (bare mirror, refs/heads/main == locked SHA)"
+    - "f:\\codegraph-workspace\\codegraph-reference (checkout at locked SHA, clean tree)"
+    # Source map covers the full observed workspace (47 crates); see source-map.yaml
+target:
+  repository: ukma
+  crate: none (S0 adds no code; documents only)
+  files:
+    - docs/migration/upstream-lock.yaml
+    - docs/migration/source-map.yaml
+    - docs/migration/ledger/s0-upstream-baseline.yaml
+    - docs/migration/s1-contract-proposal.md
+    - docs/migration/s0-baseline-report.md
+    - tests/golden/graph-basic-ops.golden.json
+license:
+  identified: true            # LICENSE = Apache-2.0 (full text); NOTICE preserved (Copyright 2025-2026 Andrey Vasilevsky)
+  notices_preserved: true    # NOTICE + per-file SPDX headers observed and recorded
+changes: []
+behavior:
+  preserved: []
+  intentional_breaking: []
+tests:
+  golden: "tests/golden/graph-basic-ops.golden.json (prepared; validated by Rust golden test in S1)"
+  contract: pending
+  integration: "BLOCKED on this host (official cargo test --workspace: rocksdb 8.10 C++ vs MinGW; upstream pin MSVC 1.94.1 has no linker here). Feasible subset PASSED: cargo test -p codegraph --no-default-features --lib => 40/40."
+  rust_cargo: "Phase 6R gate green (13/13). Upstream baseline: see s0-baseline-report.md §5/§7 — blockers recorded as BLOCKED, never success. Re-run full suite on MSVC host/CI before S1 merge."
+review:
+  owner: "jacoblight-chen"
+  status: pending

@@ -1,0 +1,138 @@
+# UKMA Phase 7 S0 — Source Map
+# Generated strictly from observed paths at upstream SHA 590c2ca7dd7b37bd1d41caf45fac535b6522f969.
+# Dispositions: reusable (candidate) | rewrite (adapt to UKMA ports) | external (dependency, not migrated)
+# S0 migrates NO code; this is an audit map only.
+
+upstream:
+  repository: https://github.com/codegraph-ai/CodeGraph
+  commit: "590c2ca7dd7b37bd1d41caf45fac535b6522f969"
+
+crates:
+  - crate: codegraph
+    path: crates/codegraph
+    rs_files: 42
+    ukma_slice: S1
+    files:
+      - path: crates/codegraph/src/lib.rs
+        disposition: rewrite          # public surface re-mapped to UKMA ports
+      - path: crates/codegraph/src/graph/types.rs
+        disposition: rewrite         # Node/Edge/NodeType/EdgeType -> UKMA canonical types (IDs decoupled)
+      - path: crates/codegraph/src/graph/property.rs
+        disposition: rewrite         # PropertyMap/PropertyValue
+      - path: crates/codegraph/src/graph/codegraph.rs
+        disposition: rewrite         # graph API (CRUD, neighbors, bfs/dfs, SCC, paths, export)
+      - path: crates/codegraph/src/graph/algorithms.rs
+        disposition: rewrite
+      - path: crates/codegraph/src/graph/mod.rs
+        disposition: rewrite
+      - path: crates/codegraph/src/storage/mod.rs
+        disposition: rewrite         # StorageBackend trait (KV-level) -> UKMA Storage Port candidate
+      - path: crates/codegraph/src/storage/memory.rs
+        disposition: reusable       # MemoryBackend (tests)
+      - path: crates/codegraph/src/storage/namespaced.rs
+        disposition: rewrite        # namespacing wrapper
+      - path: crates/codegraph/src/storage/rocksdb_backend.rs
+        disposition: external       # RocksDB is an OPTIONAL adapter only (feature-gated); never in Domain
+      - path: crates/codegraph/src/error.rs
+        disposition: rewrite        # errors -> UKMA ErrorContract
+      - path: crates/codegraph/src/helpers.rs
+        disposition: rewrite
+      - path: crates/codegraph/src/metadata.rs
+        disposition: rewrite
+      - path: crates/codegraph/src/query.rs
+        disposition: rewrite
+      - path: crates/codegraph/src/export/mod.rs
+        disposition: rewrite
+      - path: crates/codegraph/src/export/csv.rs
+        disposition: rewrite
+      - path: crates/codegraph/src/export/dot.rs
+        disposition: rewrite
+      - path: crates/codegraph/src/export/json.rs
+        disposition: rewrite
+      - path: crates/codegraph/src/export/triples.rs
+        disposition: rewrite
+      - path: crates/codegraph/build.rs
+        disposition: rewrite
+      - path: crates/codegraph/tests/tests.rs
+        disposition: reusable       # baseline reference for parity tests
+      - path: crates/codegraph/tests/unit/node_test.rs
+        disposition: reusable
+      - path: crates/codegraph/tests/unit/edge_test.rs
+        disposition: reusable
+      - path: crates/codegraph/tests/unit/graph_ops_test.rs
+        disposition: reusable       # source of tests/golden/graph-basic-ops.golden.json
+      - path: crates/codegraph/tests/unit/algorithms_test.rs
+        disposition: reusable
+      - path: crates/codegraph/tests/unit/property_test.rs
+        disposition: reusable
+      - path: crates/codegraph/tests/unit/query_builder_test.rs
+        disposition: reusable
+      - path: crates/codegraph/tests/unit/export_test.rs
+        disposition: reusable
+      - path: crates/codegraph/tests/unit/helpers_test.rs
+        disposition: reusable
+      - path: crates/codegraph/tests/integration/memory_backend_test.rs
+        disposition: reusable
+      - path: crates/codegraph/tests/integration/rocksdb_backend_test.rs
+        disposition: external       # RocksDB adapter only
+      - path: crates/codegraph/tests/integration/crash_recovery_test.rs
+        disposition: reusable
+      - path: crates/codegraph/tests/integration/large_graph_test.rs
+        disposition: reusable
+      - path: crates/codegraph/tests/integration/mod.rs
+        disposition: rewrite
+      - path: crates/codegraph/examples/basic_usage.rs
+        disposition: rewrite
+      - path: crates/codegraph/examples/call_graph.rs
+        disposition: rewrite
+      - path: crates/codegraph/examples/dependency_tree.rs
+        disposition: rewrite
+      - path: crates/codegraph/examples/impact_analysis.rs
+        disposition: rewrite
+      - path: crates/codegraph/examples/inspect_db.rs
+        disposition: external       # RocksDB-specific
+      - path: crates/codegraph/examples/visualize.rs
+        disposition: rewrite
+      - path: crates/codegraph/benches/graph_operations.rs
+        disposition: rewrite
+  - crate: codegraph-parser-api
+    path: crates/codegraph-parser-api
+    rs_files: 19
+    ukma_slice: S2
+    files: []        # file-level mapping deferred to S2 (S0 maps crate boundaries only)
+  - crate: codegraph-memory
+    path: crates/codegraph-memory
+    rs_files: 18
+    ukma_slice: S5
+    files: []
+  - crate: codegraph-server
+    path: crates/codegraph-server
+    rs_files: 72
+    ukma_slice: S6
+    files: []
+  - crate: codegraph-harness
+    path: crates/codegraph-harness
+    rs_files: 12
+    ukma_slice: test-infrastructure
+    files: []
+  - crate: language-parsers (37 crates: codegraph-bash ... codegraph-yaml, codegraph-zig)
+    path: crates/codegraph-<lang>
+    rs_files: 5-17 each
+    ukma_slice: S2
+    files: []
+
+s1_focus:
+  # Files actually relevant to the S1 Graph/Storage vertical slice
+  graph_core:
+    - crates/codegraph/src/graph/types.rs
+    - crates/codegraph/src/graph/property.rs
+    - crates/codegraph/src/graph/codegraph.rs
+    - crates/codegraph/src/graph/algorithms.rs
+  storage:
+    - crates/codegraph/src/storage/mod.rs      # StorageBackend trait
+    - crates/codegraph/src/storage/memory.rs  # MemoryBackend
+    - crates/codegraph/src/storage/namespaced.rs
+    - crates/codegraph/src/storage/rocksdb_backend.rs  # adapter reference only (feature-gated upstream)
+  tests:
+    - crates/codegraph/tests/unit/graph_ops_test.rs
+    - crates/codegraph/tests/integration/memory_backend_test.rs

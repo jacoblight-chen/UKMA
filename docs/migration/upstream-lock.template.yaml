@@ -1,0 +1,7 @@
+repository: https://github.com/codegraph-ai/CodeGraph
+commit: "<verified-full-sha>"
+reference_checkout: "../codegraph-reference"
+mirror: "../codegraph-upstream.git"
+toolchain: "<verified-toolchain>"
+license_audited: false
+baseline_tests: pending

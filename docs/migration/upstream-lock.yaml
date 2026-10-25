@@ -1,0 +1,89 @@
+# UKMA Phase 7 S0 — Upstream Baseline Lock
+# Status: S0 (baseline preserved; no source migrated into UKMA)
+# Generated: 2026-10-25 (actual execution, see s0-baseline-report.md)
+
+upstream:
+  repository: https://github.com/codegraph-ai/CodeGraph
+  commit: "590c2ca7dd7b37bd1d41caf45fac535b6522f969"
+  commit_date: "2026-10-05T19:20:33-07:00"
+  author: "anvanster <72588463+anvanster@users.noreply.github.com>"
+  default_branch: main
+  # Pinned by upstream rust-toolchain.toml (channel = "1.94.1")
+  pinned_rust_toolchain: "1.94.1"
+  # Actually executed with (local host has no MSVC linker; msvc 1.94.1 cannot link here):
+  executed_rust_toolchain: "stable-x86_64-pc-windows-gnu (rustc 1.99.1)"
+  toolchain_deviation: >
+    Upstream pin 1.94.1 (msvc on this host) could not be executed because
+    link.exe / Visual Studio C++ Build Tools are absent. Baseline was run
+    with rustc 1.99.1 (GNU target). Re-verify with the pinned toolchain in
+    CI before S1 merge.
+
+mirror:
+  # Read-only mirror, OUTSIDE the UKMA git repository (dual-repo rule, ADR-025)
+  path: "f:\\codegraph-workspace\\codegraph-upstream.git"
+  type: bare-mirror (git clone --mirror)
+  verified_ref: "refs/heads/main == 590c2ca7dd7b37bd1d41caf45fac535b6522f969"
+
+reference_checkout:
+  # Read-only reference for source analysis, OUTSIDE the UKMA git repository
+  path: "f:\\codegraph-workspace\\codegraph-reference"
+  detached_or_branch: "branch main at 590c2ca7dd7b37bd1d41caf45fac535b6522f969"
+  working_tree: "git status --porcelain == clean"
+
+license_audit:
+  license_file: "LICENSE (Apache License 2.0, full text)"
+  spdx: Apache-2.0
+  notice: >
+    NOTICE present: "CodeGraph — Copyright 2025-2026 Andrey Vasilevsky
+    <anvanster@gmail.com>. This product includes software developed by
+    Andrey Vasilevsky (https://github.com/codegraph-ai/codegraph).
+    Licensed under the Apache License, Version 2.0."
+  per_file_copyright_headers: "Observed on codegraph crate sources (2024-2026, SPDX-License-Identifier: Apache-2.0)"
+  third_party_dependencies:
+    - rocksdb 0.22 (optional feature "rocksdb-backend", default ON upstream; transitive libz-sys pinned =1.1.25 upstream)
+    - serde / serde_json
+    - thiserror
+    - log
+    - uuid (v4, serde)
+    - tower-lsp 0.20 / tokio / dashmap / notify / tracing / lru / regex / glob / globset / clap (server crate only)
+    - criterion (bench, dev) / tempfile (dev)
+  audit_status: identified (NOTICE + LICENSE preserved for any future merge; S0 migrates no code)
+
+workspace:
+  workspace_version: "0.21.0"
+  edition: "2021"
+  resolver: "2"
+  crate_count: 47
+  crates:
+    graph_engine: codegraph (crates/codegraph, 42 rs files)
+    parser_api: codegraph-parser-api (19 rs files)
+    language_parsers: 37 (crates/codegraph-*)
+    memory_layer: codegraph-memory (18 rs files)
+    server: codegraph-server (72 rs files)
+    test_harness: codegraph-harness (12 rs files)
+  note: >
+    Workspace comment says "Language parsers (27)" but 37 parser crates are
+    listed (observed at the locked SHA; recorded as-is, not corrected).
+
+baseline_test:
+  command: "cargo +stable-x86_64-pc-windows-gnu test --workspace"
+  working_dir: "f:\\codegraph-workspace\\codegraph-reference"
+  log: "f:\\codegraph-workspace\\upstream-baseline-test.log"
+  full_workspace_status: BLOCKED
+  blocker_root_causes:
+    - "librocksdb-sys (rocksdb 8.10) C++ does not compile under MinGW g++ on Windows (uint64_t / ROCKSDB_PRIszt errors); upstream pin is MSVC 1.94.1 which has no linker on this host"
+    - "Upstream packaging defect: codegraph test suite (export_test.rs, crash_recovery_test.rs, rocksdb_backend_test.rs, examples) calls CodeGraph::open unconditionally, without a #[cfg(feature = \"rocksdb-backend\")] gate, so the no-rocksdb test build is broken upstream as well"
+    - "codegraph-parser-api and the 37 language parser crates transitively pull rocksdb via codegraph default features -> same blocker"
+  feasible_subset:
+    command: "cargo +stable-x86_64-pc-windows-gnu test -p codegraph --no-default-features --lib"
+    result: "PASS: 40 passed / 0 failed (executed on this host)"
+    note: "Graph engine core (non-RocksDB) baseline is green; RocksDB-backed integration tests + parsers require an MSVC host or CI"
+  environment_blockers: "recorded as BLOCKED, never marked success; see s0-baseline-report.md"
+
+reproducibility:
+  sha: "590c2ca7dd7b37bd1d41caf45fac535b6522f969"
+  lockfile: "Cargo.lock committed upstream (used as-is)"
+  repro_command: >
+    git clone --mirror <repo> codegraph-upstream.git &&
+    git clone <repo> codegraph-reference &&
+    cd codegraph-reference && git checkout --detach 590c2ca7dd7b37bd1d41caf45fac535b6522f969
