@@ -1,4 +1,4 @@
-# UKMA v1.2.3 — 完整實作計畫（Implementation Plan）
+﻿# UKMA v1.2.3 — 完整實作計畫（Implementation Plan）
 
 **規格來源（唯一權威）**：`docs/UKMA_v1.2.3_Full_Spec.md`（v1.2.3，2050+ 行 / §0–§43）
 **計畫版本**：plan-1.0（2026-10-25）
@@ -34,7 +34,7 @@
 |---|---|---|
 | CodeGraph 上游 mirror + 唯讀 checkout | `f:\codegraph-workspace`（repo 外） | SHA `590c2ca7dd7b37bd1d41caf45fac535b6522f969`；官方 `cargo test --workspace` 299 測試：297 pass / 1 ignored / 1 fail（`test_header_type_resolution` 硬編 `/tmp/`，上游 Windows 可攜性缺陷） |
 | S0 交付物 | `docs/migration/*`、`docs/migration/ledger/*` | upstream-lock / source-map / license-audit / dependency-graph / baseline-report 齊備 |
-| S1 Graph Engine 垂直切片 | `crates/ukma-graph-engine` | 53 契約測試（ids 7 / crud 11 / traversal 9 / tenant 8 / versioning 8 / persistence 10）全綠 |
+| S1 Graph Engine 垂直切片 | `crates/graph-engine` | 53 契約測試（ids 7 / crud 11 / traversal 9 / tenant 8 / versioning 8 / persistence 10）全綠 |
 | Wire 契約型別（部分） | `crates/ukma-contracts` | `RequestEnvelope`/`ResponseEnvelope`/`ErrorDetail`/`ScopeRef`/`ValidityVector`/`OperationOutcome` 等 4 個單元測試 |
 | Phase 5/6 legacy runtime | `crates/ukma-code-runtime` | 9 測試（in-memory + JSON adapter） |
 | Operation Registry（65 筆） | `contracts/api/operation-registry.yaml` | 65 筆登錄但 `closure_status: provisional`，`status: PHASE4_CODE_TYPED_CANDIDATES_NOT_RUNTIME_CLOSED` |
@@ -51,11 +51,11 @@
 | B-01 | `operation-registry.yaml` 的 `source_file` 指向不存在的舊檔名（`UKMA_v1.2.3_Interface_Runtime_Contract_Specification_...md`） | 來源不可追溯（違反 §41.1 可追溯性） |
 | B-02 | `operation-registry.yaml` / `api-contract-matrix.yaml` 內含 Mojibake 亂碼（權限/事件欄位中文） | 契約文字不可審查 |
 | B-03 | 缺 `system.*` 4 個 operation 與其 8 份 schema | 無法通過 SCHEMA-01 與 SYS-01..04 |
-| B-04 | repo ADR-031 = 「s1-graph-contract-decisions」，與規格 §39 的 ADR-031「Schema-as-Code and Contract Test Gate」**編號衝突** | 治理歧義；必須正規化 |
-| B-05 | `docs/adr/` 僅有 ADR-031 一檔；規格要求 ADR-021…ADR-040 個別檔案 | §39.2 交付清單不符 |
-| B-06 | legacy Python harness（`scripts/*.py`、`tests/*.py`）仍可被誤認為驗證來源 | 規格要求 Rust Runtime；需明確退役路徑 |
-| B-07 | `ukma-contracts` 無 domain request/response 型別；`crates/` 缺 12 個目標 crate | 四域無可編譯契約 |
-| B-08 | Crate 命名與規格 §3.1/§39.2 不一致（`ukma-graph-engine` vs `graph-engine`、缺 `ukma-domain-*`） | 需 ADR 決策（不自行變更公共結構） |
+| B-04 | repo ADR-031 = 「s1-graph-contract-decisions」，與規格 §39 的 ADR-031「Schema-as-Code and Contract Test Gate」**編號衝突** | **RESOLVED**（ADR-046：repo 版重編為 ADR-031a） |
+| B-05 | `docs/adr/` 僅有 ADR-031 一檔；規格要求 ADR-021…ADR-040 個別檔案 | **RESOLVED**（ADR-021…ADR-046 共 27 檔 + `docs/adr/README.md` 索引） |
+| B-06 | legacy Python harness（`scripts/*.py`、`tests/*.py`）仍可被誤認為驗證來源 | 規格要求 Rust Runtime；退役排程見 P0-WP7 |
+| B-07 | `ukma-contracts` 無 domain request/response 型別；`crates/` 缺 12 個目標 crate | 部分 **RESOLVED**（22 個 crate 骨架已建立，型別待 P0-WP4） |
+| B-08 | Crate 命名與規格 §3.1/§39.2 不一致（原 `ukma-graph-engine`、缺 `ukma-domain-*` 對應） | **RESOLVED**（ADR-045：採 §3.1 命名，`crates/ukma-graph-engine` → `crates/graph-engine`） |
 
 ---
 
@@ -179,7 +179,7 @@ flowchart LR
 
 | WP | 目標 | 關鍵規格值 | 交付物 | 驗收 | 規模 |
 |---|---|---|---|---|---|
-| **P2-WP1** | Graph 引擎強化 | §7.2：`upsert_batch/get_entity/get_relation/traverse_bounded/find_paths/query_relations`，每 hop ACL、`visited_count` 只揭授權資料 | 擴充 `crates/ukma-graph-engine`（保留 S1 53 測試） | PROP-03（循環/跨專案邊界/過大 traversal 必終止）、DB-003 | M |
+| **P2-WP1** | Graph 引擎強化 | §7.2：`upsert_batch/get_entity/get_relation/traverse_bounded/find_paths/query_relations`，每 hop ACL、`visited_count` 只揭授權資料 | 擴充 `crates/graph-engine`（保留 S1 53 測試） | PROP-03（循環/跨專案邊界/過大 traversal 必終止）、DB-003 | M |
 | **P2-WP2** | Full-text / BM25 | `k1=1.5, b=0.75`；analyzer 版本化 | `crates/retrieval-engine` FTS 通道 | RE-002（數學一致性）、ML-002（CJK analyzer 可重現） | L |
 | **P2-WP3** | Vector | profile 隔離：`model/revision/dimension/normalization/metric/tokenizer/calibration`；HNSW `M=16, ef_construction=200, ef_search=64` | vector port + 索引實現 | DB-004（維度/metric 混用遭拒）、PROP-07、ML-003（截斷維度→新 generation） | L |
 | **P2-WP4** | 融合排序 | RRF `k=60`、PPR `a=0.6 / max_iter=200 / L1<1e-6 / not_converged`、hub 抑制 `min(1,50/max(1,degree))`、recency `exp(-0.05*Δdays)`；最終 `score = RRF * importance^1.0 * recency^0.5 * trust^0.8 * novelty^0.2 * lang^0.6` | `retrieval-engine/fusion.rs` | RE-001（可單獨/部分/合併且報 partial）、RE-002、RE-003（raw RRF ≠ calibrated similarity） | L |
@@ -441,10 +441,12 @@ tests:
 ## 11. 立即可執行的前 6 個 WP（建議順序）
 
 1. **P0-WP9** 基線缺陷修正（B-01/B-02/B-03）— 解鎖可審查性
-2. **P0-WP6** ADR 正規化（含 O-05/O-06 決策請求）
-3. **P0-WP1** Registry 15 欄位升級（含 system 4 筆）
-4. **P0-WP2** error/event/scope registry 封閉化
-5. **P0-WP3** Schema 閉合（先 shared + `code.get_symbol` 範式）
-6. **P0-WP5** `ukma-contract-check` + CI gate（自此不再有「口頭閉環」）
+2. **P0-WP1** Registry 15 欄位升級（含 system 4 筆）
+3. **P0-WP2** error/event/scope registry 封閉化
+4. **P0-WP3** Schema 閉合（先 shared + `code.get_symbol` 範式）
+5. **P0-WP5** `ukma-contract-check` + CI gate（自此不再有「口頭閉環」）
+6. **P0-WP4** Codegen（schema → Rust/TS/SDK/MCP，drift 測試）
 
-> 決策需求：O-05（crate 命名）與 O-06（ADR 重編號）屬架構層變更，依 `.github/copilot-instructions.md` 需明確核准後才執行；本計畫僅記錄，不自行變更正式結構或 API 語意。
+> **已核准（2026-10-25）**：O-05 crate 命名採 §3.1（ADR-045，`crates/ukma-graph-engine` → `crates/graph-engine`）；O-06 repo ADR-031 重編為 ADR-031a（ADR-046）。P0-WP6（ADR 正規化 27 檔）與 P0-WP8（22 crate + `apps/ukma-server` 骨架）已完成。
+>
+> **仍待決策**：O-01（首發語言集）、O-02（PDF/OCR 覆蓋率）、O-03（首組 DB Adapter）、O-04（embedding profile/SLA）、O-07（`ukma-code-runtime` 去留）。

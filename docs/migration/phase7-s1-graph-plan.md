@@ -1,4 +1,4 @@
-# UKMA Phase 7 — S1 Graph Engine Migration Plan (Source List + Contract Mapping)
+﻿# UKMA Phase 7 — S1 Graph Engine Migration Plan (Source List + Contract Mapping)
 
 **Status: PROPOSAL — requires explicit architecture approval before any S1 code is written.**
 Wire-level public API semantics are locked per UKMA v1.2.3; the 65-operation registry is
@@ -27,7 +27,7 @@ nothing invented). See `s1-contract-proposal.md` (detailed mapping + risks),
 |---|---|---|
 | `crates/codegraph/src/graph/types.rs` | rewrite | canonical `GraphNode/GraphEdge/NodeType/EdgeType/Direction` (IDs decoupled from vendor u64 counters) |
 | `crates/codegraph/src/graph/property.rs` | rewrite | `PropertyMap/PropertyValue` + boundary validation + versioned schema |
-| `crates/codegraph/src/graph/codegraph.rs` | rewrite | `ukma-graph-engine` public API (34-method surface re-mapped to UKMA ports) |
+| `crates/codegraph/src/graph/codegraph.rs` | rewrite | `graph-engine` public API (34-method surface re-mapped to UKMA ports) |
 | `crates/codegraph/src/graph/algorithms.rs` | **reuse (port, not reimplement)** | bfs/dfs/SCC/all-paths — mature algorithms, ported per plan §6 |
 | `crates/codegraph/src/graph/mod.rs` | rewrite | module glue |
 | `crates/codegraph/src/storage/mod.rs` | rewrite | **UKMA Storage Port (Domain trait)** — database-agnostic |
@@ -47,7 +47,7 @@ observed upstream test semantics).
 
 | Upstream (observed) | UKMA target |
 |---|---|
-| `CodeGraph` (34 pub methods) | `ukma-graph-engine` (created only after S1 gate) |
+| `CodeGraph` (34 pub methods) | `graph-engine` (created only after S1 gate) |
 | `Node/Edge` + `PropertyMap` | canonical `GraphNode/GraphEdge` + validated property bag |
 | `NodeId/EdgeId = u64` counters | **NOT exposed** — canonical ID layer stable across adapter substitution (counters stay vendor-internal) |
 | `StorageBackend` KV trait | UKMA Storage Port (Domain, database-agnostic) |

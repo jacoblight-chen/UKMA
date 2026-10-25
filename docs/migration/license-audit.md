@@ -1,4 +1,4 @@
-# UKMA Phase 7 S0 — License Audit (Upstream + Third-Party)
+﻿# UKMA Phase 7 S0 — License Audit (Upstream + Third-Party)
 
 **Source basis:** observed at locked SHA `590c2ca7dd7b37bd1d41caf45fac535b6522f969`
 (`f:\codegraph-workspace\codegraph-reference`) + `cargo metadata --locked` (executed, exit 0;
@@ -14,7 +14,7 @@ per-package `license` fields, 499 external/transitive packages).
 | Commit provenance | `590c2ca7dd7b37bd1d41caf45fac535b6522f969` (2026-10-05T19:20:33-07:00, author anvanster) |
 
 **Attribution requirement for any S1+ merge:** preserve the Apache-2.0 attribution
-(copyright notice + SPDX headers + NOTICE-equivalent credit) in `ukma-graph-engine`
+(copyright notice + SPDX headers + NOTICE-equivalent credit) in `graph-engine`
 and the UKMA NOTICE/README. The upstream `NOTICE` text is recorded verbatim in
 `upstream-lock.yaml` → `license_audit.notice`.
 

@@ -1,4 +1,4 @@
-# UKMA Phase 7 — S1 Contract Proposal (Graph / Storage)
+﻿# UKMA Phase 7 — S1 Contract Proposal (Graph / Storage)
 
 **Status: APPROVED via ADR-031 (ACCEPTED, 2026-10-25) — the three pending
 decisions (§6) are resolved in `docs/adr/ADR-031-s1-graph-contract-decisions.md`;
@@ -32,7 +32,7 @@ Source basis: upstream SHA `590c2ca7dd7b37bd1d41caf45fac535b6522f969`
 
 | Upstream | UKMA target | Notes |
 |---|---|---|
-| `CodeGraph` | `ukma-graph-engine` (new crate, created only after S1 gate) | algorithms (bfs/dfs/SCC/paths) ported per plan §6 |
+| `CodeGraph` | `graph-engine` (new crate, created only after S1 gate) | algorithms (bfs/dfs/SCC/paths) ported per plan §6 |
 | `Node/Edge` | UKMA canonical `GraphNode/GraphEdge` | property bag preserved; boundary validation added |
 | `NodeId/EdgeId = u64` | **NOT exposed** as canonical IDs | S1 rule: canonical IDs stable across adapter substitution; vendor u64 counters stay internal |
 | `StorageBackend` (KV) | UKMA Storage Port (Domain trait) | upstream trait is a good reference; UKMA port must be database-agnostic |

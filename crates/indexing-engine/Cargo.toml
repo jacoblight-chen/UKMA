@@ -1,0 +1,9 @@
+[package]
+name = "indexing-engine"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+description = "Ingestion job state machine, generation publication, projection workers."
+
+[dependencies]

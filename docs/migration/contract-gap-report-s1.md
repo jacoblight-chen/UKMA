@@ -1,4 +1,4 @@
-# UKMA Phase 7 S1 — Contract Gap Report
+﻿# UKMA Phase 7 S1 — Contract Gap Report
 
 **Date:** 2026-10-25 · **Status:** gaps resolved by design (additions only; no established
 v1.2.3 semantics modified; 65/65 closure NOT claimed)
@@ -13,7 +13,7 @@ implementations yet** — no `GraphStore`, no Entity/Relation/Provenance domain
 types exist in the workspace.
 
 **Resolution (S1):** the `GraphStore` port is defined **inside the new
-`ukma-graph-engine` crate** (per plan: the crate is created only after the S1
+`graph-engine` crate** (per plan: the crate is created only after the S1
 contract gate). It *uses* the established wire types as-is (`ScopeRef`-shaped
 scope keys, `ErrorDetail` for error mapping, `RequestContext`'s
 `idempotency_key`/`expected_etag` fields as the semantics reference) and adds no

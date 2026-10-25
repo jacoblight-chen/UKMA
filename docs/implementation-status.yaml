@@ -1,4 +1,4 @@
-# UKMA v1.2.3 實作進度追蹤（machine-readable）
+﻿# UKMA v1.2.3 實作進度追蹤（machine-readable）
 # 唯一進度來源。人類可讀鏡像：docs/UKMA_v1.2.3_IMPLEMENTATION_PLAN.md
 # 更新規則見計畫 §8.2。status ∈ {not_started, in_progress, blocked, done, deferred}
 
@@ -18,7 +18,9 @@ claim_level:
 
 baseline:
   rust_workspace_gate: pass      # fmt/check/clippy(-D warnings)/test = 66/66
-  crates_present: [ukma-contracts, ukma-code-runtime, ukma-graph-engine]
+  crates_present: [ukma-types, ukma-contracts, ukma-code-runtime, ukma-security, intelligence-core, graph-engine, retrieval-engine, indexing-engine, embedding-engine, context-engine, code-intelligence, document-intelligence, memory-domain, traceability-engine, storage-ports, storage-router, ukma-mcp, ukma-cli, ukma-adapter-filesystem, ukma-adapter-sqlite, ukma-adapter-postgres]
+  crates_skeleton_only: 19       # ADR-045 §3.1 骨架；僅 graph-engine / ukma-contracts / ukma-code-runtime 有實作
+  apps_present: [ukma-server]
   s0_upstream_baseline: done
   s1_graph_slice: done           # 53 contract tests
   schemas_total: 131             # 65x2 + shared (provisional)
@@ -54,9 +56,9 @@ phases:
       - {id: P0-WP3, status: not_started, evidence: null, blocked_reason: null}
       - {id: P0-WP4, status: not_started, evidence: null, blocked_reason: null}
       - {id: P0-WP5, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P0-WP6, status: blocked, evidence: null, blocked_reason: "需架構核准 O-05 crate 命名對照、O-06 ADR-031 重編號"}
+      - {id: P0-WP6, status: done, evidence: "docs/adr/ADR-021..046 (27 files) + README index; ADR-031 renamed to ADR-031a; commit for WP6", blocked_reason: null}
       - {id: P0-WP7, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P0-WP8, status: blocked, evidence: null, blocked_reason: "依賴 P0-WP6（crate 命名決策）"}
+      - {id: P0-WP8, status: done, evidence: "22 workspace crates + apps/ukma-server skeleton; cargo check --workspace --all-targets exit 0", blocked_reason: null}
       - {id: P0-WP9, status: not_started, evidence: null, blocked_reason: null}
   - id: P1
     name: Storage Ports + 雙 Adapter
@@ -279,8 +281,8 @@ open_decisions:
   - {id: O-02, title: 首發 PDF/OCR 覆蓋率, blocks: [P4-WP2]}
   - {id: O-03, title: 第一組 DB Adapter, blocks: [P10-WP1]}
   - {id: O-04, title: Embedding profile 與 SLA, blocks: [P6-WP5]}
-  - {id: O-05, title: Crate 命名與規格 §3.1 對照（需 ADR-041）, blocks: [P0-WP6, P0-WP8]}
-  - {id: O-06, title: repo ADR-031 與規格 ADR-031 衝突重編號（需 ADR-042）, blocks: [P0-WP6]}
+  - {id: O-05, title: "Crate 命名與規格 §3.1 對照", status: resolved, resolution: "ADR-045：採 §3.1 命名；ukma-graph-engine → graph-engine", blocks: []}
+  - {id: O-06, title: "repo ADR-031 與規格 ADR-031 衝突重編號", status: resolved, resolution: "ADR-046：repo 版重編為 ADR-031a", blocks: []}
   - {id: O-07, title: legacy ukma-code-runtime 去留, blocks: []}
 
 notes:

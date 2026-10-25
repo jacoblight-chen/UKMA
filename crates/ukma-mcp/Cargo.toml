@@ -1,0 +1,9 @@
+[package]
+name = "ukma-mcp"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+description = "MCP/REST gateway: registry-driven dispatch of 65 domain + 4 system operations."
+
+[dependencies]

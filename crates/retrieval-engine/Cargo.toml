@@ -1,0 +1,9 @@
+[package]
+name = "retrieval-engine"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+description = "Multi-strategy retrieval: BM25, vector, graph PPR, temporal, cross-lingual + RRF fusion."
+
+[dependencies]

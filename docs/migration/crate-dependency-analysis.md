@@ -1,4 +1,4 @@
-# UKMA Phase 7 S0 — CodeGraph Crate & Module Dependency Analysis
+﻿# UKMA Phase 7 S0 — CodeGraph Crate & Module Dependency Analysis
 
 **Source basis:** `cargo metadata --locked --format-version 1` (actually executed, exit 0) at
 locked SHA `590c2ca7dd7b37bd1d41caf45fac535b6522f969`; source tree observed in
@@ -66,5 +66,5 @@ All 38 parser crates have the identical edge shape (`codegraph` + `codegraph-par
 | `codegraph-server` | S6 | No |
 | `codegraph-harness` | test infrastructure | No (reference only) |
 
-**S1 boundary rule:** `ukma-graph-engine` maps exclusively from `crates/codegraph`
+**S1 boundary rule:** `graph-engine` maps exclusively from `crates/codegraph`
 (graph + storage surfaces). No S1 code path reaches parser, memory, or server crates.

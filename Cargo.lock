@@ -3,6 +3,39 @@
 version = 4
 
 [[package]]
+name = "code-intelligence"
+version = "0.1.0"
+
+[[package]]
+name = "context-engine"
+version = "0.1.0"
+
+[[package]]
+name = "document-intelligence"
+version = "0.1.0"
+
+[[package]]
+name = "embedding-engine"
+version = "0.1.0"
+
+[[package]]
+name = "graph-engine"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "ukma-contracts",
+]
+
+[[package]]
+name = "indexing-engine"
+version = "0.1.0"
+
+[[package]]
+name = "intelligence-core"
+version = "0.1.0"
+
+[[package]]
 name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -13,6 +46,10 @@ name = "memchr"
 version = "2.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
+
+[[package]]
+name = "memory-domain"
+version = "0.1.0"
 
 [[package]]
 name = "proc-macro2"
@@ -31,6 +68,10 @@ checksum = "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001"
 dependencies = [
  "proc-macro2",
 ]
+
+[[package]]
+name = "retrieval-engine"
+version = "0.1.0"
 
 [[package]]
 name = "serde"
@@ -76,6 +117,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "storage-ports"
+version = "0.1.0"
+
+[[package]]
+name = "storage-router"
+version = "0.1.0"
+
+[[package]]
 name = "syn"
 version = "3.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -85,6 +134,26 @@ dependencies = [
  "quote",
  "unicode-ident",
 ]
+
+[[package]]
+name = "traceability-engine"
+version = "0.1.0"
+
+[[package]]
+name = "ukma-adapter-filesystem"
+version = "0.1.0"
+
+[[package]]
+name = "ukma-adapter-postgres"
+version = "0.1.0"
+
+[[package]]
+name = "ukma-adapter-sqlite"
+version = "0.1.0"
+
+[[package]]
+name = "ukma-cli"
+version = "0.1.0"
 
 [[package]]
 name = "ukma-code-runtime"
@@ -104,13 +173,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "ukma-graph-engine"
+name = "ukma-mcp"
 version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "ukma-contracts",
-]
+
+[[package]]
+name = "ukma-security"
+version = "0.1.0"
+
+[[package]]
+name = "ukma-server"
+version = "0.1.0"
+
+[[package]]
+name = "ukma-types"
+version = "0.1.0"
 
 [[package]]
 name = "unicode-ident"

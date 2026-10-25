@@ -1,0 +1,11 @@
+[package]
+name = "graph-engine"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "UKMA Phase 7 S1 graph engine vertical slice (contract-first, database-agnostic)"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ukma-contracts = { path = "../ukma-contracts" }

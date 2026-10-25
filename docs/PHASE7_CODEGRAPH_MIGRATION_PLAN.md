@@ -1,4 +1,4 @@
-# UKMA Phase 7 — CodeGraph 原始碼移植與同步重構執行規格
+﻿# UKMA Phase 7 — CodeGraph 原始碼移植與同步重構執行規格
 
 **狀態：工程實施計畫（未開始移植）**  
 **對應基準：UKMA v1.2.3，ADR-021～025；Phase 6R Rust Workspace**  
@@ -29,7 +29,7 @@ workspace/
 └── ukma/                         # 獨立 Git Repo，從 Phase 6R 工作區開始
     ├── crates/ukma-contracts/
     ├── crates/ukma-code-runtime/
-    ├── crates/ukma-graph-engine/ # Phase 7 S1 達到契約門檻後新增
+    ├── crates/graph-engine/ # Phase 7 S1 達到契約門檻後新增
     ├── crates/ukma-parser-api/   # Phase 7 S2（候選）
     ├── docs/migration/
     └── tests/golden/
@@ -104,7 +104,7 @@ upstream:
   paths: []   # 必須在實際 checkout 查證後填寫
 target:
   repository: ukma
-  crate: ukma-graph-engine
+  crate: graph-engine
   files: []
 license:
   identified: false

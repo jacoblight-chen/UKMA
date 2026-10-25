@@ -1,3 +1,26 @@
 [workspace]
-members = ["crates/ukma-contracts", "crates/ukma-code-runtime", "crates/ukma-graph-engine"]
+members = [
+    "apps/ukma-server",
+    "crates/adapters/filesystem",
+    "crates/adapters/postgres",
+    "crates/adapters/sqlite",
+    "crates/code-intelligence",
+    "crates/context-engine",
+    "crates/document-intelligence",
+    "crates/embedding-engine",
+    "crates/graph-engine",
+    "crates/indexing-engine",
+    "crates/intelligence-core",
+    "crates/memory-domain",
+    "crates/retrieval-engine",
+    "crates/storage-ports",
+    "crates/storage-router",
+    "crates/traceability-engine",
+    "crates/ukma-cli",
+    "crates/ukma-code-runtime",
+    "crates/ukma-contracts",
+    "crates/ukma-mcp",
+    "crates/ukma-security",
+    "crates/ukma-types",
+]
 resolver = "2"

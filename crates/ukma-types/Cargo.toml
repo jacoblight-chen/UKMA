@@ -1,0 +1,9 @@
+[package]
+name = "ukma-types"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+description = "Shared domain-neutral value types (Ref, Span, Evidence, Hash, Page, Job, ValidityVector)."
+
+[dependencies]
