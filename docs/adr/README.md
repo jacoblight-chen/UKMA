@@ -49,6 +49,7 @@
 | [ADR-059](./ADR-059.md) | Canonical schema migration (FM-006: SchemaVersionPort, forward-only chain, fail-closed runner, embedded + SQLite) and SBOM signing (`tools/release-evidence`: derive, check, generate-key, sign, verify) | ACCEPTED | 29.4 / 17.1 REP-003 |
 | [ADR-061](./ADR-061.md) | Profile C adapters are real (PostgreSQL canonical, Qdrant vectors, Neo4j graph) and configuration driven; the list-prefix bug found by the new contract test | ACCEPTED | 6.2 / 6.3 / 28.2 / 29.4 |
 | [ADR-062](./ADR-062.md) | Close the last four caveats: one-run three-way parity over the four profile-C ports, PostgreSQL tsvector + exact k-NN in-database, Ed25519-signed SBOM with recorded provenance, claim level derived from evidence | ACCEPTED | 17.1 / 29.4 / 6.2 / R8 |
+| [ADR-063](./ADR-063.md) | MIG-01 永久決策：八個 grammar 偏差（七個 non-baseline pinned crate + kotlin ng fork）採 ADR-049 O-08 選項 (b)，偏差記入各 ledger slice | ACCEPTED | §32 / §7.1 / ADR-049 O-08 |
 
 ## 編號衝突與對照（摘要）
 

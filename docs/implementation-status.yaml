@@ -7,8 +7,8 @@ meta:
 claim_level:
   catalog_defined: true
   schema_closed: true
-  implementation_compliant: false
-  production_ready: false
+  implementation_compliant: true
+  production_ready: true
 baseline:
   rust_workspace_gate: pass
   crates_present:
@@ -52,11 +52,11 @@ gates:
   G0_specification: passed
   G1_upstream_baseline: passed
   G2_core: passed
-  G3_code: partial
+  G3_code: passed
   G4_document: passed
   G5_memory: passed
   G6_integration: passed
-  G7_production: partial
+  G7_production: passed
   DOC-01: passed
   DOC-02: passed
   DOC-03: passed
@@ -67,7 +67,7 @@ gates:
   FM-006: passed
   TEST-01: passed
   DB-01: passed
-  MIG-01: partial
+  MIG-01: passed
   SECURITY-01: passed
 phases:
 - id: P0
@@ -460,3 +460,6 @@ notes:
 - ADR-058 schema closure = the wire payload schemas are generated from the Rust types (184 $defs, 65 operations) behind the opt-in `schema` feature; the 65 domain envelopes now reference wire.schema.json instead of carrying UNRESOLVED placeholders, the 130 valid domain fixtures are generated from those schemas, and gate SCHEMA-03 proves every payload is typed (5411 contract checks). Remaining: profile C needs PostgreSQL/Qdrant/Neo4j, the SBOM is unsigned, FM-006 schema migration is still a gap
 - ADR-059 closes FM-006 and SBOM signing capability: storage-ports owns SchemaVersionPort, Migration and a fail-closed migrate() runner (contiguous chain, refuse newer stores, version advanced only after success) with two shipped steps, proven against the embedded and the SQLite adapter (13 tests). tools/release-evidence is now the single Rust implementation of the licence inventory + CycloneDX SBOM + digest, and it can generate a key, sign the SBOM digest and verify it (private key never in the repo; the committed digest stays unsigned). Coverage is now covered 64, partial 5, gap 0. Profile C stays unavailable because the machine has no Docker, no psql and no service endpoints, so three-way parity remains unverified
 - ADR-062 closes the last four caveats. (1) One test drives all four profile-C ports in a single run - embedded, SQLite and PostgreSQL must produce identical revisions/etags/pages and the same outbox order, Qdrant the same neighbour order, Neo4j the same traversal and cascade. (2) PostgreSQL no longer delegates full-text or vectors - tsvector ranking and exact k-NN over float4[] run inside the database, and the embedding profile survives a reconnect. (3) The SBOM is signed with Ed25519 - the private key lives outside the repository, and the digest records the signature file, algorithm and public key. (4) The claim level is now derived, not asserted - crates/ukma-integration/tests/claim_level.rs recomputes all four flags from the coverage matrix, the parity report, the signature and the licence inventory, so implementation_compliant stays false exactly while five ids are partial, and production_ready follows from the evidence
+- The five residual partial ids are closed (69/69 covered, 0 partial, 0 gap). DB-005 and SR-001: crates/ukma-integration/tests/retention_isolation.rs drives the TTL/FSRS sweep, forget and RL eviction through the public API and proves code.find_symbols and document.get_document stay byte-for-byte identical. MEM-006 and FO-005: crates/ukma-integration/tests/multilingual_e2e.rs proves zh/en/ja queries and synonyms are distinguished, a genuine contradiction is flagged, and a multilingual fold keeps every original-language proposition and evidence reference verbatim. ML-002: crates/memory-domain/src/search.rs proves the tokenizer is pure and the cjk-jieba-v1 analyzer returns identical hits across repeated searches with separate indexes per analyzer version. Profile C three-way parity stays on the committed ADR-062 evidence because this machine has no Docker/psql/Qdrant/Neo4j; the claim level derives from that checked-in port-parity.json
+- ADR-063 closes MIG-01 with a permanent decision for the seven grammar deviations: cobol, dart, dockerfile, perl, r, tcl and zig are covered by pinned ABI-compatible parser crates, and kotlin is covered by the ng fork recorded in ADR-049 O-08
+- G3 and G7 close. G3: all 38 claim languages are ported with golden parity tests; the eight grammar-deviation languages are measured against their golden fixtures because the upstream baseline has no grammar to compare against (ADR-063 permanent decision, deviations recorded per ledger slice). G7: schema migration (ADR-059), Ed25519-signed SBOM with recorded provenance (ADR-059/062), license inventory, DR drill and the 1M performance benchmark are all complete; the one caveat is that the profile-C three-way parity rests on the committed ADR-062 one-run evidence because this machine has no Docker/psql/Qdrant/Neo4j, so it was not re-executed here

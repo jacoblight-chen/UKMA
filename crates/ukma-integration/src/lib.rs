@@ -24,7 +24,7 @@ use code_intelligence::parsers::engine::UnifiedParser;
 use code_intelligence::service::{CodeIntelligenceService, InMemorySources};
 use document_intelligence::parsers::DocumentParsers;
 use document_intelligence::service::{DocumentService, InMemoryDocuments};
-use memory_domain::service::MemoryService;
+use memory_domain::service::{FixedClock, MemoryService};
 use traceability_engine::service::TraceabilityService;
 
 /// Default tenant used by the scenarios.
@@ -128,6 +128,35 @@ pub fn env_with_documents(artifacts: Vec<(&str, Vec<u8>)>) -> (Env, Vec<String>)
         .collect();
     let document = DocumentService::new(Arc::new(DocumentParsers::new()), Arc::new(documents));
     (env_of(services_with(empty_code(), document)), hashes)
+}
+
+/// Environment with code sources, document artifacts and a memory service on
+/// `clock` (the retention-isolation scenarios, DB-005/SR-001).
+pub fn env_with_clock_and_sources(
+    clock: Arc<FixedClock>,
+    commit: &str,
+    files: Vec<SourceFile>,
+    artifacts: Vec<(&str, Vec<u8>)>,
+) -> (Env, Vec<String>) {
+    let code = CodeIntelligenceService::new(
+        Arc::new(UnifiedParser::new()),
+        Arc::new(InMemorySources::new().with_commit(commit, files)),
+    );
+    let mut documents = InMemoryDocuments::new();
+    let hashes: Vec<String> = artifacts
+        .iter()
+        .map(|(reference, bytes)| documents.put(reference, bytes))
+        .collect();
+    let document = DocumentService::new(Arc::new(DocumentParsers::new()), Arc::new(documents));
+    let memory = MemoryService::new().with_clock(clock);
+    let services = Services {
+        code: Arc::new(code),
+        document: Arc::new(document),
+        memory: Arc::new(memory),
+        trace: Arc::new(TraceabilityService::new()),
+        jobs: JobIndex::new(),
+    };
+    (env_of(services), hashes)
 }
 
 impl Env {

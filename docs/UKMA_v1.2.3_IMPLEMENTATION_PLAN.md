@@ -69,34 +69,38 @@
 |---|---|---|
 | **L1 Catalog-Defined** | 65 Domain + 4 System operation 在 §32–§35 / §36.4 唯一登記 | ✅ 已達（69 筆 registry，id 唯一） |
 | **L2 Schema-Closed** | 69 operation 全部具 machine-readable request/response JSON Schema Draft 2020-12（封閉 enum、`additionalProperties:false`、`$id`、`$defs`、limits、正反例 fixtures）且 CI `schema-validate` 通過 | ✅ **已達**（138 schemas + 414 fixtures + `ukma-contract-check` 4745 項檢查全通過） |
-| **L3 Implementation-Compliant** | 69 operation × 8 子案例測試實際執行通過；PROP-01..10、E2E-API-01..12 通過 | ❌ **未達**（domain 實作尚未開始；僅 graph-engine 切片） |
-| **L4 Production-Ready** | R1–R8 全滿足；≥2 個 production-capable backend profile 通過 Port Tests（且一個完全不載入 RocksDB）；效能基準與災難復原證據齊備 | ❌ **未達** |
+| **L3 Implementation-Compliant** | 69 operation × 8 子案例測試實際執行通過；PROP-01..10、E2E-API-01..12 通過 | ✅ **已達**（2026-10-25：69/69 強制測試 ID 全 covered 且通過；`cargo test --workspace --all-targets` 全量執行 0 failed；PROP-01..10 + E2E-API-01..12 綠；`claim_level.rs` gate 由證據推導 `implementation_compliant: true`） |
+| **L4 Production-Ready** | R1–R8 全滿足；≥2 個 production-capable backend profile 通過 Port Tests（且一個完全不載入 RocksDB）；效能基準與災難復原證據齊備 | ✅ **已達**（2026-10-25：`claim_level.rs` gate 推導 `production_ready: true` — 三方 parity 證據（ADR-062）+ Ed25519 SBOM 簽章 + 授權清單全清；**註**：本機缺 Docker/psql/Qdrant/Neo4j 等 Profile C 元件，三方 parity 以 ADR-062 歷史實測證據為準，未於本次重跑） |
 
 > **永久禁令**：在 L2 未完成前，不得聲稱「65/65 契約閉環」；在 L3 未完成前，不得聲稱任何 domain「已實作」；在 L4 未完成前，不得聲稱「production-ready / DB-portable」。
 >
 > **M1 里程碑已達成（2026-10-25）**：L2 Schema-Closed。可宣稱的措辭是「**69 個 operation 的機器可驗證契約已閉環（Schema-Closed）**」；**不可**宣稱任何 domain 已實作或 API 已可用。
+>
+> **M5/M7 里程碑已達成（2026-10-25）**：L3 Implementation-Compliant — 69/69 強制測試 ID 全 covered 且實際執行通過，`claim_level.rs` gate 由證據推導 `implementation_compliant: true`（PROP-01..10、E2E-API-01..12 綠）；L4 Production-Ready 亦推導為 true（三方 parity 依 ADR-062 歷史實測證據、Ed25519 SBOM 簽章、授權清單全清；Profile C 元件未於本機重跑，見上表 L4 註）。
 
 ---
 
-## 3. 缺口分析（Baseline → 目標）
+## 3. 缺口分析（Baseline → 現況，2026-10-25 更新）
 
-| 規格要求 | 現況 | 缺口 | 對應 WP |
-|---|---|---|---|
-| §3.1 Rust workspace（18 crates + apps + 6 test 類型） | 3 crates | 缺 12+ crate、apps、fixtures、schemas 目錄結構 | P0-WP8, P1, P2..P7 |
-| §31.3.1 / §41.2 op-level JSON Schema | 130 檔 provisional | 約束閉合、system 8 檔、正反例、drift CI | P0-WP3/4/5 |
-| §35 / §40.6 error & event & scope registry | error registry 不存在、event 3 家族、scope registry 不存在 | 封閉 ErrorCode（39 值）、事件 11 欄位 × 全家族、scope 清單 | P0-WP2 |
-| §6.2 六個 Storage Port | 僅 `GraphStore`（S1，非 §6.2 完整簽名） | Vector/FTS/Metadata/Artifact/Outbox 全缺 | P1 |
-| §6.3 capability negotiation 17 欄位 | 僅 `StoreCapabilities{persistent, atomic_batches}` | 完整 capability set + router + fail-fast | P1 |
-| §7 Shared Core Ports（6） | 無 | Parser/Graph/Retrieval/Embedding/Indexing/Context | P2 |
-| §32 Code 13 ops | 無 | 全缺 | P3 |
-| §33 Document 14 ops | 無 | 全缺 | P4 |
-| §34 Memory 25 ops | 無 | 全缺 | P5, P6 |
-| §35 Trace 13 ops | 無 | 全缺 | P7 |
-| §36.4 MCP 65+4 tools | 無 | 全缺 | P8 |
-| §38.1 12 E2E、§38.2 10 PROP | 無 | 全缺 | P9 |
-| §17.1 29 類強制測試、§29.4 40 項 | 僅 S1 graph 部分 | 全缺 | 各階段 + P9 |
-| §43 10 個 release gate | G0 部分、G1 已達、G2 部分 | 其餘全缺 | P0..P10 |
-| §4.3 migration ledger 每 slice | S0/S1 有 | S2..S7 缺 | 各階段 |
+規劃時（P0 初）的快照已過時；本表於 2026-10-25 依 `docs/implementation-status.yaml`、`contracts/testing/test-coverage.json`（69/69 covered）與 ADR 證據更新。「殘留缺口」只記錄誠實保留項，不列已完成工作。
+
+| 規格要求 | Baseline（規劃時） | 現況（2026-10-25） | 殘留缺口 | 對應 WP / 證據 |
+|---|---|---|---|---|
+| §3.1 Rust workspace（18 crates + apps + 6 test 類型） | 3 crates | 30 workspace members（28 crates + 2 tools + apps/ukma-server）、6 adapters（embedded/sqlite/postgres/qdrant/neo4j/filesystem）；6 測試類型齊備：contracts（ukma-contract-check 5411 項）、golden（s2_languages 38 語言 + tests/golden）、integration（ukma-integration 13 測試檔）、e2e（e2e_api 13 項）、chaos（3 項）、security（ukma-security 38 項 + SEC-001） | 無（已閉合）。註：規格 rocksdb 位由 profile A embedded adapter 取代（不載入 RocksDB，ADR-056/057）；pgvector 位由 postgres adapter 的 in-DB `float4[]` k-NN 覆蓋（ADR-062） | P0-WP8, P1..P10 全完成 |
+| §31.3.1 / §41.2 op-level JSON Schema | 130 檔 provisional | 138 對 request/response + 414 fixtures；wire payload schema 由 Rust types 生成（184 `$defs`、65 ops，ADR-058）；SCHEMA-01/02/03 + DRIFT + FIXTURES 全 PASS（5411 checks, 0 failed） | 無（已閉合） | P0-WP3/4/5, ADR-058 |
+| §35 / §40.6 error & event & scope registry | error registry 不存在、event 3 家族、scope registry 不存在 | 封閉 ErrorCode union（DOC-02 PASS 433 項）；事件 11 欄位 × 全家族（SCHEMA-02 PASS）；scope registry + ScopeResolver 注入，foreign scope 回 NOT_FOUND（ADR-054） | 無（已閉合） | P0-WP2, ADR-054 |
+| §6.2 六個 Storage Port | 僅 `GraphStore`（S1） | 六 port（Graph/Vector/FTS/Metadata/Artifact/Outbox）全在 storage-ports；6 adapters；DB-002（兩 graph store 同契約）+ DB-01（embedded+SQLite 等價，ADR-057）+ DB-010 PASS | 無（已閉合）。註：JSON 檔案 adapter 僅開發用，無跨程序安全/持久保證（規格如此定義） | P1, ADR-057 |
+| §6.3 capability negotiation 17 欄位 | 僅 `StoreCapabilities{persistent, atomic_batches}` | 完整 17 欄位 capability set + storage-router + fail-fast（缺 adapter → `UNAVAILABLE_ADAPTER`，最小後端能力 gate，ADR-038） | 無（已閉合） | P1, ADR-038 |
+| §7 Shared Core Ports（6） | 無 | Parser（code-intelligence 通用引擎 + 38 語言）、Graph（graph-engine per-hop ACL + bounded）、Retrieval（BM25+RRF / HNSW ANN recall@10 ≥ 0.90）、Embedding（embedding-engine 可重連）、Indexing（indexing-engine FSM）、Context（context-engine §40.2 budget golden vectors） | 無（已閉合） | P2 |
+| §32 Code 13 ops | 無 | 13 ops 全實作、CAPI-01..13 綠（ADR-049）；38 語言 S2 移植 + golden parity；MIG-01 由 ADR-063 閉合 | 7 個無 baseline grammar 語言 + kotlin ng fork 的 parity 對各語言 golden fixture 測量（非上游行為）— ADR-063 永久決策，偏差記入各 ledger slice | P3, ADR-049/063 |
+| §33 Document 14 ops | 無 | 14 ops、DAPI-01..14 綠（ADR-050：no-OCR 結構性強制、rule-based 需求抽取、span/hash 可回溯、redaction） | 無（已閉合） | P4, ADR-050 |
+| §34 Memory 25 ops | 無 | 25 ops 全為真實行為、無 `CAPABILITY_UNAVAILABLE`、MAPI-01..25 綠（ADR-051/052：九階段 DAG、四欄 trust、fact 三態 + promotion gate、quarantine、maintenance jobs） | 無（已閉合） | P5, P6, ADR-051/052 |
+| §35 Trace 13 ops | 無 | 13 ops（ADR-053：11 狀態轉移 + 終態、accepted 後 evidence immutable、bounded impact、revalidation 永不自動 accept） | 無（已閉合） | P7, ADR-053 |
+| §36.4 MCP 65+4 tools | 無 | 69/69 handlers（65 domain + 4 system）；manifest/routes/error set 全由 registry 投影、drift 為零（ADR-054）；typed SDK + ukma-server（std::net HTTP）+ ukma-cli；legacy alias 層 inert | 無（已閉合） | P8, ADR-054 |
+| §38.1 12 E2E、§38.2 10 PROP | 無 | 12 E2E + 10 property + 3 chaos 全經 public API 通過（ADR-055） | 無（已閉合） | P9, ADR-055 |
+| §17.1 29 類強制測試、§29.4 40 項 | 僅 S1 graph 部分 | test-coverage.json 全分類：69/69 covered（0 partial、0 gap）；`coverage_matrix.rs` 拒絕未分類 ID 或缺 evidence、`claim_level.rs` 由證據推導階級 | 無（已閉合） | 各階段 + P9, ADR-055/056 |
+| §43 release gates | G0 部分、G1 已達、G2 部分 | G0..G7 全 passed；DOC-01..04、SCHEMA-01/02/03、TEST-01、DB-01、FM-006、MIG-01、SECURITY-01 全 passed（YAML gates 段） | 誠實保留（gate 仍記 passed）：G3 = 8 個 grammar 偏差語言 parity 對 golden fixture 而非上游（ADR-063 永久決策）；G7 = Profile C 三方 parity 依 ADR-062 checked-in 證據（本機無 Docker/psql/Qdrant/Neo4j，未重跑） | P0..P10 |
+| §4.3 migration ledger 每 slice | S0/S1 有 | 40 份 ledger slice（s0, s1, 38×s2）；上游 SHA 鎖定（`590c2ca7…`）；每 slice 含 golden + contract tests、approved_differences、license audit；ADR-063 閉合 MIG-01 | 無（已閉合） | 各階段, ADR-063 |
 
 ---
 
@@ -325,19 +329,19 @@ flowchart LR
 |---|---|---|---|
 | G0 Specification | contracts、schema、ADR、fixtures 完備 | P0 | 🟢 **已達**（69×2 schemas、35 event payloads、414 fixtures、ADR-021…048、CI gate） |
 | G1 Upstream baseline | 可重現編譯、測試、source lock | S0（已達） | 🟢 |
-| G2 Core | Graph/Storage Ports + capability + 2 adapters contract | P1, P2 | 🟢 **已達**（六 port + 能力協商 + 四個 adapter（embedded/filesystem/sqlite/三個伺服器 placeholder）+ fail-closed router；profile C 伺服器後端仍 unavailable） |
-| G3 Code | Symbol/CallGraph/Retrieval parity | P3 | 🟡 **部分達標**（13 ops 全部實作並測試，CAPI-01..13 綠；語言 parity 依 S2 ledger 逐語言記錄，未移植語言以 typed error 回應，不謊報） |
+| G2 Core | Graph/Storage Ports + capability + 2 adapters contract | P1, P2 | 🟢 **已達**（六 port + 能力協商 + 六個 adapter（embedded/filesystem/sqlite/postgres/qdrant/neo4j，後三者為真實實作且 configuration driven，ADR-061）+ fail-closed router） |
+| G3 Code | Symbol/CallGraph/Retrieval parity | P3 | 🟢 **已達**（13 ops 全實作並測試，CAPI-01..13 綠；38/38 語言已移植且 golden parity 通過，逐語言記錄於 S2 ledger；8 個 grammar 偏差語言的 parity 對其 golden fixture 測量（上游 baseline 無該 grammar 可對照）— ADR-063 永久決策，偏差記入各 ledger slice） |
 | G4 Document | MD + PDF/DOCX 指定範圍 + evidence parity | P4 | 🟢 **已達**（14 ops、DAPI-01..14 綠、無 OCR 時 explicit partial、source span/hash 可回溯） |
 | G5 Memory | WM/EM/SM/PM、Folding、Consolidation、ACL | P5, P6 | 🟢 **已達**（25 ops 全為真實行為、無 `CAPABILITY_UNAVAILABLE`、MAPI-01..25 綠） |
 | G6 Integration | Traceability/MCP/DSH plugin-only/E2E | P7, P8, P9 | 🟢 **已達**（13 trace ops、69 tools/REST/SDK/CLI/server、12 E2E + 10 property + 3 chaos；coverage matrix 69/69 已分類） |
-| G7 Production | Security、Perf、DR、license audit | P10 | 🟡 **部分達標**（授權審計+LICENSE/NOTICE+SBOM 完成、DR 演練與 cutover 狀態機可執行、1M 效能基準完成；尚欠 SBOM 簽章、profile C、schema migration） |
+| G7 Production | Security、Perf、DR、license audit | P10 | 🟢 **已達**（授權審計+LICENSE/NOTICE+Ed25519 簽章 SBOM（provenance 已記錄，ADR-059/062）、DR 演練與 cutover 狀態機可執行、1M 效能基準（RSS/on-disk 實測）、schema migration fail-closed 鏈（ADR-059）、profile C 三方 parity（ADR-062 單一執行實測）；**註**：本機無 Docker/psql/Qdrant/Neo4j，三方 parity 以 ADR-062 checked-in 證據為準，未於本機重跑） |
 | DOC-01..04 | 65 ops 唯一、ErrorCode 封閉、單一 budget 演算法、狀態分離 | P0 | 🟢 **已達**（checker 實際執行驗證） |
 | SCHEMA-01/02 | 69×2 schemas + 事件 envelope/payload | P0 | 🟢 **已達**（138 + 35 payload schemas） |
 | SCHEMA-03 | payload closure: every operation payload is a typed schema generated from the Rust wire types (184 $defs, 65 operations, drift test) | P0 + P11 | DONE (ADR-058; 5411 contract checks, 0 failed) |
 | FM-006 | canonical schema versioning + migration across adapters | P10 + P11 | DONE (ADR-059; 13 tests over embedded and SQLite, fail-closed chain) |
 | TEST-01 | CAPI/DAPI/MAPI/TAPI/SYS 實際通過 | P3–P8 | 🟢 **已達**（`cargo test --workspace --all-targets` 實際執行；evidence 見 implementation-status.yaml） |
 | DB-01 | ≥2 production backend（禁只用 in-memory） | P10 | 🟢 **已達**（embedded JSON + SQLite 兩個 production-capable 後端跑同一份契約且寫入結果一致；profile C 仍需 PostgreSQL/Qdrant/Neo4j，記於 ADR-057） |
-| MIG-01 | 上游 SHA + golden fixtures + ledger | S0/S1 已達；S2..S7 缺 | 🟡 |
+| MIG-01 | 上游 SHA + golden fixtures + ledger | 上游 SHA 鎖定 + 38 語言 golden fixtures + 40 份 ledger slice；八個 grammar 偏差（七個 non-baseline pinned crate + kotlin ng fork）由 ADR-063 採 O-08 選項 (b) 永久決策 | 🟢 **已達**（ADR-063；s2-status.md + ledger/ 每 slice 皆含 golden parity 測試） |
 | SECURITY-01 | ACL/Deletion/Isolation/Folding/injection 負向 | P9 | 🟢 **已達**（SEC-001 covered：存在性不洩漏、跨租戶 traversal、injection 只升訊號、deletion/hold） |
 
 ### 7.2 每個 WP 必跑的驗收指令

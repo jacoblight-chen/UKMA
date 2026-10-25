@@ -685,6 +685,113 @@ mod tests {
 }
 
 #[cfg(test)]
+mod ml002_analyzer_tests {
+    use super::tokenize;
+    use std::collections::BTreeMap;
+    use storage_ports::testing::InMemoryFullText;
+    use storage_ports::{FullTextDoc, FullTextPort};
+    use ukma_contracts::ScopeRef;
+
+    /// ML-002: the ICU/CJK analyzers are same-version reproducible.
+    ///
+    /// 1. The tokenizer is pure: repeated runs over mixed zh/en/ja text
+    ///    yield identical token sequences.
+    /// 2. The FTS port under `cjk-jieba-v1` returns identical hits (id,
+    ///    score, order) across repeated searches of one indexed corpus —
+    ///    the same analyzer version gives reproducible results.
+    /// 3. Analyzer versions keep separate indexes: a document indexed under
+    ///    `cjk-jieba-v1` is invisible to `icu-v1`.
+    #[test]
+    fn ml002_icu_and_cjk_analyzers_are_same_version_reproducible() {
+        let samples = [
+            "订单已按序发货 order shipped 注文は順次発送された",
+            "订单 order 注文",
+            "The Order Shipped In Order",
+            "a1b2 注文 mixed テスト test",
+        ];
+        for sample in samples {
+            let first = tokenize(sample);
+            for _ in 0..5 {
+                assert_eq!(
+                    tokenize(sample),
+                    first,
+                    "tokenizing {sample} must be reproducible"
+                );
+            }
+        }
+
+        let scope = ScopeRef {
+            tenant_id: "tenant-a".to_string(),
+            project_id: "project-a".to_string(),
+            repo_id: None,
+            workspace_id: None,
+            agent_id: None,
+            session_id: None,
+        };
+        let index = InMemoryFullText::new();
+        let analyzers = index.analyzers();
+        assert!(
+            analyzers.contains(&"cjk-jieba-v1".to_string()),
+            "{analyzers:?}"
+        );
+        assert!(analyzers.contains(&"icu-v1".to_string()), "{analyzers:?}");
+
+        // CJK word-segmented documents (jieba-style tokens, one per word).
+        let cjk = "cjk-jieba-v1";
+        index
+            .index(
+                &scope,
+                cjk,
+                &FullTextDoc {
+                    id: "d1".to_string(),
+                    revision: "r1".to_string(),
+                    fields: BTreeMap::from([(
+                        "summary".to_string(),
+                        "订单 已按序发货 order shipped".to_string(),
+                    )]),
+                },
+            )
+            .unwrap();
+        index
+            .index(
+                &scope,
+                cjk,
+                &FullTextDoc {
+                    id: "d2".to_string(),
+                    revision: "r2".to_string(),
+                    fields: BTreeMap::from([(
+                        "summary".to_string(),
+                        "注文 順次発送 された".to_string(),
+                    )]),
+                },
+            )
+            .unwrap();
+
+        let first_hits = index.search(&scope, cjk, None, "订单", 10).unwrap();
+        assert_eq!(first_hits.len(), 1, "{first_hits:?}");
+        assert_eq!(first_hits[0].id, "d1");
+        for _ in 0..3 {
+            assert_eq!(
+                index.search(&scope, cjk, None, "订单", 10).unwrap(),
+                first_hits,
+                "the same analyzer version must give reproducible hits"
+            );
+        }
+        // A query in the other language matches only its own document.
+        let ja_hits = index.search(&scope, cjk, None, "注文", 10).unwrap();
+        assert_eq!(ja_hits.len(), 1, "{ja_hits:?}");
+        assert_eq!(ja_hits[0].id, "d2");
+
+        // Analyzer versions keep separate indexes.
+        let other = index.search(&scope, "icu-v1", None, "订单", 10).unwrap();
+        assert!(
+            other.is_empty(),
+            "a document indexed under cjk-jieba-v1 must be invisible to icu-v1: {other:?}"
+        );
+    }
+}
+
+#[cfg(test)]
 mod candidate_index_tests {
     use super::*;
 

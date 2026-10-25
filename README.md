@@ -27,7 +27,7 @@ Install Rust stable with rustup; ensure a C/C++ compiler and linker are installe
 - `docs/PHASE6R_IMPLEMENTATION_PLAN.md` — migration and acceptance order.
 - `.vscode/` — tasks, debugger and extension suggestions.
 - `.github/copilot-instructions.md` — project-level instructions for Copilot.
-- `scripts/` — **optional** historical validation scripts in Python (not part of the Rust runtime).
+- `scripts/` — `gen_contracts.py` (registry codegen; run by the CI `contract-closure` codegen-reproducibility step) and `verify_rust.ps1`/`verify_rust.sh` (cargo gate wrappers).
 
 ## Acceptance commands
 

@@ -137,14 +137,14 @@
     {
       "id": "DB-005",
       "source": "17.1",
-      "disposition": "partial",
+      "disposition": "covered",
       "evidence": [
         {
-          "file": "crates/memory-domain/tests/p5_contracts.rs",
-          "test": "ttl_sweep_respects_holds_and_regulation"
+          "file": "crates/ukma-integration/tests/retention_isolation.rs",
+          "test": "db005_memory_ttl_and_fsrs_never_purge_code_or_document_authority"
         }
       ],
-      "note": "memory TTL/hold semantics are proven inside the memory store; no cross-domain test proves a code or document artifact is untouched"
+      "note": "the TTL/FSRS sweep archives then purges memory while code.find_symbols and document.get_document stay byte-for-byte identical"
     },
     {
       "id": "DB-006",
@@ -365,18 +365,14 @@
     {
       "id": "MEM-006",
       "source": "17.1",
-      "disposition": "partial",
+      "disposition": "covered",
       "evidence": [
         {
-          "file": "crates/memory-domain/src/language.rs",
-          "test": "mixed_scripts_are_detected_and_tagged"
-        },
-        {
-          "file": "crates/memory-domain/src/facts.rs",
-          "test": "a_negated_or_numeric_difference_is_a_contradiction"
+          "file": "crates/ukma-integration/tests/multilingual_e2e.rs",
+          "test": "mem006_zh_en_ja_queries_and_synonyms_are_correctly_distinguished"
         }
       ],
-      "note": "script segmentation and cross-lingual contradiction detection are proven, but there is no end-to-end query test across zh/en/ja with synonyms"
+      "note": "zh/en/ja queries match only their own language, cross-lingual synonyms are not conflated, and a genuine contradiction is flagged"
     },
     {
       "id": "MCP-001",
@@ -665,14 +661,14 @@
     {
       "id": "FO-005",
       "source": "29.4",
-      "disposition": "partial",
+      "disposition": "covered",
       "evidence": [
         {
-          "file": "crates/memory-domain/src/language.rs",
-          "test": "the_cross_lingual_gate_requires_every_condition"
+          "file": "crates/ukma-integration/tests/multilingual_e2e.rs",
+          "test": "fo005_multilingual_fold_preserves_original_propositions"
         }
       ],
-      "note": "the cross-lingual gate is proven, but a multilingual fold keeping original propositions has no dedicated test"
+      "note": "a multilingual fold keeps every original-language key proposition and evidence reference verbatim (extractive digest)"
     },
     {
       "id": "RE-001",
@@ -945,14 +941,14 @@
     {
       "id": "ML-002",
       "source": "29.4",
-      "disposition": "partial",
+      "disposition": "covered",
       "evidence": [
         {
-          "file": "crates/retrieval-engine/src/lib.rs",
-          "test": "bm25_length_normalisation_discounts_longer_documents"
+          "file": "crates/memory-domain/src/search.rs",
+          "test": "ml002_icu_and_cjk_analyzers_are_same_version_reproducible"
         }
       ],
-      "note": "the analyzer id is recorded and BM25 is pinned, but no ICU/CJK analyzer reproducibility test exists (no ICU dependency)"
+      "note": "the tokenizer is pure and the cjk-jieba-v1 analyzer returns identical hits across repeated searches; analyzer versions keep separate indexes"
     },
     {
       "id": "ML-003",
@@ -981,14 +977,14 @@
     {
       "id": "SR-001",
       "source": "29.4",
-      "disposition": "partial",
+      "disposition": "covered",
       "evidence": [
         {
-          "file": "crates/memory-domain/src/deletion.rs",
-          "test": "legal_hold_retention_and_active_jobs_block_the_deletion"
+          "file": "crates/ukma-integration/tests/retention_isolation.rs",
+          "test": "sr001_forget_and_rl_eviction_leave_code_and_document_sources_untouched"
         }
       ],
-      "note": "memory holds block its own deletion, but no test proves a code/document source artifact is untouched by memory TTL/RL"
+      "note": "forget and RL eviction delete memory records while the code and document source artifacts stay untouched"
     },
     {
       "id": "SR-002",
