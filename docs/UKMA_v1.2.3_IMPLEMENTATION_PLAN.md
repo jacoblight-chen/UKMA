@@ -268,11 +268,11 @@ flowchart LR
 
 | WP | 目標 | 交付物 | 驗收 | 規模 |
 |---|---|---|---|---|
-| **P8-WP1** | Operation dispatch 核心 | `ukma-mcp-gateway`：Registry 驅動（不得手寫第三份來源）；envelope 驗證、`idempotency_key`、`expected_etag`、limits、deadline | MCP-001、PROP-10（無 drift） | L |
-| **P8-WP2** | AuthZ 注入 | `OpContext` 由 Gateway 認證後注入，client 自報僅為期望 scope；每資源/per-hop/per-snippet 檢查 | SEC-001、DB-009、`NOT_FOUND` vs `FORBIDDEN` 規則（§40.7） | L |
-| **P8-WP3** | MCP tools | 65 × `ukma_<domain>_<operation>_v1` + 4 system（`capabilities/get_operation/get_job/cancel_job`）；`tool-manifest.json` 與 registry 同源 | SYS-01..04；漂移即 fail | L |
-| **P8-WP4** | REST / SDK / CLI | `/api/v1/{domain}/{operation}` POST（讀操作亦 POST；GET 僅 job/status/health）；type-safe SDK；`ukma` CLI | SDK 與 schema 型別一致 | M |
-| **P8-WP5** | Legacy alias 層 | CodeGraph MCP alias 僅在具鎖定 SHA 實測 manifest + parity tests 後啟用 | 差異矩陣文件（不得宣稱全相容） | M |
+| ~~**P8-WP1**~~ ✅ | Operation dispatch 核心 | `ukma-mcp`：Registry 驅動（無第三份來源）；envelope 驗證、`idempotency_key`、`expected_etag`、limits、deadline | MCP-001、PROP-10 無 drift | `gateway.rs` 7 unit ＋`gateway_matrix` 全 69 op 派送、deadline/limit/idempotency/etag/snapshot 前置條件（ADR-054） | L |
+| ~~**P8-WP2**~~ ✅ | AuthZ 注入 | `OpContext` 由 Gateway 於 host 提供之 `ScopeResolver` 認證後注入；client 自報僅為期望 scope | SEC-001、DB-009、`NOT_FOUND` vs `FORBIDDEN` 規則（§40.7） | `context.rs`：deny-by-default `require`、期望 scope 僅產生 warning、偽造 scope → `FORBIDDEN`；跨 tenant 讀 → `NOT_FOUND`（3 tests） | L |
+| ~~**P8-WP3**~~ ✅ | MCP tools | 65 × `ukma_<domain>_<operation>_v1` + 4 system；`tool-manifest.json` 與 registry 同源 | SYS-01..04；漂移即 fail | `manifest.rs` 69 tools／`drift()` 空；`handlers.rs` 69/69 已註冊（`unhandled()` 空）；`JobIndex` tenant+project 隔離（8 tests） | L |
+| ~~**P8-WP4**~~ ✅ | REST / SDK / CLI | `/api/v1/{domain}/{operation}` POST（讀操作亦 POST；GET 僅 job/health）；typed SDK；`ukma` CLI；`ukma-server` HTTP listener | SDK 與 schema 型別一致 | `rest.rs`＋`sdk.rs`（`Transport`/`InProcess`/`Client::typed`）＋`apps/ukma-server`（10 tests，live curl 200/404）＋`crates/ukma-cli`（12 tests） | M |
+| ~~**P8-WP5**~~ ✅ | Legacy alias 層 | CodeGraph MCP alias 僅在具鎖定 SHA 實測 manifest + parity tests 後啟用 | 差異矩陣文件（不得宣稱全相容） | `alias.rs`：預設 0 alias、`enable()` 需 pinned `590c2ca…`＋parity test＋已註冊目標；`difference_matrix_json()` 記載 `compatibility_claim` 不成立 | M |
 
 ---
 

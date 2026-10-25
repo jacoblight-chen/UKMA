@@ -2559,6 +2559,11 @@ version = "0.1.0"
 [[package]]
 name = "ukma-cli"
 version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "ukma-contracts",
+ "ukma-mcp",
+]
 
 [[package]]
 name = "ukma-code-runtime"
@@ -2591,6 +2596,15 @@ dependencies = [
 [[package]]
 name = "ukma-mcp"
 version = "0.1.0"
+dependencies = [
+ "code-intelligence",
+ "document-intelligence",
+ "memory-domain",
+ "serde",
+ "serde_json",
+ "traceability-engine",
+ "ukma-contracts",
+]
 
 [[package]]
 name = "ukma-security"
@@ -2599,6 +2613,11 @@ version = "0.1.0"
 [[package]]
 name = "ukma-server"
 version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "ukma-contracts",
+ "ukma-mcp",
+]
 
 [[package]]
 name = "ukma-types"

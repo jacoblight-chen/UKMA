@@ -6,4 +6,15 @@ license = "Apache-2.0"
 publish = false
 description = "UKMA server binary hosting the gateway."
 
+[lib]
+name = "ukma_server"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ukma-server"
+path = "src/main.rs"
+
 [dependencies]
+serde_json = "1"
+ukma-contracts = { path = "../../crates/ukma-contracts" }
+ukma-mcp = { path = "../../crates/ukma-mcp" }

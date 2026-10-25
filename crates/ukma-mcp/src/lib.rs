@@ -1,12 +1,32 @@
-//! ukma-mcp — MCP/REST gateway: registry-driven dispatch of 65 domain + 4 system operations.
+//! UKMA gateway: registry-driven MCP tool + REST dispatch for the 65 domain
+//! operations and the 4 system operations.
 //!
-//! **STATUS: skeleton only.** No behaviour is implemented yet. Progress and
-//! evidence are tracked in `docs/implementation-status.yaml`; the plan is
-//! `docs/UKMA_v1.2.3_IMPLEMENTATION_PLAN.md`.
+//! Normative source: `docs/UKMA_v1.2.3_Full_Spec.md` §31.
 //!
-//! Normative source: `docs/UKMA_v1.2.3_Full_Spec.md` §36.4, §41.
-//!
-//! Constraints that apply to this crate from day one:
-//! - MUST NOT depend on any database SDK or vendor backend crate (ADR-021).
-//! - MUST NOT define a second public API registry or error enum (ADR-034, ADR-035).
-//! - Capability gaps MUST be reported, never silently degraded (ADR-022, ADR-038).
+//! Properties this crate enforces:
+//! - the operation registry is the only source of tools, routes and error sets;
+//!   the manifest is projected from it and drift is reported, never hand-written;
+//! - the gateway authenticates and injects the trusted scope — client-declared
+//!   scopes are expectations only (§31.4);
+//! - deny-by-default authorization, and an invisible object is reported as
+//!   `NOT_FOUND` so existence never leaks across tenants (§40.7);
+//! - a handler can never emit a code its operation did not declare: undeclared
+//!   codes are normalised to `INTERNAL` with a warning.
+
+pub mod alias;
+pub mod context;
+pub mod error;
+pub mod gateway;
+pub mod handlers;
+pub mod instant;
+pub mod manifest;
+pub mod rest;
+pub mod sdk;
+
+pub use context::{visibility, visibility_error, OpContext, Visibility};
+pub use error::{DomainFailure, GatewayError};
+pub use gateway::{Gateway, GatewayOutcome, Handler};
+pub use handlers::{build, default_gateway, JobIndex, JobRecord, Services};
+pub use manifest::{drift, manifest_json, tool_by_name, tools, Tool};
+pub use rest::{resolve, Route};
+pub use sdk::{ApiError, Client, ClientError, InProcess, Transport};

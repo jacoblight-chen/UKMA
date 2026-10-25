@@ -4,6 +4,13 @@ version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 publish = false
-description = "Command-line client over the public API (bin target added in P8)."
+description = "Command-line client over the public API."
+
+[[bin]]
+name = "ukma"
+path = "src/main.rs"
 
 [dependencies]
+serde_json = "1"
+ukma-contracts = { path = "../ukma-contracts" }
+ukma-mcp = { path = "../ukma-mcp" }

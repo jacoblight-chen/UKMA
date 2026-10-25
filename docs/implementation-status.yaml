@@ -337,27 +337,27 @@ phases:
 
 - id: P8
   name: Gateway MCP/REST/SDK/CLI/Server
-  status: not_started
+  status: done
   work_packages:
   - id: P8-WP1
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'crates/ukma-mcp/src/gateway.rs: registry-driven dispatch only (no second table); version/operation validation, idempotency_key and expected_etag preconditions, deadline and MAX_INPUT_BYTES limits, snapshot-without-generation refusal, and declared-code normalisation. Tests: gateway::tests (7) + tests/gateway_matrix.rs every_operation_is_dispatched_and_returns_only_declared_codes (all 69 ops), deadlines_and_input_limits_are_enforced_before_the_handler, idempotency_keys_are_required_where_the_registry_declares_them, expected_etag_is_required_where_the_registry_declares_it, snapshot_reads_must_name_a_generation.'
     blocked_reason: null
   - id: P8-WP2
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'OpContext is injected by the gateway after a host-supplied ScopeResolver; the envelope scopes are expectations only and a forged envelope scope is refused (tests/gateway_matrix.rs a_forged_envelope_scope_does_not_grant_authority). Deny-by-default require() per declared scope; 40.7 visibility rule maps a foreign tenant/project to NOT_FOUND (a_stored_episode_is_readable_only_inside_its_scope, a_foreign_scope_write_is_denied_without_leaking_existence) and visibility()/visibility_error() encode Visible/Forbidden/Hidden.'
     blocked_reason: null
   - id: P8-WP3
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'crates/ukma-mcp/src/manifest.rs projects 69 tools (65 domain + 4 system) from OPERATIONS with no drift (drift() empty, manifest_json() + DOMAIN_OPERATION_COUNT/SYSTEM_OPERATION_COUNT); handlers.rs registers all 69 (unhandled() empty, registered()==69); system.capabilities/get_operation/get_job/cancel_job implemented with a tenant+project scoped JobIndex. Tests: manifest::tests (5), handlers::tests (3), gateway_matrix the_manifest_is_projected_from_the_registry_without_drift, the_system_operations_describe_the_registry, a_job_is_visible_only_inside_its_tenant_and_project.'
     blocked_reason: null
   - id: P8-WP4
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'REST projection in crates/ukma-mcp/src/rest.rs (POST for every operation, GET only /api/v1/health and /api/v1/jobs/{id}); typed SDK in src/sdk.rs (Transport port + InProcess + Client::invoke/typed + system helpers) and apps/ukma-server (Server::handle -> status+envelope, --manifest/--health/--operations, std::net HTTP/1.1 listener) and crates/ukma-cli (health/capabilities/tools/routes/describe/manifest/call). Evidence: 10 tests in apps/ukma-server/tests/http.rs, 12 in crates/ukma-cli, 57 in ukma-mcp; live probe: GET /api/v1/health 200, POST /api/v1/system/capabilities 200, GET /api/v1/jobs/job-1 404 JOB_NOT_FOUND; cargo run -p ukma-cli -- tools => total=69.'
     blocked_reason: null
   - id: P8-WP5
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'crates/ukma-mcp/src/alias.rs: AliasTable is inert by default (zero entries, is_enabled()=false, resolve()=None), enable() requires the pinned upstream commit 590c2ca7dd7b37bd1d41caf45fac535b6522f969 plus a non-empty parity test plus a registered target operation, and difference_matrix_json() reports alias_count=0 with enabled=false - no compatibility is claimed. Tests: gateway_matrix the_codegraph_alias_layer_is_inert_and_unclaimed.'
     blocked_reason: null
 - id: P9
   name: 跨域 E2E + Security + Chaos
@@ -1029,3 +1029,4 @@ notes:
 - P2 ???7/7??BM25?RRF/PPR/recency/?????HNSW ANN?recall@10 ? 0.90???7.2 graph ???per-hop ACL?bounded?visited_count ??????context budget?40.2 ??????folding/eviction/paging?indexing FSM?embedding/reranker port?
 - P3 ??????? 38 ?? registry ???S2 ???????38 ? ledger?parity report?s2_coverage ????????????? grammar ?? 0/38?
 - B(sql)/C(hybrid) adapter ? declared-unavailable?? DB-002/DB-08 ? partial?
+- P8 done = 69/69 handlers (65 domain + 4 system); manifest, routes and error sets are projected from the registry with empty drift; ScopeResolver-injected authz returns NOT_FOUND for a foreign scope; typed SDK plus ukma-server (std::net HTTP) and ukma CLI; legacy alias layer inert with zero aliases; gaps remain (no persistence, development auth profile, no streaming/rate limit/TLS, schemas still preliminary)
