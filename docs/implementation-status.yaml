@@ -174,15 +174,15 @@ phases:
     blocked_reason: null
 - id: P3
   name: Code Intelligence 13 ops
-  status: not_started
+  status: in_progress
   work_packages:
   - id: P3-WP1
-    status: not_started
-    evidence: ADR-048 O-01：38 語言範圍已定；可開工
+    status: in_progress
+    evidence: ParserPort + 38-language registry (ADR-048 O-01) with SupportLevel; all 38 report NotPorted and carry an S2-<lang> ledger slice id; UnportedParser returns CAPABILITY_UNAVAILABLE instead of an empty ParsedSource (7.1); grammar port pending
     blocked_reason: null
   - id: P3-WP2
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'code-intelligence types from 32.1: Symbol/SymbolKind(12)/Resolution(3), CodeEdge/CodeEdgeKind(6)/EdgeResolution(3) with is_certain() refusing to promote static_possible, CodeLocation span validation, CodeAnalysisManifest completeness()=partial when anything is skipped; 8 tests'
     blocked_reason: null
   - id: P3-WP3
     status: not_started
