@@ -1,0 +1,52 @@
+# S0 upstream baseline audit: run CodeGraph's official test suite on a full
+# toolchain host (Linux runner + pinned rust 1.94.1). This job does NOT check
+# out UKMA code; it only audits the upstream at the locked SHA.
+#
+# See docs/migration/s0-baseline-report.md. Blockers are recorded, never
+# marked as success.
+
+name: Upstream Baseline (S0)
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/upstream-baseline.yml"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  upstream-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Clone CodeGraph upstream and pin the locked SHA
+        run: |
+          git clone https://github.com/codegraph-ai/CodeGraph.git codegraph
+          cd codegraph
+          git checkout --detach 590c2ca7dd7b37bd1d41caf45fac535b6522f969
+          echo "HEAD=$(git rev-parse HEAD)"
+          git status --porcelain | wc -l
+
+      - name: Install pinned Rust toolchain (1.94.1)
+        run: |
+          rustup toolchain install 1.94.1
+          rustup default 1.94.1
+          rustc --version
+
+      - name: Official baseline - cargo test --workspace
+        id: test
+        run: |
+          cd codegraph
+          set +e
+          cargo test --workspace 2>&1 | tee upstream-baseline-test.log
+          echo "exit=$?" >> upstream-baseline-test.log
+          tail -n 20 upstream-baseline-test.log
+
+      - name: Upload test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: upstream-baseline-test-log
+          path: codegraph/upstream-baseline-test.log
