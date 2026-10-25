@@ -277,6 +277,89 @@ fn every_workspace_crate_declares_the_apache_licence() {
 }
 
 #[test]
+fn the_sbom_covers_every_locked_package() {
+    let sbom: Value = serde_json::from_str(&read("contracts/testing/sbom.cyclonedx.json"))
+        .expect("the SBOM is JSON");
+    assert_eq!(sbom["bomFormat"], "CycloneDX");
+    assert_eq!(sbom["specVersion"], "1.5");
+
+    let components = sbom["components"].as_array().expect("components");
+    let mut recorded: BTreeSet<String> = BTreeSet::new();
+    let mut workspace_members = 0;
+    for component in components {
+        let name = component["name"].as_str().expect("name");
+        let version = component["version"].as_str().expect("version");
+        assert!(
+            recorded.insert(format!("{name} {version}")),
+            "{name} {version} appears twice in the SBOM"
+        );
+        assert_eq!(
+            component["purl"],
+            format!("pkg:cargo/{name}@{version}"),
+            "the purl must identify the crate"
+        );
+        // Every component states its licence, so the SBOM cannot hide one.
+        assert!(
+            component["licenses"]
+                .as_array()
+                .is_some_and(|licences| !licences.is_empty()),
+            "{name} has no licence in the SBOM"
+        );
+        let member = component["properties"]
+            .as_array()
+            .and_then(|properties| {
+                properties
+                    .iter()
+                    .find(|property| property["name"].as_str() == Some("ukma:workspace_member"))
+            })
+            .and_then(|property| property["value"].as_str());
+        if member == Some("true") {
+            workspace_members += 1;
+        }
+    }
+    assert!(
+        workspace_members >= 25,
+        "only {workspace_members} workspace crates"
+    );
+
+    let locked = locked_packages();
+    let missing: Vec<&String> = locked.difference(&recorded).collect();
+    assert!(missing.is_empty(), "SBOM is missing: {missing:?}");
+    let extra: Vec<&String> = recorded.difference(&locked).collect();
+    assert!(extra.is_empty(), "SBOM lists stale packages: {extra:?}");
+}
+
+#[test]
+fn the_sbom_digest_matches_the_file() {
+    let manifest: Value = serde_json::from_str(&read("contracts/testing/sbom.digest.json"))
+        .expect("the digest manifest is JSON");
+    let recorded = manifest["sha256"].as_str().expect("sha256");
+    let payload = read("contracts/testing/sbom.cyclonedx.json");
+    let actual = {
+        use sha2::{Digest, Sha256};
+        let digest = Sha256::digest(payload.as_bytes());
+        digest
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>()
+    };
+    assert_eq!(
+        actual, recorded,
+        "the SBOM changed without refreshing its digest"
+    );
+    assert_eq!(
+        manifest["bytes"].as_u64(),
+        Some(payload.len() as u64),
+        "the recorded size does not match"
+    );
+    // Stated honestly: a digest is integrity, not a signature.
+    assert_eq!(manifest["signature"], Value::Null);
+    assert!(manifest["note"]
+        .as_str()
+        .is_some_and(|note| note.contains("not a cryptographic signature")));
+}
+
+#[test]
 fn the_release_evidence_pack_is_complete() {
     // The R8 evidence pack: every gate has an artefact a reviewer can open.
     for artefact in [
@@ -292,6 +375,9 @@ fn the_release_evidence_pack_is_complete() {
         "docs/performance/baseline.md",
         "docs/adr/ADR-055.md",
         "docs/adr/ADR-056.md",
+        "docs/adr/ADR-057.md",
+        "contracts/testing/sbom.cyclonedx.json",
+        "contracts/testing/sbom.digest.json",
     ] {
         let path = root().join(artefact);
         assert!(

@@ -306,6 +306,8 @@ struct ServiceState {
     idempotency: BTreeMap<String, IdempotentOutcome>,
     sequence: u64,
     generation: u64,
+    /// Candidate index over a large corpus; `None` until the first big search.
+    search_index: Option<crate::search::CandidateIndex>,
 }
 
 /// Result recorded for an idempotency key.
@@ -402,6 +404,26 @@ impl MemoryService {
 
     fn lock(&self) -> MutexGuard<'_, ServiceState> {
         self.state.lock().expect("memory service state poisoned")
+    }
+
+    /// Fingerprint of everything that can change a search result.
+    ///
+    /// It hashes `(id, live, head etag)` per record: the head etag is derived from
+    /// the content, so any revision, tombstone or insertion changes the value and a
+    /// stale candidate index is detected without hooking every mutation path.
+    fn corpus_fingerprint(state: &ServiceState) -> u64 {
+        let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+        for (id, item) in &state.items {
+            for byte in id
+                .bytes()
+                .chain(std::iter::once(u8::from(item.tombstoned)))
+                .chain(item.revisions.head().etag.bytes())
+            {
+                hash ^= u64::from(byte);
+                hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+            }
+        }
+        hash
     }
 
     fn now(&self) -> i64 {
@@ -1344,15 +1366,54 @@ impl MemoryService {
     // -- MAPI-07 -------------------------------------------------------------
 
     /// `memory.search` — search every store the caller may read.
+    ///
+    /// Small corpora are scanned directly (exact BM25 statistics over the visible
+    /// set). Above [`search::MAX_CANDIDATES`] records the candidate index selects
+    /// the documents that contain a query term first, so the resource limit applies
+    /// to **matches** rather than to the whole store, and a 1M-record corpus stays
+    /// queryable.
     pub fn search(&self, ctx: &RequestContext, request: &SearchMemory) -> Result<Page<MemoryView>> {
         self.authorizer.require_scope(ctx, SCOPE_READ)?;
         search::validate_query(&request.query)?;
         let requested = ItemScope::from_context(ctx);
         let (documents, items) = {
-            let state = self.lock();
+            let mut state = self.lock();
+            let candidates: Option<Vec<String>> = if state.items.len() > search::MAX_CANDIDATES {
+                let fingerprint = Self::corpus_fingerprint(&state);
+                let stale = state
+                    .search_index
+                    .as_ref()
+                    .map(|index| index.fingerprint() != fingerprint)
+                    .unwrap_or(true);
+                if stale {
+                    let mut index = search::CandidateIndex::default();
+                    for (id, item) in state.items.iter().filter(|(_, item)| !item.tombstoned) {
+                        let text = item.text();
+                        index.insert(id, &text);
+                    }
+                    index.set_fingerprint(fingerprint);
+                    state.search_index = Some(index);
+                }
+                Some(
+                    state
+                        .search_index
+                        .as_ref()
+                        .map(|index| index.candidates(&search::tokenize(&request.query.query)))
+                        .unwrap_or_default(),
+                )
+            } else {
+                None
+            };
+            let scanned: Vec<(&String, &MemoryItem)> = match &candidates {
+                Some(ids) => ids
+                    .iter()
+                    .filter_map(|id| state.items.get_key_value(id))
+                    .collect(),
+                None => state.items.iter().collect(),
+            };
             let mut documents = Vec::new();
             let mut items: BTreeMap<String, MemoryItem> = BTreeMap::new();
-            for (id, item) in &state.items {
+            for (id, item) in scanned {
                 if item.tombstoned || !Self::visible_to(&requested, item) {
                     continue;
                 }

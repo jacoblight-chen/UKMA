@@ -325,16 +325,16 @@ flowchart LR
 |---|---|---|---|
 | G0 Specification | contracts、schema、ADR、fixtures 完備 | P0 | 🟢 **已達**（69×2 schemas、35 event payloads、414 fixtures、ADR-021…048、CI gate） |
 | G1 Upstream baseline | 可重現編譯、測試、source lock | S0（已達） | 🟢 |
-| G2 Core | Graph/Storage Ports + capability + 2 adapters contract | P1, P2 | 🟡 **部分達標**（六 port + 能力協商 + 兩個 adapter + fail-closed router + HNSW/embedding port；profile B/C 未實作，ADR-056 缺口 1） |
+| G2 Core | Graph/Storage Ports + capability + 2 adapters contract | P1, P2 | 🟢 **已達**（六 port + 能力協商 + 四個 adapter（embedded/filesystem/sqlite/三個伺服器 placeholder）+ fail-closed router；profile C 伺服器後端仍 unavailable） |
 | G3 Code | Symbol/CallGraph/Retrieval parity | P3 | 🟡 **部分達標**（13 ops 全部實作並測試，CAPI-01..13 綠；語言 parity 依 S2 ledger 逐語言記錄，未移植語言以 typed error 回應，不謊報） |
 | G4 Document | MD + PDF/DOCX 指定範圍 + evidence parity | P4 | 🟢 **已達**（14 ops、DAPI-01..14 綠、無 OCR 時 explicit partial、source span/hash 可回溯） |
 | G5 Memory | WM/EM/SM/PM、Folding、Consolidation、ACL | P5, P6 | 🟢 **已達**（25 ops 全為真實行為、無 `CAPABILITY_UNAVAILABLE`、MAPI-01..25 綠） |
 | G6 Integration | Traceability/MCP/DSH plugin-only/E2E | P7, P8, P9 | 🟢 **已達**（13 trace ops、69 tools/REST/SDK/CLI/server、12 E2E + 10 property + 3 chaos；coverage matrix 69/69 已分類） |
-| G7 Production | Security、Perf、DR、license audit | P10 | 🟡 **部分達標**（授權審計＋LICENSE/NOTICE 完成、DR 演練與 cutover 狀態機可執行、效能基準可重現；profile B/C、1M episode、RSS/VRAM 未達標） |
+| G7 Production | Security、Perf、DR、license audit | P10 | 🟡 **部分達標**（授權審計+LICENSE/NOTICE+SBOM 完成、DR 演練與 cutover 狀態機可執行、1M 效能基準完成；尚欠 SBOM 簽章、profile C、schema migration） |
 | DOC-01..04 | 65 ops 唯一、ErrorCode 封閉、單一 budget 演算法、狀態分離 | P0 | 🟢 **已達**（checker 實際執行驗證） |
 | SCHEMA-01/02 | 69×2 schemas + 事件 envelope/payload | P0 | 🟢 **已達**（138 + 35 payload schemas） |
 | TEST-01 | CAPI/DAPI/MAPI/TAPI/SYS 實際通過 | P3–P8 | 🟢 **已達**（`cargo test --workspace --all-targets` 實際執行；evidence 見 implementation-status.yaml） |
-| DB-01 | ≥2 production backend（禁只用 in-memory） | P10 | 🔴 **未達**（profile B/C adapter 宣告 unavailable；`contracts/testing/port-parity.json` 如實記錄） |
+| DB-01 | ≥2 production backend（禁只用 in-memory） | P10 | 🟢 **已達**（embedded JSON + SQLite 兩個 production-capable 後端跑同一份契約且寫入結果一致；profile C 仍需 PostgreSQL/Qdrant/Neo4j，記於 ADR-057） |
 | MIG-01 | 上游 SHA + golden fixtures + ledger | S0/S1 已達；S2..S7 缺 | 🟡 |
 | SECURITY-01 | ACL/Deletion/Isolation/Folding/injection 負向 | P9 | 🟢 **已達**（SEC-001 covered：存在性不洩漏、跨租戶 traversal、injection 只升訊號、deletion/hold） |
 

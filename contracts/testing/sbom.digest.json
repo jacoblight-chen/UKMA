@@ -1,0 +1,10 @@
+{
+  "sbom": "contracts/testing/sbom.cyclonedx.json",
+  "format": "CycloneDX 1.5",
+  "sha256": "efd5da6dfc30ae042fb85e69d05c3c87f618fbf9a892ded0053fa8535429f8e5",
+  "bytes": 147631,
+  "components": 331,
+  "signature": null,
+  "note": "a SHA-256 digest is an integrity check, not a cryptographic signature; signing needs a key the build does not hold",
+  "refresh": "regenerate with cargo metadata --locked after any dependency change; crates/ukma-integration/tests/release_evidence.rs fails until the digest and component set match"
+}

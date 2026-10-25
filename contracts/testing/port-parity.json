@@ -1,8 +1,15 @@
 {
   "spec_version": "1.2.3",
-  "audit": "P10-WP1 three-profile port parity (ADR-048 O-03, DB-002, DB-008)",
+  "audit": "P10-WP1 three-profile port parity (ADR-048 O-03, DB-002, DB-008, DB-01)",
   "command": "cargo test -p ukma-integration --test port_parity",
   "rocksdb_loaded": false,
+  "two_way_equivalence": {
+    "verified": true,
+    "profiles_compared": ["A", "B"],
+    "test": "crates/ukma-integration/tests/port_parity.rs::the_two_available_profiles_agree_on_what_they_store",
+    "scope": "metadata CAS + revision + content-derived etag + stable key order over five identical writes",
+    "not_verified": "three-way equivalence (profile C needs PostgreSQL, Qdrant and Neo4j)"
+  },
   "profiles": [
     {
       "id": "A",
@@ -20,29 +27,46 @@
         "MetadataPort": "available",
         "OutboxPort": "available",
         "FullTextPort": "available",
-        "VectorPort": "available",
-        "ArtifactPort": "available",
-        "GraphPort": "available"
+        "VectorPort": "available"
       },
-      "evidence": "profile_a_serves_every_port_it_declares runs one shared contract over metadata CAS + revisioned read + typed key equality, the durable outbox, full text, vector profile isolation and immutable artifacts, and reloads the store to prove durability at flush",
+      "transport": "single JSON snapshot file, atomic flush",
+      "evidence": "profile_a_embedded_json_serves_every_port runs the shared canonical contract plus derived projections and reloads the store",
       "limits": [
         "single process, single writer; no cross-process locking",
-        "full text and vector are derived projections: they are rebuilt from canonical data plus outbox replay",
+        "full text and vector are derived projections: rebuilt from canonical data plus outbox replay",
         "durability is obtained at flush(), not per mutation"
       ]
     },
     {
       "id": "B",
       "name": "sql",
-      "status": "unavailable",
-      "reason": "ukma-adapter-postgres declares itself unavailable: no client dependency, no DDL, no connection handling. Profile B cannot be exercised until a PostgreSQL server exists and the adapter passes the same port contract",
-      "servers_required": ["PostgreSQL"]
+      "status": "available",
+      "adapters": {
+        "MetadataPort": "ukma-adapter-sqlite",
+        "OutboxPort": "ukma-adapter-sqlite",
+        "FullTextPort": "ukma-adapter-sqlite (derived, in memory)",
+        "VectorPort": "ukma-adapter-sqlite (derived, in memory)",
+        "ArtifactPort": "ukma-adapter-filesystem"
+      },
+      "ports": {
+        "MetadataPort": "available",
+        "OutboxPort": "available",
+        "FullTextPort": "available",
+        "VectorPort": "available"
+      },
+      "transport": "SQLite (WAL, synchronous=FULL) in real SQL transactions; rusqlite bundled, no server required",
+      "evidence": "profile_b_sqlite_passes_the_same_contract runs the identical contract against the SQL backend, checkpoints, reopens and checks the SQL file size",
+      "limits": [
+        "one process opens the database; multi-process contention is not managed beyond WAL",
+        "full text and vector are derived projections (same rule as profile A)",
+        "no native graph traversal (GraphPort is served by graph-engine stores)"
+      ]
     },
     {
       "id": "C",
       "name": "hybrid",
       "status": "unavailable",
-      "reason": "ukma-adapter-qdrant and ukma-adapter-neo4j declare themselves unavailable: no client dependency and no vector or graph port contract tests yet. Profile C cannot be exercised until both servers exist",
+      "reason": "ukma-adapter-postgres, ukma-adapter-qdrant and ukma-adapter-neo4j declare themselves unavailable: no client dependency and no server available in this environment. Profile C cannot be exercised until all three servers exist and the adapters pass the same contract",
       "servers_required": ["PostgreSQL", "Qdrant", "Neo4j"]
     }
   ]

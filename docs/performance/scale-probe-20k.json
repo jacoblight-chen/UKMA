@@ -1,6 +1,6 @@
 {
   "audit": "P10-WP3 reproducible workload baseline (FM-010)",
-  "command": "cargo run --release -p ukma-bench -- --episodes 20000 --queries 100",
+  "command": "cargo run --release -p ukma-bench -- --episodes 20000 --queries 200",
   "hardware": {
     "arch": "x86_64",
     "cpu_count": 20,
@@ -8,9 +8,17 @@
     "os": "windows"
   },
   "index": {
-    "bytes": null,
-    "note": "the in-memory profile does not expose an on-disk index size",
+    "in_memory_records": 20000,
+    "note": "the in-memory profile has no on-disk index; the SQL backend size is measured with the same workload",
+    "on_disk_backend": "sqlite (same workload written through the SQL adapter and checkpointed)",
+    "on_disk_bytes": 4231168,
     "records": 20000
+  },
+  "memory": {
+    "process_rss_bytes": 82063360,
+    "process_rss_mib": 78.26171875,
+    "vram_bytes": null,
+    "vram_note": "no GPU backend is used by this profile (no embedding model), so VRAM is not applicable rather than unmeasured"
   },
   "not_measured": [
     "process RSS / VRAM",
@@ -20,28 +28,26 @@
   "profile": "release",
   "results": {
     "canonical_records": 20000,
-    "failure_codes": {
-      "RESOURCE_LIMIT": 100
-    },
-    "failure_rate": 0.004975124378109453,
+    "failure_codes": {},
+    "failure_rate": 0.0,
     "search": {
-      "count": 100,
-      "max_ms": 110.4356,
-      "mean_ms": 98.57254999999999,
-      "p50_ms": 98.4463,
-      "p95_ms": 103.47409999999999,
-      "p99_ms": 108.0105
+      "count": 200,
+      "max_ms": 40.0435,
+      "mean_ms": 3.1353344999999986,
+      "p50_ms": 2.8226,
+      "p95_ms": 4.1095999999999995,
+      "p99_ms": 7.7719
     },
-    "search_throughput_ops_per_sec": 10.144185908031695,
+    "search_throughput_ops_per_sec": 317.6564072647385,
     "store": {
       "count": 20000,
-      "max_ms": 0.23399999999999999,
-      "mean_ms": 0.012175295000000521,
-      "p50_ms": 0.0108,
-      "p95_ms": 0.0156,
-      "p99_ms": 0.0457
+      "max_ms": 0.2041,
+      "mean_ms": 0.011971984999998781,
+      "p50_ms": 0.0106,
+      "p95_ms": 0.0153,
+      "p99_ms": 0.0481
     },
-    "store_throughput_ops_per_sec": 71514.05626654433
+    "store_throughput_ops_per_sec": 72678.35358818482
   },
   "spec_version": "1.2.3",
   "workload": {
@@ -50,6 +56,8 @@
     "embedding_version": null,
     "episodes": 20000,
     "language": "en",
-    "queries": 100
+    "queries": 200,
+    "query": "topic137",
+    "query_selectivity": "about 1/200 of the corpus"
   }
 }

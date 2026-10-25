@@ -8,6 +8,7 @@ description = "Cross-domain E2E, property and coverage tests (P9)."
 
 [dependencies]
 serde_json = "1"
+sha2 = "0.10"
 ukma-contracts = { path = "../ukma-contracts" }
 ukma-mcp = { path = "../ukma-mcp" }
 code-intelligence = { path = "../code-intelligence" }

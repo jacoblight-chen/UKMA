@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 
 use indexing_engine::GenerationPointer;
 use storage_ports::{ArtifactPort, FullTextDoc, FullTextPort, MetadataPort, OutboxPort, Retention};
+use storage_router::backup::{BackupAction, BackupPlan, BackupScheduler};
 use ukma_adapter_embedded::{default_scope, event, EmbeddedStore};
 use ukma_adapter_filesystem::FilesystemArtifacts;
 use ukma_contracts::ScopeRef;
@@ -273,4 +274,64 @@ fn rollback_reads_the_retained_generation_and_refuses_the_unpublished_one() {
 
     // The replayed event is still pending, so the projection is rebuilt.
     assert_eq!(store.pending(&s, "projection", 10).unwrap().len(), 2);
+}
+
+#[test]
+fn a_scheduled_backup_restores_and_old_backups_are_pruned() {
+    let layout = Layout::new("scheduled");
+    let s = scope();
+    let store = populate(&layout);
+    let mut scheduler = BackupScheduler::new(BackupPlan::new(layout.root.join("backup"), 3_600, 2));
+
+    // Three hourly ticks: the first two are due, the middle one is not.
+    let mut written = Vec::new();
+    for (tick, instant) in [(0usize, 1_000), (1, 2_000), (2, 1_000 + 3_600)] {
+        match scheduler.tick(instant) {
+            BackupAction::Backup { path } => {
+                std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+                std::fs::copy(layout.store("live"), &path).unwrap();
+                let bytes = std::fs::metadata(&path).unwrap().len();
+                scheduler.record(instant, path.clone(), bytes);
+                written.push((tick, instant, path));
+            }
+            BackupAction::Idle => assert_eq!(tick, 1, "only the middle tick is idle"),
+        }
+    }
+    assert_eq!(written.len(), 2, "two scheduled backups");
+
+    // Retention keeps two, so nothing is pruned yet; a third backup prunes one.
+    assert!(scheduler.prunable().is_empty());
+    let fourth = 1_000 + 7_200;
+    match scheduler.tick(fourth) {
+        BackupAction::Backup { path } => {
+            std::fs::copy(layout.store("live"), &path).unwrap();
+            let bytes = std::fs::metadata(&path).unwrap().len();
+            scheduler.record(fourth, path, bytes);
+        }
+        BackupAction::Idle => panic!("a third interval must be due"),
+    }
+    let prunable = scheduler.prunable();
+    assert_eq!(prunable.len(), 1, "retention prunes the oldest");
+    for record in prunable {
+        std::fs::remove_file(record.path).unwrap();
+    }
+
+    // The retained backup really restores the deployment.
+    let newest = scheduler
+        .retained()
+        .last()
+        .expect("a retained backup")
+        .clone();
+    std::fs::remove_file(layout.store("live")).unwrap();
+    std::fs::copy(&newest.path, layout.store("live")).unwrap();
+    let restored = EmbeddedStore::open(layout.store("live")).unwrap();
+    assert_eq!(
+        restored.get_manifest(&s, "code").unwrap().as_deref(),
+        Some("gen-1")
+    );
+    assert!(restored.get(&s, "memory/mem:1").unwrap().is_some());
+    let report: serde_json::Value = serde_json::from_str(&scheduler.report_json(fourth)).unwrap();
+    assert_eq!(report["retained"], 2);
+    assert_eq!(report["due"], false);
+    let _ = store;
 }

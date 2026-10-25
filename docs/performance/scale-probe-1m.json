@@ -1,0 +1,63 @@
+{
+  "audit": "P10-WP3 reproducible workload baseline (FM-010)",
+  "command": "cargo run --release -p ukma-bench -- --episodes 1000000 --queries 100",
+  "hardware": {
+    "arch": "x86_64",
+    "cpu_count": 20,
+    "note": "single process, single thread workload; RAM/VRAM are not measured by this harness",
+    "os": "windows"
+  },
+  "index": {
+    "in_memory_records": 1000000,
+    "note": "the in-memory profile has no on-disk index; the SQL backend size is measured with the same workload",
+    "on_disk_backend": "sqlite (same workload written through the SQL adapter and checkpointed)",
+    "on_disk_bytes": 216793088,
+    "records": 1000000
+  },
+  "memory": {
+    "process_rss_bytes": 3902091264,
+    "process_rss_mib": 3721.32421875,
+    "vram_bytes": null,
+    "vram_note": "no GPU backend is used by this profile (no embedding model), so VRAM is not applicable rather than unmeasured"
+  },
+  "not_measured": [
+    "process RSS / VRAM",
+    "a second backend (profiles B and C are declared unavailable)",
+    "1M episode scale (this harness is parameterised, see docs/performance/baseline.md)"
+  ],
+  "profile": "release",
+  "results": {
+    "canonical_records": 1000000,
+    "failure_codes": {},
+    "failure_rate": 0.0,
+    "search": {
+      "count": 100,
+      "max_ms": 2496.2132,
+      "mean_ms": 226.4530320000001,
+      "p50_ms": 204.03750000000002,
+      "p95_ms": 210.4411,
+      "p99_ms": 221.36339999999998
+    },
+    "search_throughput_ops_per_sec": 4.4155898404519345,
+    "store": {
+      "count": 1000000,
+      "max_ms": 4.2757000000000005,
+      "mean_ms": 0.012617347100003324,
+      "p50_ms": 0.0111,
+      "p95_ms": 0.018199999999999997,
+      "p99_ms": 0.0477
+    },
+    "store_throughput_ops_per_sec": 69159.33365065018
+  },
+  "spec_version": "1.2.3",
+  "workload": {
+    "analyzer": "none (BM25 lexical search)",
+    "backend": "embedded profile A (in memory), no embedding model",
+    "embedding_version": null,
+    "episodes": 1000000,
+    "language": "en",
+    "queries": 100,
+    "query": "topic137",
+    "query_selectivity": "about 1/200 of the corpus"
+  }
+}

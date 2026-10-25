@@ -51,7 +51,7 @@ baseline:
 gates:
   G0_specification: passed
   G1_upstream_baseline: passed
-  G2_core: partial
+  G2_core: passed
   G3_code: partial
   G4_document: passed
   G5_memory: passed
@@ -64,7 +64,7 @@ gates:
   SCHEMA-01: passed
   SCHEMA-02: passed
   TEST-01: passed
-  DB-01: blocked
+  DB-01: passed
   MIG-01: partial
   SECURITY-01: passed
 phases:
@@ -454,3 +454,4 @@ notes:
 - P8 done = 69/69 handlers (65 domain + 4 system); manifest, routes and error sets are projected from the registry with empty drift; ScopeResolver-injected authz returns NOT_FOUND for a foreign scope; typed SDK plus ukma-server (std::net HTTP) and ukma CLI; legacy alias layer inert with zero aliases; gaps remain (no persistence, development auth profile, no streaming/rate limit/TLS, schemas still preliminary)
 - P9 done = 12 E2E, 10 properties and 3 chaos tests through the public API in crates/ukma-integration; section 17.1 and 29.4 fully classified in contracts/testing/test-coverage.json (69/69; covered 59, partial 5, gap 5) with a gate that rejects unclassified ids or evidence pointing at a missing test; dependency acyclicity, no-vendor-SDK and two-store graph portability are real tests; full-green is NOT claimed
 - P10 done = three-profile parity report (A only available, B/C declared unavailable), nine-state cutover with fencing and a rollback drill, reproducible benchmark (2k baseline + 20k scale probe, RSS/VRAM not measured), disaster recovery drill (backup/restore/re-index/rollback) and the licence audit with LICENSE/NOTICE plus a Cargo.lock-aligned inventory. REP-003 and OPS-001 closed; FM-010 partial (1M episodes blocked by MAX_CANDIDATES and O(n) lexical search); SR-004 and DB-01 remain red (no second live backend)
+- ADR-057 fix-up = SQLite second backend (profile B available, two-way equivalence verified), candidate index removed the 10k search ceiling (1M episodes benchmarked with zero failures), RSS and SQL on-disk size measured, BackupScheduler with retention plus a restore drill, CycloneDX 1.5 SBOM with a SHA-256 digest gate. Coverage 69/69 classified: covered 63, partial 5, gap 1 (FM-006 schema migration). Remaining items are profile C needs PostgreSQL/Qdrant/Neo4j, an unsigned SBOM, JSON Schema closure needing owner approval

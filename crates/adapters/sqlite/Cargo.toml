@@ -4,6 +4,11 @@ version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 publish = false
-description = "SQLite metadata/graph/fulltext/outbox adapter (embedded profile candidate)."
+description = "SQLite adapter: canonical metadata + durable outbox in real SQL transactions (profile B)."
 
 [dependencies]
+rusqlite = { version = "0.32", features = ["bundled"] }
+serde_json = "1"
+sha2 = "0.10"
+storage-ports = { path = "../../storage-ports" }
+ukma-contracts = { path = "../../ukma-contracts" }

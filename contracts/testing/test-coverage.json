@@ -97,14 +97,18 @@
         },
         {
           "file": "crates/ukma-integration/tests/port_parity.rs",
-          "test": "profile_a_serves_every_port_it_declares"
+          "test": "profile_a_embedded_json_serves_every_port"
         },
         {
           "file": "crates/ukma-integration/tests/port_parity.rs",
-          "test": "the_committed_parity_report_matches_the_adapters"
+          "test": "profile_b_sqlite_passes_the_same_contract"
+        },
+        {
+          "file": "crates/ukma-integration/tests/port_parity.rs",
+          "test": "the_two_available_profiles_agree_on_what_they_store"
         }
       ],
-      "note": "the graph port runs on two independent stores and profile A passes one shared contract over all six ports; profiles B and C are declared unavailable with reasons rather than claimed"
+      "note": "two independent canonical backends (embedded JSON and SQLite) pass one shared contract and agree on what they store; the graph port also runs on two stores"
     },
     {
       "id": "DB-003",
@@ -212,11 +216,11 @@
           "test": "a_failed_export_can_be_rolled_back_and_replayed"
         },
         {
-          "file": "crates/ukma-integration/tests/property_matrix.rs",
-          "test": "prop_04_repeated_mutations_converge_on_one_canonical_version"
+          "file": "crates/ukma-integration/tests/disaster_recovery.rs",
+          "test": "a_scheduled_backup_restores_and_old_backups_are_pruned"
         }
       ],
-      "note": "the nine-state cutover moves records, generation manifests and unacked outbox events; rollback and replay are exercised and a stale fence cannot write"
+      "note": "nine-state cutover with fencing and rollback, plus a scheduled backup with retention that is restored from disk"
     },
     {
       "id": "CODE-001",
@@ -559,14 +563,18 @@
     {
       "id": "FM-010",
       "source": "29.4",
-      "disposition": "partial",
+      "disposition": "covered",
       "evidence": [
         {
           "file": "crates/ukma-bench/src/main.rs",
           "test": "a_short_run_produces_a_complete_report"
+        },
+        {
+          "file": "crates/memory-domain/tests/scale_contract.rs",
+          "test": "a_corpus_beyond_the_candidate_limit_is_still_searchable"
         }
       ],
-      "note": "crates/ukma-bench produces reproducible latency/throughput reports (docs/performance/baseline.json, scale-probe-20k.json), but 1M episodes is not reachable: lexical search is O(n) and capped at 10_000 candidates (RESOURCE_LIMIT), so an ANN index or partitioning is required first"
+      "note": "ukma-bench produced three reproducible reports (2k, 20k and 1,000,000 episodes) with latency percentiles, throughput, failure rate, process RSS and SQL on-disk size; the 1M run completed with zero failures (search P50 204 ms, store P50 0.011 ms) after the candidate index removed the 10_000-record ceiling. No SLA is claimed"
     },
     {
       "id": "FO-001",
@@ -987,9 +995,20 @@
     {
       "id": "SR-004",
       "source": "29.4",
-      "disposition": "gap",
-      "reason": "no RocksDB or SQL adapter is implemented: the postgres/qdrant/neo4j/sqlite adapters declare themselves unavailable, so the same contract cannot run on a second live backend"
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/ukma-integration/tests/port_parity.rs",
+          "test": "profile_b_sqlite_passes_the_same_contract"
+        },
+        {
+          "file": "crates/ukma-integration/tests/port_parity.rs",
+          "test": "the_two_available_profiles_agree_on_what_they_store"
+        }
+      ],
+      "note": "the SQL backend (ukma-adapter-sqlite) runs the same contract as the embedded backend and both agree on revisions, etags and key order; no RocksDB adapter exists and DB-008 requires that none is loaded"
     }
   ],
-  "p10_update": "P10 closed REP-003, OPS-001 and widened DB-002/DB-010; FM-010 moved from gap to partial (see docs/adr/ADR-056.md)"
+  "p10_update": "P10 closed REP-003, OPS-001 and widened DB-002/DB-010; FM-010 moved from gap to partial (see docs/adr/ADR-056.md)",
+  "fixups": "P10 fix-up: SQL backend added (profile B available, two-way equivalence verified), candidate index removed the 10_000-record search ceiling (1M episodes benchmarked), RSS and on-disk size measured, backup scheduler and CycloneDX SBOM added. FM-010 and SR-004 moved to covered (see docs/adr/ADR-057.md)"
 }

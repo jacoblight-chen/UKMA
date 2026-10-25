@@ -8,9 +8,17 @@
     "os": "windows"
   },
   "index": {
-    "bytes": null,
-    "note": "the in-memory profile does not expose an on-disk index size",
+    "in_memory_records": 2000,
+    "note": "the in-memory profile has no on-disk index; the SQL backend size is measured with the same workload",
+    "on_disk_backend": "sqlite (same workload written through the SQL adapter and checkpointed)",
+    "on_disk_bytes": 462848,
     "records": 2000
+  },
+  "memory": {
+    "process_rss_bytes": 22028288,
+    "process_rss_mib": 21.0078125,
+    "vram_bytes": null,
+    "vram_note": "no GPU backend is used by this profile (no embedding model), so VRAM is not applicable rather than unmeasured"
   },
   "not_measured": [
     "process RSS / VRAM",
@@ -24,22 +32,22 @@
     "failure_rate": 0.0,
     "search": {
       "count": 500,
-      "max_ms": 27.122899999999998,
-      "mean_ms": 19.1400536,
-      "p50_ms": 18.6954,
-      "p95_ms": 21.1398,
-      "p99_ms": 23.6162
+      "max_ms": 23.201,
+      "mean_ms": 15.094716999999997,
+      "p50_ms": 15.0113,
+      "p95_ms": 16.7241,
+      "p99_ms": 17.8156
     },
-    "search_throughput_ops_per_sec": 52.13486538934161,
+    "search_throughput_ops_per_sec": 66.13718121217285,
     "store": {
       "count": 2000,
-      "max_ms": 0.15239999999999998,
-      "mean_ms": 0.012430449999999984,
-      "p50_ms": 0.011,
-      "p95_ms": 0.0185,
-      "p99_ms": 0.0359
+      "max_ms": 0.1282,
+      "mean_ms": 0.013001599999999903,
+      "p50_ms": 0.011600000000000001,
+      "p95_ms": 0.019,
+      "p99_ms": 0.037
     },
-    "store_throughput_ops_per_sec": 69887.55093055274
+    "store_throughput_ops_per_sec": 67204.52689693178
   },
   "spec_version": "1.2.3",
   "workload": {
@@ -48,6 +56,8 @@
     "embedding_version": null,
     "episodes": 2000,
     "language": "en",
-    "queries": 500
+    "queries": 500,
+    "query": "topic137",
+    "query_selectivity": "about 1/200 of the corpus"
   }
 }

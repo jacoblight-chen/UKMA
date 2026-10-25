@@ -7,6 +7,7 @@
 //!   minimum production profile, otherwise startup fails;
 //! - unavailable adapters are never silently substituted.
 
+pub mod backup;
 pub mod cutover;
 
 use std::sync::Arc;

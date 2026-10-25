@@ -20,6 +20,79 @@ pub const MAX_RESULTS: u32 = 200;
 /// Token ceiling applied to a response.
 pub const MAX_RESPONSE_TOKENS: u32 = 100_000;
 
+/// Candidate index over a large corpus (§31.4 bounded work, P10 scale fix).
+///
+/// It answers "which documents contain at least one query term" without scanning
+/// the corpus, so the candidate cap applies to **matches** instead of to every
+/// stored record. Documents are addressed by a slot number so the postings stay
+/// compact (`u32` per occurrence) even for a million records.
+#[derive(Debug, Default, Clone)]
+pub struct CandidateIndex {
+    ids: Vec<Option<String>>,
+    slots: std::collections::HashMap<String, u32>,
+    postings: std::collections::HashMap<String, Vec<u32>>,
+    fingerprint: u64,
+}
+
+impl CandidateIndex {
+    /// Add one document (replacing any earlier content for the same id).
+    pub fn insert(&mut self, id: &str, text: &str) {
+        self.remove(id);
+        let slot = self.ids.len() as u32;
+        self.ids.push(Some(id.to_string()));
+        self.slots.insert(id.to_string(), slot);
+        for token in tokenize(text) {
+            self.postings.entry(token).or_default().push(slot);
+        }
+    }
+
+    /// Drop one document (its slot becomes dead; postings keep the number).
+    pub fn remove(&mut self, id: &str) {
+        if let Some(slot) = self.slots.remove(id) {
+            self.ids[slot as usize] = None;
+        }
+    }
+
+    /// Number of live documents.
+    pub fn len(&self) -> usize {
+        self.slots.len()
+    }
+
+    /// Whether the index holds nothing.
+    pub fn is_empty(&self) -> bool {
+        self.slots.is_empty()
+    }
+
+    /// Fingerprint of the content this index was built from.
+    pub fn fingerprint(&self) -> u64 {
+        self.fingerprint
+    }
+
+    /// Record the fingerprint this index was built from.
+    pub fn set_fingerprint(&mut self, fingerprint: u64) {
+        self.fingerprint = fingerprint;
+    }
+
+    /// Ids of documents containing at least one of `tokens`, in id order.
+    ///
+    /// Deduplicated and sorted so a query is deterministic regardless of the
+    /// order the terms happen to appear in.
+    pub fn candidates(&self, tokens: &[String]) -> Vec<String> {
+        let mut slots: Vec<u32> = Vec::new();
+        for token in tokens {
+            if let Some(postings) = self.postings.get(token) {
+                slots.extend_from_slice(postings);
+            }
+        }
+        slots.sort_unstable();
+        slots.dedup();
+        slots
+            .into_iter()
+            .filter_map(|slot| self.ids[slot as usize].clone())
+            .collect()
+    }
+}
+
 /// A memory document prepared for retrieval.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SearchDocument {
@@ -608,5 +681,50 @@ mod tests {
             .iter()
             .any(|(name, _)| *name == "novelty_bonus"));
         assert_eq!(describe_instant(0), "1970-01-01T00:00:00Z");
+    }
+}
+
+#[cfg(test)]
+mod candidate_index_tests {
+    use super::*;
+
+    #[test]
+    fn candidates_are_the_documents_that_contain_a_query_term() {
+        let mut index = CandidateIndex::default();
+        index.insert("a", "the graph engine parses code");
+        index.insert("b", "the parser handles markdown");
+        index.insert("c", "unrelated text");
+        assert_eq!(index.len(), 3);
+
+        assert_eq!(index.candidates(&tokenize("graph")), vec!["a".to_string()]);
+        assert_eq!(
+            index.candidates(&tokenize("graph parser")),
+            vec!["a".to_string(), "b".to_string()]
+        );
+        assert!(index.candidates(&tokenize("absent")).is_empty());
+    }
+
+    #[test]
+    fn replacing_a_document_updates_its_postings_and_removal_drops_it() {
+        let mut index = CandidateIndex::default();
+        index.insert("a", "alpha content");
+        assert_eq!(index.candidates(&tokenize("alpha")).len(), 1);
+        index.insert("a", "beta content");
+        assert!(
+            index.candidates(&tokenize("alpha")).is_empty(),
+            "old text must not linger"
+        );
+        assert_eq!(index.candidates(&tokenize("beta")), vec!["a".to_string()]);
+        index.remove("a");
+        assert!(index.candidates(&tokenize("beta")).is_empty());
+        assert!(index.is_empty());
+    }
+
+    #[test]
+    fn the_fingerprint_starts_empty_and_round_trips() {
+        let mut index = CandidateIndex::default();
+        assert_eq!(index.fingerprint(), 0);
+        index.set_fingerprint(42);
+        assert_eq!(index.fingerprint(), 42);
     }
 }

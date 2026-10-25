@@ -17,6 +17,13 @@ use ukma_contracts::{Consistency, RequestContext, RequestEnvelope, ResponseStatu
 use ukma_mcp::gateway::StaticScopes;
 use ukma_mcp::{build, Gateway, Services};
 
+/// Distinct topics the workload spreads over, so a query selects a realistic
+/// fraction of the corpus instead of matching every record (a query that matches
+/// everything is refused by the candidate limit by design).
+const TOPICS: usize = 200;
+/// The topic a benchmark query asks for.
+const QUERY_TOPIC: usize = 137;
+
 const TENANT: &str = "tenant-bench";
 const PROJECT: &str = "project-bench";
 
@@ -112,7 +119,10 @@ fn episode(session: &str, agent: &str, index: usize) -> Value {
             "agent_id": agent,
             "agent_depth": 0,
             "episode_type": "conversation_turn",
-            "summary": format!("episode {index} discusses the graph engine and the parser baseline"),
+            "summary": format!(
+                "episode {index} discusses the graph engine and the parser baseline topic{}",
+                index % TOPICS
+            ),
             "full_text_ref": null,
             "key_facts": [format!("fact {index}")],
             "outcome": "success",
@@ -155,6 +165,99 @@ fn stats(mut samples: Vec<f64>) -> Value {
         "max_ms": samples.last().copied().unwrap_or(0.0),
         "mean_ms": mean,
     })
+}
+
+/// Resident set size of this process, measured rather than assumed.
+///
+/// Windows: `K32GetProcessMemoryInfo`; Linux: `/proc/self/statm`. Any other
+/// platform reports `None`, which the report states explicitly.
+fn resident_bytes() -> Option<u64> {
+    #[cfg(windows)]
+    {
+        #[repr(C)]
+        #[derive(Default)]
+        struct ProcessMemoryCounters {
+            cb: u32,
+            page_fault_count: u32,
+            peak_working_set_size: usize,
+            working_set_size: usize,
+            quota_peak_paged_pool_usage: usize,
+            quota_paged_pool_usage: usize,
+            quota_peak_non_paged_pool_usage: usize,
+            quota_non_paged_pool_usage: usize,
+            pagefile_usage: usize,
+            peak_pagefile_usage: usize,
+        }
+        #[link(name = "kernel32")]
+        extern "system" {
+            fn GetCurrentProcess() -> *mut std::ffi::c_void;
+        }
+        #[link(name = "psapi")]
+        extern "system" {
+            fn K32GetProcessMemoryInfo(
+                process: *mut std::ffi::c_void,
+                counters: *mut ProcessMemoryCounters,
+                size: u32,
+            ) -> i32;
+        }
+        let mut counters = ProcessMemoryCounters {
+            cb: std::mem::size_of::<ProcessMemoryCounters>() as u32,
+            ..Default::default()
+        };
+        // SAFETY: the handle is the current process and the struct is sized by `cb`.
+        let ok =
+            unsafe { K32GetProcessMemoryInfo(GetCurrentProcess(), &mut counters, counters.cb) };
+        if ok == 0 {
+            None
+        } else {
+            Some(counters.working_set_size as u64)
+        }
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let text = std::fs::read_to_string("/proc/self/statm").ok()?;
+        let pages: u64 = text.split_whitespace().nth(1)?.parse().ok()?;
+        Some(pages * 4096)
+    }
+    #[cfg(not(any(windows, target_os = "linux")))]
+    {
+        None
+    }
+}
+
+/// Size on disk of the SQL backend after the same workload, in bytes.
+fn sqlite_footprint(episodes: usize) -> Option<u64> {
+    use storage_ports::MetadataPort;
+    use ukma_contracts::ScopeRef;
+    let mut path = std::env::temp_dir();
+    path.push(format!("ukma-bench-{}-{episodes}.db", std::process::id()));
+    let _ = std::fs::remove_file(&path);
+    let store = ukma_adapter_sqlite::SqliteStore::open(&path).ok()?;
+    let scope = ScopeRef {
+        tenant_id: TENANT.into(),
+        project_id: PROJECT.into(),
+        repo_id: None,
+        workspace_id: None,
+        agent_id: None,
+        session_id: None,
+    };
+    for index in 0..episodes {
+        store
+            .put_cas(
+                &scope,
+                &format!("memory/mem:{index}"),
+                json!({"summary": format!("episode {index} discusses the graph engine and the parser baseline")}),
+                None,
+            )
+            .ok()?;
+    }
+    store.checkpoint().ok()?;
+    let size = store.file_size();
+    drop(store);
+    let _ = std::fs::remove_file(&path);
+    let _ = std::fs::remove_file(format!("{}-wal", path.display()));
+    let _ = std::fs::remove_file(format!("{}-shm", path.display()));
+    Some(size)
 }
 
 fn main() {
@@ -208,7 +311,7 @@ fn main() {
             context: context(&format!("search-{index}")),
             input: json!({
                 "query": {
-                    "query": "graph engine",
+                    "query": format!("topic{QUERY_TOPIC}"),
                     "kinds": ["episodic"],
                     "language": null,
                     "after": null,
@@ -236,6 +339,8 @@ fn main() {
     let search_elapsed = search_started.elapsed().as_secs_f64();
 
     let total_operations = config.episodes + config.queries;
+    let rss_bytes = resident_bytes();
+    let on_disk_sqlite_bytes = sqlite_footprint(config.episodes);
     let report = json!({
         "spec_version": "1.2.3",
         "audit": "P10-WP3 reproducible workload baseline (FM-010)",
@@ -254,6 +359,8 @@ fn main() {
             "episodes": config.episodes,
             "queries": config.queries,
             "language": "en",
+            "query": format!("topic{QUERY_TOPIC}"),
+            "query_selectivity": format!("about 1/{TOPICS} of the corpus"),
             "backend": "embedded profile A (in memory), no embedding model",
             "embedding_version": null,
             "analyzer": "none (BM25 lexical search)"
@@ -269,8 +376,16 @@ fn main() {
         },
         "index": {
             "records": records,
-            "bytes": null,
-            "note": "the in-memory profile does not expose an on-disk index size"
+            "on_disk_bytes": on_disk_sqlite_bytes,
+            "on_disk_backend": "sqlite (same workload written through the SQL adapter and checkpointed)",
+            "in_memory_records": records,
+            "note": "the in-memory profile has no on-disk index; the SQL backend size is measured with the same workload"
+        },
+        "memory": {
+            "process_rss_bytes": rss_bytes,
+            "process_rss_mib": rss_bytes.map(|bytes| bytes as f64 / (1024.0 * 1024.0)),
+            "vram_bytes": null,
+            "vram_note": "no GPU backend is used by this profile (no embedding model), so VRAM is not applicable rather than unmeasured"
         },
         "not_measured": [
             "process RSS / VRAM",

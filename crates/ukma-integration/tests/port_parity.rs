@@ -1,10 +1,10 @@
 //! P10-WP1: three-profile port parity.
 //!
-//! Profile A (embedded) is a real deployment here, so every port it serves is
-//! driven through one shared contract. Profiles B (sql) and C (hybrid) depend on
-//! servers this workspace does not have; their adapters must therefore *declare*
-//! themselves unavailable with a reason. The committed parity report is checked
-//! against that reality, so it cannot claim a profile that does not exist.
+//! Profile A (embedded JSON) and profile B (SQLite) are real, production-capable
+//! deployments in this workspace, so **one shared contract** runs against both —
+//! the same assertions, different backends. Profile C needs PostgreSQL, Qdrant and
+//! Neo4j concurrently; its adapters must declare themselves unavailable with a
+//! reason, and the committed report is checked against that reality.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -17,38 +17,51 @@ use storage_ports::{
 };
 use ukma_adapter_embedded::{default_scope, event, EmbeddedStore};
 use ukma_adapter_filesystem::FilesystemArtifacts;
+use ukma_adapter_sqlite::SqliteStore;
 
 const REPORT: &str = "contracts/testing/port-parity.json";
+
+/// The canonical port pair every backend must implement.
+trait CanonicalStore: MetadataPort + OutboxPort {}
+impl<T: MetadataPort + OutboxPort> CanonicalStore for T {}
 
 fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
-fn temp_path(tag: &str) -> PathBuf {
+fn temp(tag: &str) -> PathBuf {
     let mut path = std::env::temp_dir();
-    path.push(format!("ukma-parity-{}-{tag}.json", std::process::id()));
+    path.push(format!("ukma-parity-{}-{tag}", std::process::id()));
     let _ = std::fs::remove_file(&path);
+    let _ = std::fs::remove_file(format!("{}-wal", path.display()));
+    let _ = std::fs::remove_file(format!("{}-shm", path.display()));
+    let _ = std::fs::remove_dir_all(&path);
     path
 }
 
 fn temp_dir(tag: &str) -> PathBuf {
-    let mut path = std::env::temp_dir();
-    path.push(format!("ukma-parity-{}-{tag}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&path);
-    std::fs::create_dir_all(&path).unwrap();
-    path
+    let dir = temp(tag);
+    std::fs::create_dir_all(&dir).unwrap();
+    dir
 }
 
-/// The one contract profile A must satisfy on every port it serves.
-fn embedded_profile_contract(store: &EmbeddedStore, artifacts: &FilesystemArtifacts) {
+fn cleanup(path: &Path) {
+    let _ = std::fs::remove_file(path);
+    let _ = std::fs::remove_file(format!("{}-wal", path.display()));
+    let _ = std::fs::remove_file(format!("{}-shm", path.display()));
+    let _ = std::fs::remove_dir_all(path);
+}
+
+/// The one contract every canonical backend must satisfy.
+fn canonical_contract(store: &dyn CanonicalStore, label: &str, artifacts: &FilesystemArtifacts) {
     let scope = default_scope("tenant-a", "project-b");
     let other = default_scope("tenant-z", "project-b");
 
-    // -- canonical metadata: CAS, revisioned read, typed key equality ----------
+    // -- CAS, revisioned read, typed key equality, scope isolation ------------
     let first = store
         .put_cas(&scope, "code/manifest", serde_json::json!({"gen": 1}), None)
-        .unwrap();
-    assert_eq!(first.revision, 1);
+        .unwrap_or_else(|error| panic!("{label} put_cas: {error}"));
+    assert_eq!(first.revision, 1, "{label}");
     let second = store
         .put_cas(
             &scope,
@@ -56,33 +69,91 @@ fn embedded_profile_contract(store: &EmbeddedStore, artifacts: &FilesystemArtifa
             serde_json::json!({"gen": 2}),
             Some(first.revision),
         )
-        .unwrap();
-    assert_eq!(second.revision, 2);
-    assert!(store
-        .put_cas(
-            &scope,
-            "code/manifest",
-            serde_json::json!({"gen": 3}),
-            Some(first.revision),
-        )
-        .is_err());
-    assert!(store.get(&other, "code/manifest").unwrap().is_none());
+        .unwrap_or_else(|error| panic!("{label} put_cas: {error}"));
+    assert_eq!(second.revision, 2, "{label}");
+    assert!(
+        store
+            .put_cas(
+                &scope,
+                "code/manifest",
+                serde_json::json!({"gen": 3}),
+                Some(first.revision),
+            )
+            .is_err(),
+        "{label} accepted a stale revision"
+    );
+    assert!(
+        store.get(&other, "code/manifest").unwrap().is_none(),
+        "{label} leaked a record across scopes"
+    );
+    let (page, _cursor) = store.list(&scope, "code/", 10, None).unwrap();
+    assert_eq!(page.len(), 1, "{label}");
+    assert_eq!(page[0].revision, 2, "{label}");
+
+    // -- manifests are a separate atomic pointer ------------------------------
     store.put_manifest(&scope, "code", "gen-2").unwrap();
     assert_eq!(
         store.get_manifest(&scope, "code").unwrap().as_deref(),
-        Some("gen-2")
+        Some("gen-2"),
+        "{label}"
     );
 
-    // -- durable outbox -------------------------------------------------------
+    // -- durable outbox with per-consumer ack --------------------------------
     store
         .enqueue(&scope, event("e1", "code.analysis.committed", 2))
         .unwrap();
     assert_eq!(store.pending(&scope, "projection", 10).unwrap().len(), 1);
     store.ack(&scope, "projection", "e1").unwrap();
     assert!(store.pending(&scope, "projection", 10).unwrap().is_empty());
+    assert_eq!(
+        store.pending(&scope, "audit", 10).unwrap().len(),
+        1,
+        "{label}: ack must be per consumer"
+    );
 
-    // -- full text projection ------------------------------------------------
-    store
+    // -- single-writer fencing -----------------------------------------------
+    store.acquire_writer(&scope, "agg:1", "writer-a").unwrap();
+    assert!(
+        store.acquire_writer(&scope, "agg:1", "writer-b").is_err(),
+        "{label} allowed two live writers"
+    );
+
+    // -- immutable artifacts (shared adapter, still part of the contract) ----
+    let hash = artifacts
+        .put_immutable(
+            &scope,
+            b"evidence bytes",
+            "text/plain",
+            Retention::KeepForever,
+        )
+        .unwrap();
+    let again = artifacts
+        .put_immutable(
+            &scope,
+            b"evidence bytes",
+            "text/plain",
+            Retention::KeepForever,
+        )
+        .unwrap();
+    assert_eq!(again.hash, hash.hash, "{label}: content addressing");
+    assert!(artifacts.verify(&scope, &hash.hash).unwrap());
+    assert_eq!(
+        artifacts.get(&scope, &hash.hash).unwrap(),
+        b"evidence bytes".to_vec()
+    );
+    assert!(artifacts.get(&other, &hash.hash).is_err());
+}
+
+/// The derived projections (in-memory by design in both profiles).
+fn derived_contract<F, V>(fulltext: &F, vector: &V, label: &str)
+where
+    F: FullTextPort,
+    V: VectorPort,
+{
+    let scope = default_scope("tenant-a", "project-b");
+    let other = default_scope("tenant-z", "project-b");
+
+    fulltext
         .index(
             &scope,
             "icu-v1",
@@ -94,19 +165,19 @@ fn embedded_profile_contract(store: &EmbeddedStore, artifacts: &FilesystemArtifa
         )
         .unwrap();
     assert_eq!(
-        FullTextPort::search(store, &scope, "icu-v1", None, "graph", 10)
+        fulltext
+            .search(&scope, "icu-v1", None, "graph", 10)
             .unwrap()
             .len(),
-        1
+        1,
+        "{label}"
     );
-    assert!(
-        FullTextPort::search(store, &other, "icu-v1", None, "graph", 10)
-            .unwrap()
-            .is_empty()
-    );
+    assert!(fulltext
+        .search(&other, "icu-v1", None, "graph", 10)
+        .unwrap()
+        .is_empty());
 
-    // -- vector projection: profile isolation --------------------------------
-    store
+    vector
         .declare_profile(
             &scope,
             &EmbeddingProfile {
@@ -119,7 +190,7 @@ fn embedded_profile_contract(store: &EmbeddedStore, artifacts: &FilesystemArtifa
             },
         )
         .unwrap();
-    store
+    vector
         .upsert(
             &scope,
             "bge-m3",
@@ -132,41 +203,20 @@ fn embedded_profile_contract(store: &EmbeddedStore, artifacts: &FilesystemArtifa
         )
         .unwrap();
     assert_eq!(
-        VectorPort::search(store, &scope, "bge-m3", &[1.0, 0.0, 0.0, 0.0], 5, None)
+        vector
+            .search(&scope, "bge-m3", &[1.0, 0.0, 0.0, 0.0], 5, None)
             .unwrap()
             .len(),
-        1
+        1,
+        "{label}"
     );
-
-    // -- immutable artifacts --------------------------------------------------
-    let hash = artifacts
-        .put_immutable(
-            &scope,
-            b"evidence bytes",
-            "text/plain",
-            Retention::KeepForever,
-        )
-        .unwrap();
-    let record = artifacts
-        .put_immutable(
-            &scope,
-            b"evidence bytes",
-            "text/plain",
-            Retention::KeepForever,
-        )
-        .unwrap();
-    assert_eq!(record.hash, hash.hash, "content addressing is stable");
-    assert!(artifacts.verify(&scope, &hash.hash).unwrap());
-    assert_eq!(
-        artifacts.get(&scope, &hash.hash).unwrap(),
-        b"evidence bytes".to_vec()
-    );
-    assert!(artifacts.get(&other, &hash.hash).is_err());
+    // A vector from another profile is never compared (PROP-07).
+    assert!(vector.search(&scope, "bge-m3", &[1.0; 8], 5, None).is_err());
 }
 
 #[test]
-fn profile_a_serves_every_port_it_declares() {
-    let store_path = temp_path("a");
+fn profile_a_embedded_json_serves_every_port() {
+    let store_path = temp("a.json");
     let artifact_root = temp_dir("a-artifacts");
     let store = EmbeddedStore::open(&store_path).unwrap();
     let artifacts = FilesystemArtifacts::open(&artifact_root).unwrap();
@@ -175,9 +225,9 @@ fn profile_a_serves_every_port_it_declares() {
         .capabilities()
         .assert_minimum_profile()
         .expect("embedded adapter meets the minimum profile");
-    embedded_profile_contract(&store, &artifacts);
+    canonical_contract(&store, "profile A", &artifacts);
+    derived_contract(&store, &store, "profile A");
 
-    // The same store is still consistent after a reload (durability is at flush).
     store.flush().unwrap();
     let reloaded = EmbeddedStore::open(&store_path).unwrap();
     let scope = default_scope("tenant-a", "project-b");
@@ -185,13 +235,64 @@ fn profile_a_serves_every_port_it_declares() {
         reloaded.get_manifest(&scope, "code").unwrap().as_deref(),
         Some("gen-2")
     );
-
-    let _ = std::fs::remove_file(&store_path);
-    let _ = std::fs::remove_dir_all(&artifact_root);
+    cleanup(&store_path);
+    cleanup(&artifact_root);
 }
 
 #[test]
-fn profiles_b_and_c_declare_themselves_unavailable_with_a_reason() {
+fn profile_b_sqlite_passes_the_same_contract() {
+    let database = temp("b.db");
+    let artifact_root = temp_dir("b-artifacts");
+    let store = SqliteStore::open(&database).unwrap();
+    let artifacts = FilesystemArtifacts::open(&artifact_root).unwrap();
+
+    store
+        .capabilities()
+        .assert_minimum_profile()
+        .expect("sqlite adapter meets the minimum profile");
+    canonical_contract(&store, "profile B", &artifacts);
+    derived_contract(&store, &store, "profile B");
+
+    store.checkpoint().unwrap();
+    let reloaded = SqliteStore::open(&database).unwrap();
+    let scope = default_scope("tenant-a", "project-b");
+    assert_eq!(
+        reloaded.get_manifest(&scope, "code").unwrap().as_deref(),
+        Some("gen-2")
+    );
+    assert!(reloaded.file_size() > 0, "the SQL database is a real file");
+    cleanup(&database);
+    cleanup(&artifact_root);
+}
+
+#[test]
+fn the_two_available_profiles_agree_on_what_they_store() {
+    // Two-way equivalence: the same writes through both backends produce the same
+    // observable entries (etags included, because the etag is content-derived).
+    let embedded_path = temp("equiv.json");
+    let sqlite_path = temp("equiv.db");
+    let scope = default_scope("tenant-a", "project-b");
+
+    let embedded = EmbeddedStore::open(&embedded_path).unwrap();
+    let sqlite = SqliteStore::open(&sqlite_path).unwrap();
+    for index in 0..5 {
+        let key = format!("memory/mem:{index}");
+        let value = serde_json::json!({"summary": format!("record {index}")});
+        let from_embedded = embedded.put_cas(&scope, &key, value.clone(), None).unwrap();
+        let from_sqlite = sqlite.put_cas(&scope, &key, value, None).unwrap();
+        assert_eq!(from_embedded.revision, from_sqlite.revision, "{key}");
+        assert_eq!(from_embedded.etag, from_sqlite.etag, "{key}");
+    }
+    let (embedded_page, _) = embedded.list(&scope, "memory/", 10, None).unwrap();
+    let (sqlite_page, _) = sqlite.list(&scope, "memory/", 10, None).unwrap();
+    assert_eq!(embedded_page, sqlite_page);
+
+    cleanup(&embedded_path);
+    cleanup(&sqlite_path);
+}
+
+#[test]
+fn profile_c_declares_itself_unavailable_with_a_reason() {
     // A profile is only "declared" when its adapters really say so. Nothing here
     // is allowed to look available without a server behind it.
     for (name, capabilities) in [
@@ -225,29 +326,22 @@ fn the_committed_parity_report_matches_the_adapters() {
     for profile in profiles {
         let id = profile["id"].as_str().expect("profile id");
         seen.push(id);
-        let status = profile["status"].as_str().expect("status");
-        match status {
+        match profile["status"].as_str().expect("status") {
             "available" => {
-                assert_eq!(id, "A", "only profile A is available in this workspace");
-                // Every port of the available profile must be listed.
+                assert!(
+                    ["A", "B"].contains(&id),
+                    "profile {id} cannot be available: only the embedded and SQLite backends exist"
+                );
                 let ports = profile["ports"].as_object().expect("ports");
-                for port in [
-                    "MetadataPort",
-                    "OutboxPort",
-                    "FullTextPort",
-                    "VectorPort",
-                    "ArtifactPort",
-                    "GraphPort",
-                ] {
+                for port in ["MetadataPort", "OutboxPort", "FullTextPort", "VectorPort"] {
                     assert_eq!(
                         ports.get(port).and_then(Value::as_str),
                         Some("available"),
-                        "profile A does not serve {port}"
+                        "profile {id} does not serve {port}"
                     );
                 }
             }
             "unavailable" => {
-                assert_ne!(id, "A", "profile A is available");
                 let reason = profile["reason"].as_str().unwrap_or_default();
                 assert!(
                     reason.len() > 20,
@@ -261,4 +355,8 @@ fn the_committed_parity_report_matches_the_adapters() {
     assert_eq!(seen, vec!["A", "B", "C"]);
     assert_eq!(report["rocksdb_loaded"], false);
     assert_eq!(report["spec_version"], "1.2.3");
+    assert_eq!(
+        report["two_way_equivalence"]["verified"], true,
+        "the report must state whether the two available profiles were compared"
+    );
 }

@@ -325,12 +325,19 @@ fn arc001_the_dependency_graph_is_acyclic_and_free_of_vendor_sdks() {
         .map(|(path, manifest)| (manifest.name.clone(), path))
         .collect();
 
-    // No illegal vendor SDK is reachable from any workspace crate.
+    // A backend SDK is legal **only** inside the adapter that owns that backend
+    // (ADR-021: the domain layer never touches one). Everything else is refused.
     for (path, manifest) in &manifests {
+        let is_adapter = path
+            .components()
+            .any(|component| component.as_os_str() == "adapters");
         for dependency in &manifest.all_dependencies {
+            if !FORBIDDEN_BACKENDS.contains(&dependency.as_str()) {
+                continue;
+            }
             assert!(
-                !FORBIDDEN_BACKENDS.contains(&dependency.as_str()),
-                "{} depends on the backend SDK `{dependency}`",
+                is_adapter,
+                "{} is not an adapter but depends on the backend SDK `{dependency}`",
                 path.display()
             );
         }
