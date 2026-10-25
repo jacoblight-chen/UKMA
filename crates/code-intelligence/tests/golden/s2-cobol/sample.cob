@@ -1,0 +1,6 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. DEMO.
+       PROCEDURE DIVISION.
+       MAIN-PARAGRAPH.
+           DISPLAY "HELLO".
+           STOP RUN.

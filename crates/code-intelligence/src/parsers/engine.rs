@@ -129,10 +129,25 @@ const IDENTIFIER_KINDS: &[&str] = &[
     "function_identifier",
     "declarator",
     "variable",
+    "bareword",
+    "simple_word",
+    "program_name",
+    "image_name",
 ];
 
 /// First identifier-like descendant within `depth` levels, breadth first.
 fn descendant_name<'a>(source: &'a str, node: Node<'_>, depth: usize) -> Option<&'a str> {
+    descendant_name_skipping(source, node, depth, 0)
+}
+
+/// As [`descendant_name`], skipping the first `skip` matches.
+fn descendant_name_skipping<'a>(
+    source: &'a str,
+    node: Node<'_>,
+    depth: usize,
+    skip: usize,
+) -> Option<&'a str> {
+    let mut skipped = 0usize;
     let mut level: Vec<Node<'_>> = {
         let mut cursor = node.walk();
         node.children(&mut cursor).collect()
@@ -143,7 +158,10 @@ fn descendant_name<'a>(source: &'a str, node: Node<'_>, depth: usize) -> Option<
             if child.is_named() && IDENTIFIER_KINDS.contains(&child.kind()) {
                 let name = text(source, child).trim();
                 if !name.is_empty() {
-                    return Some(name);
+                    if skipped == skip {
+                        return Some(name);
+                    }
+                    skipped += 1;
                 }
             }
             if child.is_named() {
@@ -271,7 +289,12 @@ impl<'a> Extractor<'a> {
             }
         }
         if self.spec.name_from_descendant {
-            return descendant_name(self.source, node, 3);
+            return descendant_name_skipping(
+                self.source,
+                node,
+                3,
+                self.spec.name_skip_for(node.kind()),
+            );
         }
         if !self.spec.declarator_names {
             return None;
@@ -304,11 +327,58 @@ impl<'a> Extractor<'a> {
             return None;
         }
         let head = named_child_text(self.source, node, 0)?;
-        self.spec
+        if let Some(found) = self
+            .spec
             .form_heads
             .iter()
             .find(|(kind, candidate, _)| *kind == node.kind() && *candidate == head)
-            .map(|(_, _, symbol_kind)| *symbol_kind)
+        {
+            return Some(found.2);
+        }
+        // operator forms: `compute <- function(..)` in R has no head symbol, the
+        // infix operator decides the meaning and the name is the left side
+        let mut cursor = node.walk();
+        let operator = node.children(&mut cursor).find(|child| {
+            !child.is_named()
+                && self.spec.form_heads.iter().any(|(kind, candidate, _)| {
+                    *kind == node.kind() && *candidate == text(self.source, *child).trim()
+                })
+        });
+        operator.and_then(|child| {
+            let operator_text = text(self.source, child).trim();
+            self.spec
+                .form_heads
+                .iter()
+                .find(|(kind, candidate, _)| *kind == node.kind() && *candidate == operator_text)
+                .map(|(_, _, symbol_kind)| *symbol_kind)
+        })
+    }
+
+    /// Name of a form declaration: the argument expression for `(defn name ..)`,
+    /// the left-hand side for an operator form (`name <- function(..)`).
+    fn form_name(&self, node: Node<'_>) -> Option<String> {
+        let head = named_child_text(self.source, node, 0);
+        let head_is_form = head.map(|head| {
+            self.spec
+                .form_heads
+                .iter()
+                .any(|(kind, candidate, _)| *kind == node.kind() && *candidate == head)
+        });
+        if head_is_form == Some(true) {
+            let second = node.named_child(1)?;
+            if IDENTIFIER_KINDS.contains(&second.kind()) {
+                let text = text(self.source, second).trim();
+                return (!text.is_empty()).then(|| text.to_string());
+            }
+            return descendant_name(self.source, second, 3).map(str::to_string);
+        }
+        // operator form: the name is the first named child
+        let first = node.named_child(0)?;
+        if IDENTIFIER_KINDS.contains(&first.kind()) {
+            let text = text(self.source, first).trim();
+            return (!text.is_empty()).then(|| text.to_string());
+        }
+        descendant_name(self.source, first, 2).map(str::to_string)
     }
 
     fn qualified_child(&self, parent: Option<&str>, name: &str) -> String {
@@ -322,7 +392,7 @@ impl<'a> Extractor<'a> {
         self.walk_in(node, parent, None);
     }
 
-    fn walk_in(&mut self, node: Node<'_>, parent: Option<&str>, _parent_kind: Option<&str>) {
+    fn walk_in(&mut self, node: Node<'_>, parent: Option<&str>, parent_kind: Option<&str>) {
         let kind = node.kind();
         let mut child_parent = parent.map(str::to_string);
 
@@ -337,14 +407,7 @@ impl<'a> Extractor<'a> {
         // Form-based languages: `(defn name ..)` / `def name` carry no
         // declaration node kind, so the head symbol decides the meaning.
         if let Some(symbol_kind) = self.form_kind(node) {
-            let name = node.named_child(1).and_then(|second| {
-                if IDENTIFIER_KINDS.contains(&second.kind()) {
-                    let text = text(self.source, second).trim();
-                    (!text.is_empty()).then(|| text.to_string())
-                } else {
-                    descendant_name(self.source, second, 3).map(str::to_string)
-                }
-            });
+            let name = self.form_name(node);
             if let Some(name) = name {
                 let qualified = self.qualified_child(parent, &name);
                 let id = self.push_symbol(&name, qualified, symbol_kind, node);
@@ -358,7 +421,7 @@ impl<'a> Extractor<'a> {
         }
 
         if let Some(declared) = self.spec.declaration(kind) {
-            if !self.spec.declaration_allowed(node) {
+            if !self.spec.declaration_allowed_in(node, parent_kind) {
                 // same kind name, different meaning (Haskell `function` is both a
                 // definition and a function *type*) — keep descending, don't emit
                 self.walk_children(node, child_parent.as_deref());

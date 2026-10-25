@@ -174,11 +174,11 @@ phases:
     blocked_reason: null
 - id: P3
   name: Code Intelligence 13 ops
-  status: in_progress
+  status: done
   work_packages:
   - id: P3-WP1
-    status: in_progress
-    evidence: 'ParserPort + 38-language registry plus the S2 migration infrastructure (38 ledger slices with upstream paths/SHA/license, docs/migration/s2-parity-report.yaml, tests/s2_coverage.rs which fails if a language claims Ported without grammar_ported + parity=passed + an existing golden fixture/test). 15/38 grammars ported through ONE generic engine (crates/code-intelligence/src/parsers/engine.rs) plus per-language specs (parsers/spec.rs): bash, c, cpp, csharp, go, java, kotlin, php, python, ruby, rust, scala, solidity, swift, typescript. Golden fixtures live in tests/golden/s2-<lang>/ and 8 shared parity tests in tests/s2_languages.rs (plus the 10 hand-written rust parity tests). Grammar pins are the locked-baseline versions from the upstream Cargo.lock except kotlin, which uses the tree-sitter-language based ng fork because the baseline pin cannot link against tree-sitter 0.25.10 (ADR-049 O-08, recorded in the kotlin ledger). Parity scope: symbol identity + 1-based spans + containment/import/call edge kinds and resolutions; cross-file resolution, macro expansion and type inference are NOT covered, so call edges are never static_exact. Remaining: 23 languages (16 with a baseline grammar, 7 without).'
+    status: done
+    evidence: 'All 38 baseline languages are ported through one generic tree-sitter engine (parsers/engine.rs) plus a declarative spec per language (parsers/spec.rs): bash, c, clojure, cobol, cpp, csharp, css, dart, dockerfile, elixir, elm, erlang, fortran, go, groovy, haskell, hcl, java, julia, kotlin, lua, objc, ocaml, perl, php, python, r, ruby, rust, scala, solidity, swift, tcl, toml, typescript, verilog, yaml, zig. Engine mechanisms the port needed: form heads for S-expression/macro languages (clojure, elixir), operator forms (r `name <- function`), descendant naming with a skip count for grammars without name fields or with a return type first (groovy, julia, fortran, elm, erlang, ocaml, toml, yaml, verilog, hcl, objc, dart, tcl, perl, cobol, dockerfile), declaration child markers (haskell function vs function type) and parent exclusion (dart method/function nesting). 30 grammars are the locked-baseline versions; 7 (cobol, dart, dockerfile, perl, r, tcl, zig) have no baseline grammar and use pinned ABI-compatible crates recorded as deviations (ADR-049 O-08); kotlin uses the ng fork for the same ABI reason. Parity scope per language: symbol identity, 1-based spans, containment/import/call edge kinds and resolutions; cross-file resolution, macro expansion and type inference are NOT covered, so call edges are never static_exact.'
     blocked_reason: null
   - id: P3-WP2
     status: done
@@ -197,8 +197,8 @@ phases:
     evidence: 'ImpactReport (bounded reverse BFS over non-containment edges, one edge path per impacted symbol, test_candidates by path/name heuristic, unresolved_dynamic_calls counted only for truly unresolved call edges, completeness=partial whenever a possible/static_possible call or a depth truncation is present) and EditContextResult (per-symbol source blocks from the retained snapshot, 4 chars/token estimator, truncation + omitted_refs, CONTEXT_BUDGET_EXCEEDED when even one block does not fit, per-path ACL via CodeAuthorizer). Tests: capi10_* (2), capi11_* (3).'
     blocked_reason: null
   - id: P3-WP6
-    status: in_progress
-    evidence: 'S2 parity gate exists and passes: docs/migration/s2-parity-report.yaml + ledger slices are cross-checked against the registry and the golden fixtures by tests/s2_coverage.rs, so a language cannot claim Ported without executed evidence (grammar_ported + parity passed + existing fixture and test files). 15/38 languages have executed golden parity (bash, c, cpp, csharp, go, java, kotlin, php, python, ruby, rust, scala, solidity, swift, typescript); the remaining 23 do not.'
+    status: done
+    evidence: 'Per-language golden fixtures (crates/code-intelligence/tests/golden/s2-<lang>/) plus 8 shared parity tests in tests/s2_languages.rs cover all 38 languages, and tests/s2_coverage.rs fails if any language claims Ported without grammar_ported + parity=passed + an existing fixture and test file. NOTE: the plan named fixtures/expected_graphs/* as the artifact location; the fixtures live next to the parser instead and the expectations are hand-written Rust tables, so the parity claim is per-language symbol/span/edge parity against our fixtures, not a byte-for-byte diff against an upstream expected-graph dump.'
     blocked_reason: null
 - id: P4
   name: Document Intelligence 14 ops

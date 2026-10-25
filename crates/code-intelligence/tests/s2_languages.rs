@@ -386,6 +386,70 @@ const CASES: &[Case] = &[
         resolved_calls: 0,
         signature_hint: "",
     },
+    Case {
+        language: "cobol",
+        file: "s2-cobol/sample.cob",
+        symbols: &[("sample::DEMO", SymbolKind::Module, 1, 6)],
+        imports: 0,
+        resolved_calls: 0,
+        signature_hint: "",
+    },
+    Case {
+        language: "dart",
+        file: "s2-dart/sample.dart",
+        symbols: &[
+            ("sample::Graph", SymbolKind::Class, 3, 9),
+            ("sample::Graph::add", SymbolKind::Method, 4, 4),
+            ("sample::Graph::check", SymbolKind::Method, 8, 8),
+            ("sample::compute", SymbolKind::Function, 11, 11),
+        ],
+        imports: 1,
+        resolved_calls: 0,
+        signature_hint: "",
+    },
+    Case {
+        language: "dockerfile",
+        file: "s2-dockerfile/sample.dockerfile",
+        symbols: &[("sample::alpine", SymbolKind::Module, 1, 1)],
+        imports: 0,
+        resolved_calls: 0,
+        signature_hint: "",
+    },
+    Case {
+        language: "perl",
+        file: "s2-perl/sample.pl",
+        symbols: &[("sample::compute", SymbolKind::Function, 3, 6)],
+        imports: 1,
+        resolved_calls: 0,
+        signature_hint: "sub compute",
+    },
+    Case {
+        language: "r",
+        file: "s2-r/sample.r",
+        symbols: &[("sample::compute", SymbolKind::Function, 1, 3)],
+        imports: 0,
+        resolved_calls: 0,
+        signature_hint: "",
+    },
+    Case {
+        language: "tcl",
+        file: "s2-tcl/sample.tcl",
+        symbols: &[("sample::compute", SymbolKind::Function, 1, 3)],
+        imports: 0,
+        resolved_calls: 0,
+        signature_hint: "",
+    },
+    Case {
+        language: "zig",
+        file: "s2-zig/sample.zig",
+        symbols: &[
+            ("sample::std", SymbolKind::Constant, 1, 1),
+            ("sample::compute", SymbolKind::Function, 3, 5),
+        ],
+        imports: 1,
+        resolved_calls: 0,
+        signature_hint: "pub fn compute",
+    },
 ];
 
 fn fixture(case: &Case) -> ParsedSource {
@@ -617,7 +681,7 @@ fn broken_source_reports_diagnostics_for_every_language() {
 #[test]
 fn unported_languages_stay_unavailable() {
     let parser = UnifiedParser::new();
-    for language in ["cobol", "perl", "zig", "not-a-language"] {
+    for language in ["not-a-language", "brainfuck", ""] {
         assert_eq!(parser.support(language), SupportLevel::NotPorted);
         assert_eq!(
             parser.parse("a.x", language, "nothing").unwrap_err().code(),
@@ -634,7 +698,12 @@ fn every_case_is_deterministic() {
         assert_eq!(rows(&first), rows(&second), "{}", case.language);
         assert_eq!(first.content_hash, second.content_hash, "{}", case.language);
         assert_eq!(first.parser_version, second.parser_version);
-        assert!(first.parser_version.starts_with("tree-sitter-"));
+        assert!(
+            first.parser_version.contains("ts-0.25.10"),
+            "{}: {}",
+            case.language,
+            first.parser_version
+        );
     }
 }
 

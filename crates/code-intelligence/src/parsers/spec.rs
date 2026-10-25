@@ -43,6 +43,13 @@ pub struct LanguageSpec {
     /// Whether the name may be found as an identifier-like descendant when the
     /// grammar exposes no `name` field.
     pub name_from_descendant: bool,
+    /// Identifier-like descendants to skip before taking the name, for grammars
+    /// that put the return type first (`int compute(..)`).
+    pub name_skip: &'static [(&'static str, usize)],
+    /// Declaration kinds that must be ignored under a given parent kind, for
+    /// grammars that nest the same construct twice (dart's `method_signature`
+    /// contains a `function_signature`).
+    pub declaration_parent_exclude: &'static [(&'static str, &'static str)],
     /// Whether the name sits inside a `declarator` chain (C, C++).
     pub declarator_names: bool,
 }
@@ -61,10 +68,30 @@ impl LanguageSpec {
         self.call_kinds.contains(&kind)
     }
 
+    /// How many identifier-like descendants to skip for this node kind.
+    pub fn name_skip_for(&self, kind: &str) -> usize {
+        self.name_skip
+            .iter()
+            .find(|(candidate, _)| *candidate == kind)
+            .map(|(_, skip)| *skip)
+            .unwrap_or(0)
+    }
+
     /// Whether a declaration node is really a declaration (it may contain the
     /// marker child its grammar requires).
-    pub fn declaration_allowed(&self, node: tree_sitter::Node<'_>) -> bool {
+    pub fn declaration_allowed_in(
+        &self,
+        node: tree_sitter::Node<'_>,
+        parent_kind: Option<&str>,
+    ) -> bool {
         let kind = node.kind();
+        if self
+            .declaration_parent_exclude
+            .iter()
+            .any(|(candidate, parent)| *candidate == kind && parent_kind == Some(*parent))
+        {
+            return false;
+        }
         match self
             .declaration_child_kinds
             .iter()
@@ -132,6 +159,8 @@ pub static RUST: LanguageSpec = LanguageSpec {
     type_impl_kinds: &["impl_item"],
     body_fields: &["body"],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: false,
     form_heads: &[],
     declarator_names: false,
@@ -158,6 +187,8 @@ pub static PYTHON: LanguageSpec = LanguageSpec {
     type_impl_kinds: &[],
     body_fields: &["body"],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: false,
     form_heads: &[],
     declarator_names: false,
@@ -180,6 +211,8 @@ pub static GO: LanguageSpec = LanguageSpec {
     type_impl_kinds: &[],
     body_fields: &["body"],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: false,
     form_heads: &[],
     declarator_names: false,
@@ -206,6 +239,8 @@ pub static JAVA: LanguageSpec = LanguageSpec {
     type_impl_kinds: &[],
     body_fields: &["body"],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: false,
     form_heads: &[],
     declarator_names: false,
@@ -229,6 +264,8 @@ pub static BASH: LanguageSpec = LanguageSpec {
     type_impl_kinds: &[],
     body_fields: &["body"],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: false,
     form_heads: &[],
     declarator_names: false,
@@ -253,6 +290,8 @@ pub static C: LanguageSpec = LanguageSpec {
     type_impl_kinds: &[],
     body_fields: &["body"],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: false,
     form_heads: &[],
     declarator_names: true,
@@ -279,6 +318,8 @@ pub static CPP: LanguageSpec = LanguageSpec {
     type_impl_kinds: &[],
     body_fields: &["body"],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: false,
     form_heads: &[],
     declarator_names: true,
@@ -309,6 +350,8 @@ pub static TYPESCRIPT: LanguageSpec = LanguageSpec {
     type_impl_kinds: &[],
     body_fields: &["body"],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: false,
     form_heads: &[],
     declarator_names: false,
@@ -334,6 +377,8 @@ pub static RUBY: LanguageSpec = LanguageSpec {
     type_impl_kinds: &[],
     body_fields: &["body"],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: false,
     form_heads: &[],
     declarator_names: false,
@@ -360,6 +405,8 @@ pub static PHP: LanguageSpec = LanguageSpec {
     type_impl_kinds: &[],
     body_fields: &["body"],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: false,
     form_heads: &[],
     declarator_names: false,
@@ -385,6 +432,8 @@ pub static CSHARP: LanguageSpec = LanguageSpec {
     type_impl_kinds: &[],
     body_fields: &["body"],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: false,
     form_heads: &[],
     declarator_names: false,
@@ -408,6 +457,8 @@ pub static SCALA: LanguageSpec = LanguageSpec {
     type_impl_kinds: &[],
     body_fields: &["body"],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: false,
     form_heads: &[],
     declarator_names: false,
@@ -432,6 +483,8 @@ pub static SWIFT: LanguageSpec = LanguageSpec {
     type_impl_kinds: &[],
     body_fields: &["body"],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: false,
     form_heads: &[],
     declarator_names: false,
@@ -457,6 +510,8 @@ pub static SOLIDITY: LanguageSpec = LanguageSpec {
     type_impl_kinds: &[],
     body_fields: &["body"],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: false,
     form_heads: &[],
     declarator_names: false,
@@ -479,6 +534,8 @@ pub static KOTLIN: LanguageSpec = LanguageSpec {
     type_impl_kinds: &[],
     body_fields: &["body"],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: false,
     form_heads: &[],
     declarator_names: false,
@@ -506,6 +563,8 @@ pub static CLOJURE: LanguageSpec = LanguageSpec {
         ("list_lit", "defrecord", SymbolKind::Struct),
     ],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: true,
     declarator_names: false,
 };
@@ -527,6 +586,8 @@ pub static CSS: LanguageSpec = LanguageSpec {
     body_fields: &[],
     form_heads: &[],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: true,
     declarator_names: false,
 };
@@ -551,6 +612,8 @@ pub static ELIXIR: LanguageSpec = LanguageSpec {
         ("call", "defprotocol", SymbolKind::Interface),
     ],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: true,
     declarator_names: false,
 };
@@ -574,6 +637,8 @@ pub static ELM: LanguageSpec = LanguageSpec {
     body_fields: &[],
     form_heads: &[],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: true,
     declarator_names: false,
 };
@@ -595,6 +660,8 @@ pub static ERLANG: LanguageSpec = LanguageSpec {
     body_fields: &[],
     form_heads: &[],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: true,
     declarator_names: false,
 };
@@ -619,6 +686,8 @@ pub static FORTRAN: LanguageSpec = LanguageSpec {
     body_fields: &[],
     form_heads: &[],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: true,
     declarator_names: false,
 };
@@ -642,6 +711,8 @@ pub static GROOVY: LanguageSpec = LanguageSpec {
     body_fields: &[],
     form_heads: &[],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: true,
     declarator_names: false,
 };
@@ -664,6 +735,8 @@ pub static HASKELL: LanguageSpec = LanguageSpec {
     body_fields: &[],
     form_heads: &[],
     declaration_child_kinds: &[("function", "match")],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: true,
     declarator_names: false,
 };
@@ -684,6 +757,8 @@ pub static HCL: LanguageSpec = LanguageSpec {
     body_fields: &[],
     form_heads: &[],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: true,
     declarator_names: false,
 };
@@ -707,6 +782,8 @@ pub static JULIA: LanguageSpec = LanguageSpec {
     body_fields: &["body"],
     form_heads: &[],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: true,
     declarator_names: false,
 };
@@ -727,6 +804,8 @@ pub static LUA: LanguageSpec = LanguageSpec {
     body_fields: &["body"],
     form_heads: &[],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: true,
     declarator_names: false,
 };
@@ -752,6 +831,8 @@ pub static OBJC: LanguageSpec = LanguageSpec {
     body_fields: &["body"],
     form_heads: &[],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: true,
     declarator_names: true,
 };
@@ -774,6 +855,8 @@ pub static OCAML: LanguageSpec = LanguageSpec {
     body_fields: &["body"],
     form_heads: &[],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: true,
     declarator_names: false,
 };
@@ -795,6 +878,8 @@ pub static TOML: LanguageSpec = LanguageSpec {
     body_fields: &[],
     form_heads: &[],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: true,
     declarator_names: false,
 };
@@ -817,6 +902,8 @@ pub static VERILOG: LanguageSpec = LanguageSpec {
     body_fields: &[],
     form_heads: &[],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: true,
     declarator_names: false,
 };
@@ -834,6 +921,162 @@ pub static YAML: LanguageSpec = LanguageSpec {
     body_fields: &[],
     form_heads: &[],
     declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
+    name_from_descendant: true,
+    declarator_names: false,
+};
+
+#[cfg(feature = "parser-s2-batch4")]
+pub static COBOL: LanguageSpec = LanguageSpec {
+    language: "cobol",
+    profile: "arborium-cobol-2.18.2/ts-0.25.10",
+    declarations: &[
+        ("program_definition", SymbolKind::Module),
+        ("section", SymbolKind::Other),
+        ("paragraph", SymbolKind::Other),
+    ],
+    name_field: "",
+    call_kinds: &[],
+    call_fields: &[],
+    import_kinds: &[],
+    type_impl_kinds: &[],
+    body_fields: &[],
+    form_heads: &[],
+    declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
+    name_from_descendant: true,
+    declarator_names: false,
+};
+
+#[cfg(feature = "parser-s2-batch4")]
+pub static DART: LanguageSpec = LanguageSpec {
+    language: "dart",
+    profile: "tree-sitter-dart-0.1.0/ts-0.25.10",
+    declarations: &[
+        ("class_declaration", SymbolKind::Class),
+        ("enum_declaration", SymbolKind::Enum),
+        ("mixin_declaration", SymbolKind::Trait),
+        ("function_signature", SymbolKind::Function),
+        ("method_signature", SymbolKind::Method),
+    ],
+    name_field: "name",
+    call_kinds: &[],
+    call_fields: &[],
+    import_kinds: &["import_or_export"],
+    type_impl_kinds: &[],
+    body_fields: &[],
+    form_heads: &[],
+    declaration_child_kinds: &[],
+    declaration_parent_exclude: &[("function_signature", "method_signature")],
+    name_skip: &[("function_signature", 1), ("method_signature", 1)],
+    name_from_descendant: true,
+    declarator_names: false,
+};
+
+#[cfg(feature = "parser-s2-batch4")]
+pub static DOCKERFILE: LanguageSpec = LanguageSpec {
+    language: "dockerfile",
+    profile: "tree-sitter-containerfile-0.9.2/ts-0.25.10",
+    declarations: &[("from_instruction", SymbolKind::Module)],
+    name_field: "",
+    call_kinds: &[],
+    call_fields: &[],
+    import_kinds: &[],
+    type_impl_kinds: &[],
+    body_fields: &[],
+    form_heads: &[],
+    declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
+    name_from_descendant: true,
+    declarator_names: false,
+};
+
+#[cfg(feature = "parser-s2-batch4")]
+pub static PERL: LanguageSpec = LanguageSpec {
+    language: "perl",
+    profile: "ts-parser-perl-2.0.0/ts-0.25.10",
+    declarations: &[
+        ("subroutine_declaration_statement", SymbolKind::Function),
+        ("package_statement", SymbolKind::Module),
+    ],
+    name_field: "",
+    call_kinds: &[],
+    call_fields: &[],
+    import_kinds: &["use_statement"],
+    type_impl_kinds: &[],
+    body_fields: &[],
+    form_heads: &[],
+    declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
+    name_from_descendant: true,
+    declarator_names: false,
+};
+
+#[cfg(feature = "parser-s2-batch4")]
+pub static R: LanguageSpec = LanguageSpec {
+    language: "r",
+    profile: "tree-sitter-r-1.3.0/ts-0.25.10",
+    declarations: &[],
+    name_field: "",
+    call_kinds: &["call"],
+    call_fields: &["function"],
+    import_kinds: &[],
+    type_impl_kinds: &[],
+    body_fields: &[],
+    form_heads: &[
+        ("binary_operator", "<-", SymbolKind::Function),
+        ("binary_operator", "=", SymbolKind::Function),
+        ("binary_operator", "<<-", SymbolKind::Function),
+    ],
+    declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
+    name_from_descendant: true,
+    declarator_names: false,
+};
+
+#[cfg(feature = "parser-s2-batch4")]
+pub static TCL: LanguageSpec = LanguageSpec {
+    language: "tcl",
+    profile: "bca-tree-sitter-tcl-2.4.0/ts-0.25.10",
+    declarations: &[("procedure", SymbolKind::Function)],
+    name_field: "",
+    call_kinds: &[],
+    call_fields: &[],
+    import_kinds: &[],
+    type_impl_kinds: &[],
+    body_fields: &[],
+    form_heads: &[],
+    declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
+    name_from_descendant: true,
+    declarator_names: false,
+};
+
+#[cfg(feature = "parser-s2-batch4")]
+pub static ZIG: LanguageSpec = LanguageSpec {
+    language: "zig",
+    profile: "tree-sitter-zig-1.1.2/ts-0.25.10",
+    declarations: &[
+        ("variable_declaration", SymbolKind::Constant),
+        ("function_declaration", SymbolKind::Function),
+        ("container_declaration", SymbolKind::Struct),
+    ],
+    name_field: "",
+    call_kinds: &["call_expression"],
+    call_fields: &["function"],
+    import_kinds: &["builtin_function"],
+    type_impl_kinds: &[],
+    body_fields: &[],
+    form_heads: &[],
+    declaration_child_kinds: &[],
+    declaration_parent_exclude: &[],
+    name_skip: &[],
     name_from_descendant: true,
     declarator_names: false,
 };
@@ -904,6 +1147,20 @@ pub fn grammar_for(language: &str) -> Option<tree_sitter::Language> {
         "verilog" => Some(tree_sitter_verilog::LANGUAGE.into()),
         #[cfg(feature = "parser-s2-batch2")]
         "yaml" => Some(tree_sitter_yaml::LANGUAGE.into()),
+        #[cfg(feature = "parser-s2-batch4")]
+        "cobol" => Some(arborium_cobol::language().into()),
+        #[cfg(feature = "parser-s2-batch4")]
+        "dart" => Some(tree_sitter_dart::LANGUAGE.into()),
+        #[cfg(feature = "parser-s2-batch4")]
+        "dockerfile" => Some(tree_sitter_containerfile::LANGUAGE.into()),
+        #[cfg(feature = "parser-s2-batch4")]
+        "perl" => Some(ts_parser_perl::LANGUAGE.into()),
+        #[cfg(feature = "parser-s2-batch4")]
+        "r" => Some(tree_sitter_r::LANGUAGE.into()),
+        #[cfg(feature = "parser-s2-batch4")]
+        "tcl" => Some(tree_sitter_tcl::LANGUAGE.into()),
+        #[cfg(feature = "parser-s2-batch4")]
+        "zig" => Some(tree_sitter_zig::LANGUAGE.into()),
         _ => None,
     }
 }
@@ -952,6 +1209,16 @@ pub fn specs() -> Vec<&'static LanguageSpec> {
         list.push(&TOML);
         list.push(&VERILOG);
         list.push(&YAML);
+    }
+    #[cfg(feature = "parser-s2-batch4")]
+    {
+        list.push(&COBOL);
+        list.push(&DART);
+        list.push(&DOCKERFILE);
+        list.push(&PERL);
+        list.push(&R);
+        list.push(&TCL);
+        list.push(&ZIG);
     }
     list
 }
