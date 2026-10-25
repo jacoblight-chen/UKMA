@@ -1232,3 +1232,26 @@ pub fn spec(language: &str) -> Option<&'static LanguageSpec> {
         .into_iter()
         .find(|candidate| candidate.language == language)
 }
+
+/// Guards the shape of the Kotlin fork's API (ADR-049 O-08).
+///
+/// `tree-sitter-kotlin-ng` 1.1.0 exposes the grammar as a `LanguageFn` const named
+/// `LANGUAGE`; the baseline `tree-sitter-kotlin` 0.3.5 exposed `language()`. A pin
+/// bump that changes this shape now fails here with a clear message, instead of
+/// surfacing as a mystery diagnostic on an unrelated spec line.
+#[cfg(all(test, feature = "parser-s2-batch2"))]
+mod kotlin_api_tests {
+    #[test]
+    fn the_kotlin_grammar_is_reachable_through_the_const() {
+        let grammar: tree_sitter::Language = tree_sitter_kotlin_ng::LANGUAGE.into();
+        assert!(
+            grammar.node_kind_count() > 100,
+            "the pinned crate must expose the real Kotlin grammar"
+        );
+        assert!(
+            super::grammar_for("kotlin").is_some(),
+            "grammar_for must resolve kotlin when parser-s2-batch2 is on"
+        );
+        assert_eq!(super::KOTLIN.language, "kotlin");
+    }
+}
