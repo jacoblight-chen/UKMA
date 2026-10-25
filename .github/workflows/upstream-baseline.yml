@@ -2,7 +2,7 @@
 # toolchain host (Linux runner + pinned rust 1.94.1). This job does NOT check
 # out UKMA code; it only audits the upstream at the locked SHA.
 #
-# See docs/migration/s0-baseline-report.md. Blockers are recorded, never
+# See docs/migration/upstream-baseline-report.md. Blockers are recorded, never
 # marked as success.
 
 name: Upstream Baseline (S0)

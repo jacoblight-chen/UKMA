@@ -19,9 +19,12 @@ target:
     - docs/migration/upstream-lock.yaml
     - docs/migration/source-map.yaml
     - docs/migration/dependency-graph.yaml
+    - docs/migration/crate-dependency-analysis.md
+    - docs/migration/license-audit.md
+    - docs/migration/phase7-s1-graph-plan.md
     - docs/migration/ledger/s0-upstream-baseline.yaml
     - docs/migration/s1-contract-proposal.md
-    - docs/migration/s0-baseline-report.md
+    - docs/migration/upstream-baseline-report.md
     - tests/golden/graph-basic-ops.golden.json
     - .github/pull_request_template.md
     - .github/CODEOWNERS
@@ -36,7 +39,7 @@ tests:
   golden: "tests/golden/graph-basic-ops.golden.json (prepared; validated by Rust golden test in S1)"
   contract: pending
   integration: "EXECUTED (Run 4, 2026-10-25): official cargo test --workspace completed — 299 tests: 297 passed / 1 ignored / 1 failed. Single failure = upstream Windows-portability defect (test_header_type_resolution hardcodes /tmp/ POSIX path; passes on Linux CI). All 20 RocksDB backend tests passed (gnu 1.99.1 + WinLibs 16.2 + forced -include cstdint workaround for rocksdb 8.10). Supplementary subset: cargo test -p codegraph --no-default-features --lib => 40/40."
-  rust_cargo: "Phase 6R gate green (13/13). Upstream baseline: see s0-baseline-report.md §5/§7 — every result backed by an actually executed command; prior blockers root-caused, repaired, and re-executed. Re-verify with pinned MSVC 1.94.1 in CI before S1 merge."
+  rust_cargo: "Phase 6R gate green (13/13). Upstream baseline: see upstream-baseline-report.md §5/§7 — every result backed by an actually executed command; prior blockers root-caused, repaired, and re-executed. Re-verify with pinned MSVC 1.94.1 in CI before S1 merge."
 review:
   owner: "jacoblight-chen"
   status: pending

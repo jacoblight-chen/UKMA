@@ -103,6 +103,12 @@ runner infrastructure flake); `f:\codegraph-workspace\upstream-baseline-test.log
   (executed `cargo metadata --locked --format-version 1`; full 5.1 MB JSON preserved at
   `f:\codegraph-workspace\upstream-cargo-metadata.json`; 43 members, 71 unique external
   deps, `codegraph` features: default→rocksdb-backend→dep:rocksdb)
+- `docs/migration/crate-dependency-analysis.md` — module→crate mapping (Graph/Parser/
+  Storage/Retrieval/Memory/Server) + complete intra-workspace dependency edges + S1 coupling findings
+- `docs/migration/license-audit.md` — upstream Apache-2.0 + NOTICE + per-file SPDX; 499
+  third-party packages: 0 unlicensed, all permissive/OSI (no GPL; 1 file-level MPL-2.0)
+- `docs/migration/phase7-s1-graph-plan.md` — S1 source file list + contract mapping
+  (PROPOSAL, pending architecture approval)
 - `docs/migration/ledger/s0-upstream-baseline.yaml` — ledger entry
 - `docs/migration/s1-contract-proposal.md` — S1 contract proposal + risks (pending architecture approval)
 - `tests/golden/graph-basic-ops.golden.json` — one Graph golden fixture (from observed upstream test semantics)
