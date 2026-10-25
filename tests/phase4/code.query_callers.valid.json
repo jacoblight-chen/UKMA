@@ -1,0 +1,41 @@
+{
+  "api_version": "1",
+  "operation": "ukma.code.query_callers.v1",
+  "context": {
+    "request_id": "req1",
+    "trace_id": "trace1",
+    "scope": {
+      "tenant_id": "t",
+      "project_id": "p"
+    },
+    "principal_id": "user",
+    "scopes": [
+      "code:read",
+      "code:index"
+    ],
+    "consistency": "eventual"
+  },
+  "input": {
+    "query": {
+      "symbol": {
+        "domain": "code",
+        "kind": "symbol",
+        "id": "symbol1",
+        "revision": "abc",
+        "scope": {
+          "tenant_id": "t",
+          "project_id": "p"
+        }
+      },
+      "direction": "in",
+      "edge_kinds": [
+        "calls"
+      ],
+      "max_depth": 1,
+      "max_nodes": 100,
+      "page": {
+        "limit": 10
+      }
+    }
+  }
+}

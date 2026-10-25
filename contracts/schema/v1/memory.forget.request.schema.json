@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/memory.forget.request.schema.json",
+  "title": "memory.forget Request [PHASE2 PROVISIONAL]",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "operation",
+    "context",
+    "input"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "1"
+    },
+    "operation": {
+      "const": "ukma.memory.forget.v1"
+    },
+    "context": {
+      "$ref": "shared.schema.json#/$defs/RequestContext"
+    },
+    "input": {
+      "type": "object",
+      "properties": {
+        "memory": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_etag": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "memory",
+        "reason",
+        "expected_etag"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$comment": "NOT A CLOSED INPUT CONTRACT: inferred from normative markdown table; require exact IDL and invariants."
+}

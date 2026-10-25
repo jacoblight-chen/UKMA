@@ -1,0 +1,1328 @@
+operations:
+- operation_id: code.analyze_repository
+  test_id: CAPI-01
+  domain: code
+  source_section: '32.2'
+  auth_scopes_explicit:
+  - code:index
+  auth_source_text: '`code:index`, commit 存在、Profile 可用'
+  errors_explicit: SOURCE_UNAVAILABLE, CAPABILITY_UNAVAILABLE
+  events:
+  - code.analysis.accepted
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: code.get_analysis_job
+  test_id: CAPI-02
+  domain: code
+  source_section: '32.2'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read`，需能看 job source'
+  errors_explicit: JOB_NOT_FOUND
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: code.cancel_analysis_job
+  test_id: CAPI-03
+  domain: code
+  source_section: '32.2'
+  auth_scopes_explicit:
+  - code:index
+  auth_source_text: '`code:index`，僅可取消非提交階段'
+  errors_explicit: JOB_NOT_CANCELLABLE
+  events:
+  - code.analysis.cancelled
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: code.get_symbol
+  test_id: CAPI-04
+  domain: code
+  source_section: '32.2'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read`, exact revision'
+  errors_explicit: NOT_FOUND, INDEX_STALE
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: code.find_symbols
+  test_id: CAPI-05
+  domain: code
+  source_section: '32.2'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read`, bound repo'
+  errors_explicit: CURSOR_EXPIRED, INDEX_STALE
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: code.find_references
+  test_id: CAPI-06
+  domain: code
+  source_section: '32.2'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` each location'
+  errors_explicit: INDEX_STALE
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: code.query_callers
+  test_id: CAPI-07
+  domain: code
+  source_section: '32.2'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read`, `direction=in`'
+  errors_explicit: RESOURCE_LIMIT
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: code.query_callees
+  test_id: CAPI-08
+  domain: code
+  source_section: '32.2'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read`, `direction=out`'
+  errors_explicit: RESOURCE_LIMIT
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: code.query_dependencies
+  test_id: CAPI-09
+  domain: code
+  source_section: '32.2'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read`; edge_kinds includes depends_on/imports'
+  errors_explicit: RESOURCE_LIMIT
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: code.analyze_impact
+  test_id: CAPI-10
+  domain: code
+  source_section: '32.2'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read`, revisions consistent'
+  errors_explicit: SOURCE_REVISION_MISMATCH
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: code.get_edit_context
+  test_id: CAPI-11
+  domain: code
+  source_section: '32.2'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read`, budget/ACL enforced'
+  errors_explicit: CONTEXT_BUDGET_EXCEEDED
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: code.compare_revisions
+  test_id: CAPI-12
+  domain: code
+  source_section: '32.2'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` both revisions'
+  errors_explicit: SOURCE_UNAVAILABLE
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: code.invalidate_revision
+  test_id: CAPI-13
+  domain: code
+  source_section: '32.2'
+  auth_scopes_explicit:
+  - code:index_admin
+  auth_source_text: '`code:index_admin`; stale-not-delete historical content'
+  errors_explicit: ETAG_MISMATCH
+  events:
+  - code.revision.stale
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: document.ingest
+  test_id: DAPI-01
+  domain: document
+  source_section: '33.2'
+  auth_scopes_explicit:
+  - document:index
+  auth_source_text: '`document:index`, Artifact 經 hash 驗證'
+  errors_explicit: UNSUPPORTED_MEDIA_TYPE, SOURCE_TOO_LARGE
+  events:
+  - document.ingest.accepted
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: document.get_ingest_job
+  test_id: DAPI-02
+  domain: document
+  source_section: '33.2'
+  auth_scopes_explicit:
+  - document:read
+  auth_source_text: '`document:read`'
+  errors_explicit: JOB_NOT_FOUND
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: document.cancel_ingest_job
+  test_id: DAPI-03
+  domain: document
+  source_section: '33.2'
+  auth_scopes_explicit:
+  - document:index
+  auth_source_text: '`document:index`, 限可取消階段'
+  errors_explicit: JOB_NOT_CANCELLABLE
+  events:
+  - document.ingest.cancelled
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: document.get_document
+  test_id: DAPI-04
+  domain: document
+  source_section: '33.2'
+  auth_scopes_explicit:
+  - document:read
+  auth_source_text: '`document:read`, historical revision'
+  errors_explicit: NOT_FOUND
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: document.parse_preview
+  test_id: DAPI-05
+  domain: document
+  source_section: '33.2'
+  auth_scopes_explicit:
+  - document:analyze
+  auth_source_text: '`document:analyze`, read artifact'
+  errors_explicit: SOURCE_PARSE_FAILED
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: document.search
+  test_id: DAPI-06
+  domain: document
+  source_section: '33.2'
+  auth_scopes_explicit:
+  - document:read
+  auth_source_text: '`document:read`, scope filter'
+  errors_explicit: INDEX_STALE
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: document.extract_requirements
+  test_id: DAPI-07
+  domain: document
+  source_section: '33.2'
+  auth_scopes_explicit:
+  - document:analyze
+  auth_source_text: '`document:analyze`'
+  errors_explicit: MODEL_UNAVAILABLE
+  events:
+  - document.extraction.proposed
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: document.extract_relations
+  test_id: DAPI-08
+  domain: document
+  source_section: '33.2'
+  auth_scopes_explicit:
+  - document:analyze
+  auth_source_text: '`document:analyze` + both scopes access'
+  errors_explicit: CROSS_SCOPE_DENIED
+  events:
+  - document.relation.proposed
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: document.review_requirement
+  test_id: DAPI-09
+  domain: document
+  source_section: '33.2'
+  auth_scopes_explicit: []
+  auth_source_text: '`{requirement:RequirementCandidate, receipt:ChangeReceipt}`'
+  errors_explicit: '`document:review`'
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: document.list_requirements
+  test_id: DAPI-10
+  domain: document
+  source_section: '33.2'
+  auth_scopes_explicit:
+  - document:read
+  auth_source_text: '`document:read`'
+  errors_explicit: CURSOR_EXPIRED
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: document.verify_consistency
+  test_id: DAPI-11
+  domain: document
+  source_section: '33.2'
+  auth_scopes_explicit:
+  - code:read
+  - document:analyze
+  auth_source_text: '`document:analyze` + code:read if needed'
+  errors_explicit: INDEX_STALE
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: document.compare_revisions
+  test_id: DAPI-12
+  domain: document
+  source_section: '33.2'
+  auth_scopes_explicit:
+  - document:read
+  auth_source_text: '`document:read` both'
+  errors_explicit: SOURCE_REVISION_MISMATCH
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: document.invalidate_revision
+  test_id: DAPI-13
+  domain: document
+  source_section: '33.2'
+  auth_scopes_explicit:
+  - document:index_admin
+  auth_source_text: '`document:index_admin`'
+  errors_explicit: ETAG_MISMATCH
+  events:
+  - document.revision.stale
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: document.get_source_span
+  test_id: DAPI-14
+  domain: document
+  source_section: '33.2'
+  auth_scopes_explicit:
+  - document:read
+  auth_source_text: '`document:read` on artifact'
+  errors_explicit: FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.open_agent_scope
+  test_id: MAPI-01
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:delegate
+  auth_source_text: '`memory:delegate`, parent may only attenuate rights'
+  errors_explicit: POLICY_DENIED, CONTEXT_BUDGET_EXCEEDED
+  events:
+  - memory.scope.opened
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.close_agent_scope
+  test_id: MAPI-02
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:delegate
+  auth_source_text: '`memory:delegate` of parent'
+  errors_explicit: CROSS_SCOPE_DENIED
+  events:
+  - memory.scope.closed
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.put_working_block
+  test_id: MAPI-03
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:write
+  auth_source_text: '`memory:write` and current session'
+  errors_explicit: CONTEXT_BUDGET_EXCEEDED
+  events:
+  - memory.working.updated
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.list_working_blocks
+  test_id: MAPI-04
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:read
+  auth_source_text: '`memory:read` same sandbox'
+  errors_explicit: CROSS_SCOPE_DENIED
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.remove_working_block
+  test_id: MAPI-05
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:write
+  auth_source_text: '`memory:write`; protected block guard'
+  errors_explicit: POLICY_DENIED
+  events:
+  - memory.working.removed
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.store_episode
+  test_id: MAPI-06
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:write
+  auth_source_text: '`memory:write`; idempotency'
+  errors_explicit: IDEMPOTENCY_CONFLICT
+  events:
+  - memory.episode.committed
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.search
+  test_id: MAPI-07
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:read
+  auth_source_text: '`memory:read`; scope constraints'
+  errors_explicit: RESOURCE_LIMIT, INDEX_STALE
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.retrieve
+  test_id: MAPI-08
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:read
+  auth_source_text: '`memory:read` + artifact ACL'
+  errors_explicit: NOT_FOUND, CONTEXT_BUDGET_EXCEEDED
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.update_revision
+  test_id: MAPI-09
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:write
+  auth_source_text: '`memory:write`; immutable old revision'
+  errors_explicit: ETAG_MISMATCH
+  events:
+  - memory.revision.committed
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.propose_fact
+  test_id: MAPI-10
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:write
+  auth_source_text: '`memory:write`; evidence required'
+  errors_explicit: EVIDENCE_REQUIRED
+  events:
+  - memory.fact.proposed
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.verify_fact
+  test_id: MAPI-11
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit: []
+  auth_source_text: '`ChangeReceipt`'
+  errors_explicit: '`memory:review`, independent evidence'
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.find_conflicts
+  test_id: MAPI-12
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:read
+  auth_source_text: '`memory:read`'
+  errors_explicit: RESOURCE_LIMIT
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.fold
+  test_id: MAPI-13
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:fold
+  auth_source_text: '`memory:fold`, safety preserve gate'
+  errors_explicit: POLICY_DENIED
+  events:
+  - memory.folded
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.page_out
+  test_id: MAPI-14
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:write
+  auth_source_text: '`memory:write`, not protected'
+  errors_explicit: POLICY_DENIED
+  events:
+  - memory.paged_out
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.page_in
+  test_id: MAPI-15
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:read
+  auth_source_text: '`memory:read`, integrity verified'
+  errors_explicit: SOURCE_UNAVAILABLE
+  events:
+  - memory.paged_in
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.begin_reconsolidation
+  test_id: MAPI-16
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:write
+  auth_source_text: '`memory:write`, valid window'
+  errors_explicit: ETAG_MISMATCH
+  events:
+  - memory.reconsolidation.opened
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.commit_reconsolidation
+  test_id: MAPI-17
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:write
+  auth_source_text: '`memory:write`; within window'
+  errors_explicit: POLICY_DENIED, CONFLICTING_EVIDENCE
+  events:
+  - memory.reconsolidation.committed
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.consolidate
+  test_id: MAPI-18
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:consolidate
+  auth_source_text: '`memory:consolidate`, nine-stage DAG'
+  errors_explicit: INDEX_NOT_READY
+  events:
+  - memory.consolidation.accepted
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.get_consolidation_job
+  test_id: MAPI-19
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:read
+  auth_source_text: '`memory:read` same project'
+  errors_explicit: JOB_NOT_FOUND
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.register_procedure_candidate
+  test_id: MAPI-20
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:procedure_write
+  auth_source_text: '`memory:procedure_write`'
+  errors_explicit: EVIDENCE_REQUIRED
+  events:
+  - memory.procedure.candidate
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.review_procedure
+  test_id: MAPI-21
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit: []
+  auth_source_text: '''disable'', evidence_ids:ID[], expected_etag`'
+  errors_explicit: '`ProcedureView`'
+  events:
+  - memory:procedure_review
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.record_procedure_outcome
+  test_id: MAPI-22
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:procedure_write
+  auth_source_text: '`memory:procedure_write`'
+  errors_explicit: ETAG_MISMATCH
+  events:
+  - memory.procedure.outcome
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.forget
+  test_id: MAPI-23
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:forget
+  auth_source_text: '`memory:forget`, retention/legal hold check'
+  errors_explicit: DELETION_BLOCKED
+  events:
+  - memory.deleted
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.evaluate_eviction
+  test_id: MAPI-24
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:manage
+  auth_source_text: '`memory:manage`, hard safety gate'
+  errors_explicit: MODEL_UNAVAILABLE only if fallback forbidden
+  events:
+  - memory.eviction.planned
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: memory.get_budget
+  test_id: MAPI-25
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:read
+  auth_source_text: '`memory:read` only scope'
+  errors_explicit: CONTEXT_BUDGET_EXCEEDED
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: traceability.propose_link
+  test_id: TAPI-01
+  domain: traceability
+  source_section: '35.2'
+  auth_scopes_explicit:
+  - trace:write
+  auth_source_text: '`trace:write`, read ACL both ends'
+  errors_explicit: EVIDENCE_REQUIRED
+  events:
+  - trace.link.proposed
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: traceability.validate_link
+  test_id: TAPI-02
+  domain: traceability
+  source_section: '35.2'
+  auth_scopes_explicit:
+  - trace:verify
+  auth_source_text: '`trace:verify`, source revisions valid'
+  errors_explicit: SOURCE_REVISION_MISMATCH
+  events:
+  - trace.link.validated
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: traceability.accept_link
+  test_id: TAPI-03
+  domain: traceability
+  source_section: '35.2'
+  auth_scopes_explicit: []
+  auth_source_text: '`TraceLink`'
+  errors_explicit: '`trace:approve`, must validated first'
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: traceability.revoke_link
+  test_id: TAPI-04
+  domain: traceability
+  source_section: '35.2'
+  auth_scopes_explicit:
+  - trace:approve
+  auth_source_text: '`trace:approve`, keep audit/history'
+  errors_explicit: ETAG_MISMATCH
+  events:
+  - trace.link.revoked
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: traceability.get_link
+  test_id: TAPI-05
+  domain: traceability
+  source_section: '35.2'
+  auth_scopes_explicit:
+  - trace:read
+  auth_source_text: '`trace:read` and both endpoints read'
+  errors_explicit: NOT_FOUND
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: traceability.list_links
+  test_id: TAPI-06
+  domain: traceability
+  source_section: '35.2'
+  auth_scopes_explicit:
+  - trace:read
+  auth_source_text: '`trace:read`, per-edge ACL'
+  errors_explicit: CURSOR_EXPIRED
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: traceability.query_coverage
+  test_id: TAPI-07
+  domain: traceability
+  source_section: '35.2'
+  auth_scopes_explicit:
+  - trace:read
+  auth_source_text: '`trace:read`, authorized denominator'
+  errors_explicit: INDEX_STALE
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: traceability.analyze_change_impact
+  test_id: TAPI-08
+  domain: traceability
+  source_section: '35.2'
+  auth_scopes_explicit:
+  - trace:read
+  auth_source_text: '`trace:read`, bounded traversal'
+  errors_explicit: RESOURCE_LIMIT
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: traceability.find_design_gaps
+  test_id: TAPI-09
+  domain: traceability
+  source_section: '35.2'
+  auth_scopes_explicit:
+  - trace:read
+  auth_source_text: '`trace:read`, read source docs/code/test'
+  errors_explicit: INDEX_STALE
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: traceability.compare_revisions
+  test_id: TAPI-10
+  domain: traceability
+  source_section: '35.2'
+  auth_scopes_explicit:
+  - trace:read
+  auth_source_text: '`trace:read`, both snapshots'
+  errors_explicit: SOURCE_UNAVAILABLE
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: traceability.explain_with_evidence
+  test_id: TAPI-11
+  domain: traceability
+  source_section: '35.2'
+  auth_scopes_explicit:
+  - trace:read
+  auth_source_text: '`trace:read`, Evidence ACL check'
+  errors_explicit: CONTEXT_BUDGET_EXCEEDED
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: traceability.revalidate_stale
+  test_id: TAPI-12
+  domain: traceability
+  source_section: '35.2'
+  auth_scopes_explicit:
+  - trace:verify
+  auth_source_text: '`trace:verify`, versions available'
+  errors_explicit: INDEX_NOT_READY
+  events:
+  - trace.revalidation.accepted
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability
+- operation_id: traceability.get_revalidation_job
+  test_id: TAPI-13
+  domain: traceability
+  source_section: '35.2'
+  auth_scopes_explicit:
+  - trace:read
+  auth_source_text: '`trace:read`'
+  errors_explicit: JOB_NOT_FOUND
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+  - backend_capability

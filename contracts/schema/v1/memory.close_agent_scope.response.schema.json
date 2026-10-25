@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/memory.close_agent_scope.response.schema.json",
+  "title": "memory.close_agent_scope response [PROVISIONAL]",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "request_id",
+    "trace_id",
+    "status",
+    "warnings",
+    "partial_reasons",
+    "freshness"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "1"
+    },
+    "request_id": {
+      "$ref": "shared.schema.json#/$defs/ID"
+    },
+    "trace_id": {
+      "$ref": "shared.schema.json#/$defs/ID"
+    },
+    "status": {
+      "enum": [
+        "ok",
+        "partial",
+        "error"
+      ]
+    },
+    "data": {
+      "$comment": "RESPONSE TYPE NOT CLOSED: `{closed:boolean, folded_result?:FoldedResult}`"
+    },
+    "error": {
+      "$ref": "shared.schema.json#/$defs/ErrorDetail"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "partial_reasons": {
+      "type": "array",
+      "items": {
+        "$ref": "shared.schema.json#/$defs/PartialReason"
+      }
+    },
+    "snapshot_id": {
+      "$ref": "shared.schema.json#/$defs/ID"
+    },
+    "index_generation": {
+      "$ref": "shared.schema.json#/$defs/ID"
+    },
+    "freshness": {
+      "enum": [
+        "current",
+        "stale",
+        "rebuilding",
+        "unknown"
+      ]
+    },
+    "observed_revision": {
+      "$ref": "shared.schema.json#/$defs/ID"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "error"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "error"
+        ],
+        "not": {
+          "required": [
+            "data"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "ok"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "not": {
+          "required": [
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "partial"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "partial_reasons"
+        ],
+        "properties": {
+          "partial_reasons": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ],
+  "$comment": "NOT A CLOSED RESPONSE CONTRACT: data payload unresolved."
+}

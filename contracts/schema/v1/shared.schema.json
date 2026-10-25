@@ -1,0 +1,1124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/shared.schema.json",
+  "title": "UKMA Shared Contracts Phase 2 — normative source-grounded subset",
+  "$defs": {
+    "ID": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "ScopeRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "project_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "repo_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "workspace_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "agent_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "session_id": {
+          "$ref": "#/$defs/ID"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "project_id"
+      ]
+    },
+    "Ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "enum": [
+            "code",
+            "document",
+            "memory",
+            "traceability",
+            "shared"
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "id": {
+          "$ref": "#/$defs/ID"
+        },
+        "revision": {
+          "$ref": "#/$defs/ID"
+        },
+        "scope": {
+          "$ref": "#/$defs/ScopeRef"
+        }
+      },
+      "required": [
+        "domain",
+        "kind",
+        "id",
+        "revision",
+        "scope"
+      ]
+    },
+    "ErrorCode": {
+      "type": "string",
+      "enum": [
+        "INVALID_SCHEMA",
+        "INVALID_ARGUMENT",
+        "UNAUTHENTICATED",
+        "FORBIDDEN",
+        "NOT_FOUND",
+        "SOURCE_REVISION_MISMATCH",
+        "ETAG_MISMATCH",
+        "IDEMPOTENCY_CONFLICT",
+        "CURSOR_EXPIRED",
+        "CAPABILITY_UNAVAILABLE",
+        "CONSISTENCY_UNSUPPORTED",
+        "INDEX_STALE",
+        "INDEX_NOT_READY",
+        "SOURCE_PARSE_FAILED",
+        "UNSUPPORTED_MEDIA_TYPE",
+        "SOURCE_UNAVAILABLE",
+        "SOURCE_TOO_LARGE",
+        "RESOURCE_LIMIT",
+        "INSUFFICIENT_CONTEXT_BUDGET",
+        "CONTEXT_BUDGET_EXCEEDED",
+        "CONFLICTING_EVIDENCE",
+        "EVIDENCE_REQUIRED",
+        "LINK_STATE_CONFLICT",
+        "CROSS_SCOPE_DENIED",
+        "DELEGATION_EXPIRED",
+        "POLICY_DENIED",
+        "STORAGE_COMMIT_UNKNOWN",
+        "STORAGE_UNAVAILABLE",
+        "INDEX_PROJECTION_FAILED",
+        "JOB_NOT_CANCELLABLE",
+        "JOB_NOT_FOUND",
+        "ALREADY_DELETED",
+        "DELETION_BLOCKED",
+        "MODEL_PROFILE_MISMATCH",
+        "MODEL_UNAVAILABLE",
+        "TIMEOUT",
+        "INTERNAL"
+      ]
+    },
+    "RequestContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "trace_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "scope": {
+          "$ref": "#/$defs/ScopeRef"
+        },
+        "principal_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "deadline_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "consistency": {
+          "enum": [
+            "eventual",
+            "read_your_writes",
+            "snapshot",
+            "strict_generation"
+          ]
+        },
+        "required_generation": {
+          "$ref": "#/$defs/ID"
+        },
+        "snapshot_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "idempotency_key": {
+          "$ref": "#/$defs/ID"
+        },
+        "expected_etag": {
+          "type": "string"
+        },
+        "delegation_token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "request_id",
+        "trace_id",
+        "scope",
+        "principal_id",
+        "scopes",
+        "consistency"
+      ]
+    },
+    "ErrorDetail": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/ErrorCode"
+        },
+        "safe_message": {
+          "type": "string"
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "retry_after_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "correlated_operation_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "field_violations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "reason"
+            ]
+          }
+        }
+      },
+      "required": [
+        "code",
+        "safe_message",
+        "retryable"
+      ]
+    },
+    "PartialReason": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "code": {
+          "$ref": "#/$defs/ErrorCode"
+        },
+        "detail": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "code",
+        "detail"
+      ]
+    },
+    "Hash": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*:[0-9a-fA-F]+$"
+    },
+    "ISODate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "Span": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/Ref"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "line_start": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "line_end": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "byte_start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "byte_end": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "page_start": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "page_end": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "heading_path": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "table_cell": {
+          "type": "object",
+          "properties": {
+            "row": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "column": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "row",
+            "column"
+          ],
+          "additionalProperties": false
+        },
+        "coordinate_system": {
+          "type": "string",
+          "enum": [
+            "utf8_byte_0_based",
+            "line_1_based",
+            "pdf_page_1_based"
+          ]
+        }
+      },
+      "required": [
+        "source",
+        "media_type"
+      ],
+      "additionalProperties": false
+    },
+    "Evidence": {
+      "type": "object",
+      "properties": {
+        "evidence_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "span": {
+          "$ref": "#/$defs/Span"
+        },
+        "content_hash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "parser",
+            "static_analysis",
+            "test",
+            "human",
+            "model",
+            "imported"
+          ]
+        },
+        "verification": {
+          "type": "string",
+          "enum": [
+            "unverified",
+            "candidate",
+            "verified",
+            "rejected",
+            "stale"
+          ]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "trust": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "created_at": {
+          "$ref": "#/$defs/ISODate"
+        },
+        "valid_for_revision": {
+          "$ref": "#/$defs/ID"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "ref",
+        "content_hash",
+        "method",
+        "verification",
+        "created_at",
+        "valid_for_revision"
+      ],
+      "additionalProperties": false
+    },
+    "PageRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "limit"
+      ]
+    },
+    "JobHandle": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "status": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "job_id",
+        "status"
+      ]
+    },
+    "JobView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "result_ref": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        }
+      },
+      "required": [
+        "job_id",
+        "state"
+      ]
+    },
+    "ValidityVector": {
+      "type": "object",
+      "properties": {
+        "historical_validity": {
+          "type": "string",
+          "enum": [
+            "valid",
+            "invalid",
+            "unverified"
+          ]
+        },
+        "current_applicability": {
+          "type": "string",
+          "enum": [
+            "applicable",
+            "stale",
+            "unknown"
+          ]
+        },
+        "index_freshness": {
+          "type": "string",
+          "enum": [
+            "current",
+            "stale",
+            "rebuilding",
+            "unknown"
+          ]
+        }
+      },
+      "required": [
+        "historical_validity",
+        "current_applicability",
+        "index_freshness"
+      ],
+      "additionalProperties": false
+    },
+    "OperationOutcome": {
+      "type": "object",
+      "properties": {
+        "execution_status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "ready",
+            "partial",
+            "failed",
+            "cancelled"
+          ]
+        },
+        "commit_status": {
+          "type": "string",
+          "enum": [
+            "not_started",
+            "pending",
+            "committed",
+            "unknown",
+            "failed"
+          ]
+        },
+        "projection_status": {
+          "type": "string",
+          "enum": [
+            "not_started",
+            "pending",
+            "ready",
+            "failed"
+          ]
+        },
+        "operation_id": {
+          "$ref": "#/$defs/ID"
+        }
+      },
+      "required": [
+        "execution_status",
+        "commit_status",
+        "projection_status",
+        "operation_id"
+      ],
+      "additionalProperties": false
+    },
+    "RepoRevision": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "vcs": {
+          "const": "git"
+        },
+        "commit_sha": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tree_sha": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dirty_policy": {
+          "enum": [
+            "reject",
+            "snapshot"
+          ]
+        }
+      },
+      "required": [
+        "repository",
+        "vcs",
+        "commit_sha",
+        "dirty_policy"
+      ]
+    },
+    "CodeLocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "file": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "span": {
+          "$ref": "shared.schema.json#/$defs/Span"
+        },
+        "qualified_name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "file",
+        "span"
+      ]
+    },
+    "CodeDiagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "file": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "span": {
+          "$ref": "shared.schema.json#/$defs/Span"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ]
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "severity",
+        "code",
+        "message"
+      ]
+    },
+    "Symbol": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ref": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "qualified_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "symbol_kind": {
+          "enum": [
+            "module",
+            "class",
+            "struct",
+            "trait",
+            "interface",
+            "function",
+            "method",
+            "field",
+            "variable",
+            "constant",
+            "enum",
+            "other"
+          ]
+        },
+        "signature": {
+          "type": "string",
+          "minLength": 1
+        },
+        "definition": {
+          "$ref": "shared.schema.json#/$defs/CodeLocation"
+        },
+        "visibility": {
+          "type": "string",
+          "minLength": 1
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resolution": {
+          "enum": [
+            "resolved",
+            "partial",
+            "unresolved"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "shared.schema.json#/$defs/Evidence"
+          }
+        }
+      },
+      "required": [
+        "ref",
+        "name",
+        "qualified_name",
+        "symbol_kind",
+        "definition",
+        "language",
+        "resolution",
+        "evidence"
+      ]
+    },
+    "CodeEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "target": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "kind": {
+          "enum": [
+            "calls",
+            "imports",
+            "depends_on",
+            "implements",
+            "references",
+            "defines"
+          ]
+        },
+        "resolution": {
+          "enum": [
+            "static_exact",
+            "static_possible",
+            "unresolved"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "shared.schema.json#/$defs/Evidence"
+          }
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "source",
+        "target",
+        "kind",
+        "resolution",
+        "evidence"
+      ]
+    },
+    "CodeAnalysisManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "commit_sha": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parser_profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "indexed_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "shared.schema.json#/$defs/CodeDiagnostic"
+          }
+        },
+        "snapshot_id": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "graph_generation": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "completeness": {
+          "enum": [
+            "complete",
+            "partial"
+          ]
+        }
+      },
+      "required": [
+        "repository",
+        "commit_sha",
+        "parser_profile",
+        "indexed_files",
+        "skipped_files",
+        "diagnostics",
+        "snapshot_id",
+        "graph_generation",
+        "completeness"
+      ]
+    },
+    "SymbolQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "revision": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "query": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kinds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "path_glob": {
+          "type": "string",
+          "minLength": 1
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1
+        },
+        "page": {
+          "$ref": "shared.schema.json#/$defs/PageRequest"
+        }
+      },
+      "required": [
+        "repository",
+        "revision",
+        "query",
+        "page"
+      ]
+    },
+    "ReferenceQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "symbol": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "include_declaration": {
+          "type": "boolean"
+        },
+        "relation_kinds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "page": {
+          "$ref": "shared.schema.json#/$defs/PageRequest"
+        }
+      },
+      "required": [
+        "symbol",
+        "include_declaration",
+        "page"
+      ]
+    },
+    "TraversalQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "symbol": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "direction": {
+          "enum": [
+            "in",
+            "out"
+          ]
+        },
+        "edge_kinds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "max_depth": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_nodes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "page": {
+          "$ref": "shared.schema.json#/$defs/PageRequest"
+        }
+      },
+      "required": [
+        "symbol",
+        "direction",
+        "edge_kinds",
+        "max_depth",
+        "max_nodes",
+        "page"
+      ]
+    },
+    "ImpactQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "changed": {
+          "type": "array",
+          "items": {
+            "$ref": "shared.schema.json#/$defs/Ref"
+          }
+        },
+        "revision": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "edge_kinds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "max_depth": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_nodes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "include_test_candidates": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "changed",
+        "revision",
+        "edge_kinds",
+        "max_depth",
+        "max_nodes",
+        "include_test_candidates"
+      ]
+    },
+    "ImpactReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "impacted": {
+          "type": "array",
+          "items": {
+            "$ref": "shared.schema.json#/$defs/Ref"
+          }
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "shared.schema.json#/$defs/CodeEdge"
+            }
+          }
+        },
+        "test_candidates": {
+          "type": "array",
+          "items": {
+            "$ref": "shared.schema.json#/$defs/Ref"
+          }
+        },
+        "unresolved_dynamic_calls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completeness": {
+          "enum": [
+            "complete",
+            "partial"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "shared.schema.json#/$defs/Evidence"
+          }
+        }
+      },
+      "required": [
+        "impacted",
+        "paths",
+        "test_candidates",
+        "unresolved_dynamic_calls",
+        "completeness",
+        "evidence"
+      ]
+    },
+    "EditContextQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "intent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repository": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "revision": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "target_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "shared.schema.json#/$defs/Ref"
+          }
+        },
+        "max_tokens": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "intent",
+        "repository",
+        "revision",
+        "target_refs",
+        "max_tokens"
+      ]
+    },
+    "EditContextBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ref": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "content": {
+          "type": "string"
+        },
+        "token_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "shared.schema.json#/$defs/Evidence"
+          }
+        }
+      },
+      "required": [
+        "ref",
+        "content",
+        "token_count",
+        "evidence"
+      ]
+    },
+    "EditContextResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "shared.schema.json#/$defs/EditContextBlock"
+          }
+        },
+        "total_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "truncation": {
+          "type": "boolean"
+        },
+        "omitted_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "shared.schema.json#/$defs/Ref"
+          }
+        }
+      },
+      "required": [
+        "blocks",
+        "total_tokens",
+        "truncation",
+        "omitted_refs"
+      ]
+    },
+    "CodeRevisionChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "change_kind": {
+          "enum": [
+            "added",
+            "removed",
+            "modified",
+            "renamed",
+            "unknown"
+          ]
+        },
+        "old": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "new": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "shared.schema.json#/$defs/Evidence"
+          }
+        }
+      },
+      "required": [
+        "change_kind",
+        "evidence"
+      ]
+    },
+    "ChangeReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "revision": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "etag": {
+          "type": "string",
+          "minLength": 1
+        },
+        "changed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "revision",
+        "etag",
+        "changed"
+      ]
+    }
+  }
+}

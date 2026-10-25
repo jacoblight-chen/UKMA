@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/document.compare_revisions.request.schema.json",
+  "title": "document.compare_revisions Request [PHASE2 PROVISIONAL]",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "operation",
+    "context",
+    "input"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "1"
+    },
+    "operation": {
+      "const": "ukma.document.compare_revisions.v1"
+    },
+    "context": {
+      "$ref": "shared.schema.json#/$defs/RequestContext"
+    },
+    "input": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "to": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$comment": "NOT A CLOSED INPUT CONTRACT: inferred from normative markdown table; require exact IDL and invariants."
+}

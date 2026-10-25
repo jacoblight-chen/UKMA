@@ -1,0 +1,159 @@
+version: phase5-proposal-1
+status: NOT_NORMATIVE_UNTIL_APPROVED
+operations:
+- operation_id: code.analyze_repository
+  test_id: CAPI-01
+  required_scope: code:index
+  resource_authz: per-resource; fail closed and redact inaccessible references
+  runtime_kind: job_accept
+  mutation: true
+  event_type: code.analysis.accepted
+  source_errors: SOURCE_UNAVAILABLE, CAPABILITY_UNAVAILABLE
+  snapshot_policy: canonical commit + outbox; projection asynchronous
+  idempotency_required: true
+  contract_status: PROPOSED_RUNTIME_RULES_REQUIRES_REVIEW
+  source_section: UKMA v1.2.3 §32.2, §40.4–40.7
+- operation_id: code.get_analysis_job
+  test_id: CAPI-02
+  required_scope: code:read
+  resource_authz: per-resource; fail closed and redact inaccessible references
+  runtime_kind: job_read
+  mutation: false
+  event_type: null
+  source_errors: JOB_NOT_FOUND
+  snapshot_policy: strict_generation or explicit stale error
+  idempotency_required: false
+  contract_status: PROPOSED_RUNTIME_RULES_REQUIRES_REVIEW
+  source_section: UKMA v1.2.3 §32.2, §40.4–40.7
+- operation_id: code.cancel_analysis_job
+  test_id: CAPI-03
+  required_scope: code:index
+  resource_authz: per-resource; fail closed and redact inaccessible references
+  runtime_kind: job_cancel
+  mutation: true
+  event_type: code.analysis.cancelled
+  source_errors: JOB_NOT_CANCELLABLE
+  snapshot_policy: canonical commit + outbox; projection asynchronous
+  idempotency_required: true
+  contract_status: PROPOSED_RUNTIME_RULES_REQUIRES_REVIEW
+  source_section: UKMA v1.2.3 §32.2, §40.4–40.7
+- operation_id: code.get_symbol
+  test_id: CAPI-04
+  required_scope: code:read
+  resource_authz: per-resource; fail closed and redact inaccessible references
+  runtime_kind: snapshot_read
+  mutation: false
+  event_type: null
+  source_errors: NOT_FOUND, INDEX_STALE
+  snapshot_policy: strict_generation or explicit stale error
+  idempotency_required: false
+  contract_status: PROPOSED_RUNTIME_RULES_REQUIRES_REVIEW
+  source_section: UKMA v1.2.3 §32.2, §40.4–40.7
+- operation_id: code.find_symbols
+  test_id: CAPI-05
+  required_scope: code:read
+  resource_authz: per-resource; fail closed and redact inaccessible references
+  runtime_kind: snapshot_query
+  mutation: false
+  event_type: null
+  source_errors: CURSOR_EXPIRED, INDEX_STALE
+  snapshot_policy: strict_generation or explicit stale error
+  idempotency_required: false
+  contract_status: PROPOSED_RUNTIME_RULES_REQUIRES_REVIEW
+  source_section: UKMA v1.2.3 §32.2, §40.4–40.7
+- operation_id: code.find_references
+  test_id: CAPI-06
+  required_scope: code:read
+  resource_authz: per-resource; fail closed and redact inaccessible references
+  runtime_kind: snapshot_query
+  mutation: false
+  event_type: null
+  source_errors: INDEX_STALE
+  snapshot_policy: strict_generation or explicit stale error
+  idempotency_required: false
+  contract_status: PROPOSED_RUNTIME_RULES_REQUIRES_REVIEW
+  source_section: UKMA v1.2.3 §32.2, §40.4–40.7
+- operation_id: code.query_callers
+  test_id: CAPI-07
+  required_scope: code:read
+  resource_authz: per-resource; fail closed and redact inaccessible references
+  runtime_kind: traverse_in
+  mutation: false
+  event_type: null
+  source_errors: RESOURCE_LIMIT
+  snapshot_policy: strict_generation or explicit stale error
+  idempotency_required: false
+  contract_status: PROPOSED_RUNTIME_RULES_REQUIRES_REVIEW
+  source_section: UKMA v1.2.3 §32.2, §40.4–40.7
+- operation_id: code.query_callees
+  test_id: CAPI-08
+  required_scope: code:read
+  resource_authz: per-resource; fail closed and redact inaccessible references
+  runtime_kind: traverse_out
+  mutation: false
+  event_type: null
+  source_errors: RESOURCE_LIMIT
+  snapshot_policy: strict_generation or explicit stale error
+  idempotency_required: false
+  contract_status: PROPOSED_RUNTIME_RULES_REQUIRES_REVIEW
+  source_section: UKMA v1.2.3 §32.2, §40.4–40.7
+- operation_id: code.query_dependencies
+  test_id: CAPI-09
+  required_scope: code:read
+  resource_authz: per-resource; fail closed and redact inaccessible references
+  runtime_kind: traverse_dependency
+  mutation: false
+  event_type: null
+  source_errors: RESOURCE_LIMIT
+  snapshot_policy: strict_generation or explicit stale error
+  idempotency_required: false
+  contract_status: PROPOSED_RUNTIME_RULES_REQUIRES_REVIEW
+  source_section: UKMA v1.2.3 §32.2, §40.4–40.7
+- operation_id: code.analyze_impact
+  test_id: CAPI-10
+  required_scope: code:read
+  resource_authz: per-resource; fail closed and redact inaccessible references
+  runtime_kind: impact_read
+  mutation: false
+  event_type: null
+  source_errors: SOURCE_REVISION_MISMATCH
+  snapshot_policy: strict_generation or explicit stale error
+  idempotency_required: false
+  contract_status: PROPOSED_RUNTIME_RULES_REQUIRES_REVIEW
+  source_section: UKMA v1.2.3 §32.2, §40.4–40.7
+- operation_id: code.get_edit_context
+  test_id: CAPI-11
+  required_scope: code:read
+  resource_authz: per-resource; fail closed and redact inaccessible references
+  runtime_kind: budget_read
+  mutation: false
+  event_type: null
+  source_errors: CONTEXT_BUDGET_EXCEEDED
+  snapshot_policy: strict_generation or explicit stale error
+  idempotency_required: false
+  contract_status: PROPOSED_RUNTIME_RULES_REQUIRES_REVIEW
+  source_section: UKMA v1.2.3 §32.2, §40.4–40.7
+- operation_id: code.compare_revisions
+  test_id: CAPI-12
+  required_scope: code:read
+  resource_authz: per-resource; fail closed and redact inaccessible references
+  runtime_kind: dual_revision_read
+  mutation: false
+  event_type: null
+  source_errors: SOURCE_UNAVAILABLE
+  snapshot_policy: strict_generation or explicit stale error
+  idempotency_required: false
+  contract_status: PROPOSED_RUNTIME_RULES_REQUIRES_REVIEW
+  source_section: UKMA v1.2.3 §32.2, §40.4–40.7
+- operation_id: code.invalidate_revision
+  test_id: CAPI-13
+  required_scope: code:index_admin
+  resource_authz: per-resource; fail closed and redact inaccessible references
+  runtime_kind: invalidate_cas
+  mutation: true
+  event_type: code.revision.stale
+  source_errors: ETAG_MISMATCH
+  snapshot_policy: canonical commit + outbox; projection asynchronous
+  idempotency_required: true
+  contract_status: PROPOSED_RUNTIME_RULES_REQUIRES_REVIEW
+  source_section: UKMA v1.2.3 §32.2, §40.4–40.7

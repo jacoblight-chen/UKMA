@@ -1,0 +1,630 @@
+{
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "$ref": "#/$defs/ID"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "code.analysis.accepted",
+        "code.analysis.cancelled",
+        "code.revision.stale",
+        "document.extraction.proposed",
+        "document.ingest.accepted",
+        "document.ingest.cancelled",
+        "document.relation.proposed",
+        "document.revision.stale",
+        "memory.consolidation.accepted",
+        "memory.deleted",
+        "memory.episode.committed",
+        "memory.eviction.planned",
+        "memory.fact.proposed",
+        "memory.folded",
+        "memory.paged_in",
+        "memory.paged_out",
+        "memory.procedure.candidate",
+        "memory.procedure.outcome",
+        "memory.reconsolidation.committed",
+        "memory.reconsolidation.opened",
+        "memory.revision.committed",
+        "memory.scope.closed",
+        "memory.scope.opened",
+        "memory.working.removed",
+        "memory.working.updated",
+        "memory:procedure_review",
+        "trace.link.proposed",
+        "trace.link.revoked",
+        "trace.link.validated",
+        "trace.revalidation.accepted"
+      ]
+    },
+    "event_version": {
+      "const": "1"
+    },
+    "aggregate_ref": {
+      "$ref": "#/$defs/Ref"
+    },
+    "aggregate_revision": {
+      "$ref": "#/$defs/ID"
+    },
+    "scope": {
+      "$ref": "#/$defs/ScopeRef"
+    },
+    "occurred_at": {
+      "$ref": "#/$defs/ISODate"
+    },
+    "correlation_id": {
+      "$ref": "#/$defs/ID"
+    },
+    "causation_id": {
+      "$ref": "#/$defs/ID"
+    },
+    "idempotency_key": {
+      "$ref": "#/$defs/ID"
+    },
+    "payload_ref_or_redacted_payload": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Ref"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "redacted": {
+              "const": true
+            }
+          },
+          "required": [
+            "redacted"
+          ]
+        }
+      ]
+    }
+  },
+  "required": [
+    "event_id",
+    "event_type",
+    "event_version",
+    "aggregate_ref",
+    "aggregate_revision",
+    "scope",
+    "occurred_at",
+    "correlation_id",
+    "causation_id",
+    "idempotency_key",
+    "payload_ref_or_redacted_payload"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/event-envelope.schema.json",
+  "$defs": {
+    "ID": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "ScopeRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "project_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "repo_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "workspace_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "agent_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "session_id": {
+          "$ref": "#/$defs/ID"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "project_id"
+      ]
+    },
+    "Ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "enum": [
+            "code",
+            "document",
+            "memory",
+            "traceability",
+            "shared"
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "id": {
+          "$ref": "#/$defs/ID"
+        },
+        "revision": {
+          "$ref": "#/$defs/ID"
+        },
+        "scope": {
+          "$ref": "#/$defs/ScopeRef"
+        }
+      },
+      "required": [
+        "domain",
+        "kind",
+        "id",
+        "revision",
+        "scope"
+      ]
+    },
+    "ErrorCode": {
+      "type": "string",
+      "enum": [
+        "INVALID_SCHEMA",
+        "INVALID_ARGUMENT",
+        "UNAUTHENTICATED",
+        "FORBIDDEN",
+        "NOT_FOUND",
+        "SOURCE_REVISION_MISMATCH",
+        "ETAG_MISMATCH",
+        "IDEMPOTENCY_CONFLICT",
+        "CURSOR_EXPIRED",
+        "CAPABILITY_UNAVAILABLE",
+        "CONSISTENCY_UNSUPPORTED",
+        "INDEX_STALE",
+        "INDEX_NOT_READY",
+        "SOURCE_PARSE_FAILED",
+        "UNSUPPORTED_MEDIA_TYPE",
+        "SOURCE_UNAVAILABLE",
+        "SOURCE_TOO_LARGE",
+        "RESOURCE_LIMIT",
+        "INSUFFICIENT_CONTEXT_BUDGET",
+        "CONTEXT_BUDGET_EXCEEDED",
+        "CONFLICTING_EVIDENCE",
+        "EVIDENCE_REQUIRED",
+        "LINK_STATE_CONFLICT",
+        "CROSS_SCOPE_DENIED",
+        "DELEGATION_EXPIRED",
+        "POLICY_DENIED",
+        "STORAGE_COMMIT_UNKNOWN",
+        "STORAGE_UNAVAILABLE",
+        "INDEX_PROJECTION_FAILED",
+        "JOB_NOT_CANCELLABLE",
+        "JOB_NOT_FOUND",
+        "ALREADY_DELETED",
+        "DELETION_BLOCKED",
+        "MODEL_PROFILE_MISMATCH",
+        "MODEL_UNAVAILABLE",
+        "TIMEOUT",
+        "INTERNAL"
+      ]
+    },
+    "RequestContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "trace_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "scope": {
+          "$ref": "#/$defs/ScopeRef"
+        },
+        "principal_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "deadline_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "consistency": {
+          "enum": [
+            "eventual",
+            "read_your_writes",
+            "snapshot",
+            "strict_generation"
+          ]
+        },
+        "required_generation": {
+          "$ref": "#/$defs/ID"
+        },
+        "snapshot_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "idempotency_key": {
+          "$ref": "#/$defs/ID"
+        },
+        "expected_etag": {
+          "type": "string"
+        },
+        "delegation_token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "request_id",
+        "trace_id",
+        "scope",
+        "principal_id",
+        "scopes",
+        "consistency"
+      ]
+    },
+    "ErrorDetail": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/ErrorCode"
+        },
+        "safe_message": {
+          "type": "string"
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "retry_after_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "correlated_operation_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "field_violations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "reason"
+            ]
+          }
+        }
+      },
+      "required": [
+        "code",
+        "safe_message",
+        "retryable"
+      ]
+    },
+    "PartialReason": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "code": {
+          "$ref": "#/$defs/ErrorCode"
+        },
+        "detail": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "code",
+        "detail"
+      ]
+    },
+    "Hash": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*:[0-9a-fA-F]+$"
+    },
+    "ISODate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "Span": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/Ref"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "line_start": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "line_end": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "byte_start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "byte_end": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "page_start": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "page_end": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "heading_path": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "table_cell": {
+          "type": "object",
+          "properties": {
+            "row": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "column": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "row",
+            "column"
+          ],
+          "additionalProperties": false
+        },
+        "coordinate_system": {
+          "type": "string",
+          "enum": [
+            "utf8_byte_0_based",
+            "line_1_based",
+            "pdf_page_1_based"
+          ]
+        }
+      },
+      "required": [
+        "source",
+        "media_type"
+      ],
+      "additionalProperties": false
+    },
+    "Evidence": {
+      "type": "object",
+      "properties": {
+        "evidence_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "span": {
+          "$ref": "#/$defs/Span"
+        },
+        "content_hash": {
+          "$ref": "#/$defs/Hash"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "parser",
+            "static_analysis",
+            "test",
+            "human",
+            "model",
+            "imported"
+          ]
+        },
+        "verification": {
+          "type": "string",
+          "enum": [
+            "unverified",
+            "candidate",
+            "verified",
+            "rejected",
+            "stale"
+          ]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "trust": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "created_at": {
+          "$ref": "#/$defs/ISODate"
+        },
+        "valid_for_revision": {
+          "$ref": "#/$defs/ID"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "ref",
+        "content_hash",
+        "method",
+        "verification",
+        "created_at",
+        "valid_for_revision"
+      ],
+      "additionalProperties": false
+    },
+    "PageRequest": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "limit"
+      ],
+      "additionalProperties": false
+    },
+    "JobHandle": {
+      "type": "object",
+      "properties": {
+        "job_id": {
+          "$ref": "#/$defs/ID"
+        },
+        "job_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "ready",
+            "partial",
+            "failed",
+            "cancelled"
+          ]
+        },
+        "submitted_at": {
+          "$ref": "#/$defs/ISODate"
+        },
+        "source_revision": {
+          "$ref": "#/$defs/ID"
+        },
+        "target_generation": {
+          "$ref": "#/$defs/ID"
+        }
+      },
+      "required": [
+        "job_id",
+        "job_kind",
+        "status",
+        "submitted_at"
+      ],
+      "additionalProperties": false
+    },
+    "JobView": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/JobHandle"
+        }
+      ]
+    },
+    "ValidityVector": {
+      "type": "object",
+      "properties": {
+        "historical_validity": {
+          "type": "string",
+          "enum": [
+            "valid",
+            "invalid",
+            "unverified"
+          ]
+        },
+        "current_applicability": {
+          "type": "string",
+          "enum": [
+            "applicable",
+            "stale",
+            "unknown"
+          ]
+        },
+        "index_freshness": {
+          "type": "string",
+          "enum": [
+            "current",
+            "stale",
+            "rebuilding",
+            "unknown"
+          ]
+        }
+      },
+      "required": [
+        "historical_validity",
+        "current_applicability",
+        "index_freshness"
+      ],
+      "additionalProperties": false
+    },
+    "OperationOutcome": {
+      "type": "object",
+      "properties": {
+        "execution_status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "ready",
+            "partial",
+            "failed",
+            "cancelled"
+          ]
+        },
+        "commit_status": {
+          "type": "string",
+          "enum": [
+            "not_started",
+            "pending",
+            "committed",
+            "unknown",
+            "failed"
+          ]
+        },
+        "projection_status": {
+          "type": "string",
+          "enum": [
+            "not_started",
+            "pending",
+            "ready",
+            "failed"
+          ]
+        },
+        "operation_id": {
+          "$ref": "#/$defs/ID"
+        }
+      },
+      "required": [
+        "execution_status",
+        "commit_status",
+        "projection_status",
+        "operation_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$comment": "Envelope validated; individual event payloads remain unresolved and publication-blocked."
+}

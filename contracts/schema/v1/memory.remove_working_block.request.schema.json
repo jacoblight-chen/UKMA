@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/memory.remove_working_block.request.schema.json",
+  "title": "memory.remove_working_block Request [PHASE2 PROVISIONAL]",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "operation",
+    "context",
+    "input"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "1"
+    },
+    "operation": {
+      "const": "ukma.memory.remove_working_block.v1"
+    },
+    "context": {
+      "$ref": "shared.schema.json#/$defs/RequestContext"
+    },
+    "input": {
+      "type": "object",
+      "properties": {
+        "block": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "expected_etag": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "block",
+        "expected_etag"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$comment": "NOT A CLOSED INPUT CONTRACT: inferred from normative markdown table; require exact IDL and invariants."
+}

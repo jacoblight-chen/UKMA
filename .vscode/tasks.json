@@ -1,0 +1,65 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Cargo: Check",
+      "type": "shell",
+      "command": "cargo check --workspace --all-targets",
+      "group": "build",
+      "problemMatcher": [
+        "$rustc"
+      ]
+    },
+    {
+      "label": "Cargo: Test",
+      "type": "shell",
+      "command": "cargo test --workspace --all-targets",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": [
+        "$rustc"
+      ]
+    },
+    {
+      "label": "Cargo: Test Runtime",
+      "type": "shell",
+      "command": "cargo test -p ukma-code-runtime --all-targets",
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "problemMatcher": [
+        "$rustc"
+      ]
+    },
+    {
+      "label": "Cargo: Clippy",
+      "type": "shell",
+      "command": "cargo clippy --workspace --all-targets -- -D warnings",
+      "group": "build",
+      "problemMatcher": [
+        "$rustc"
+      ]
+    },
+    {
+      "label": "Cargo: Format Check",
+      "type": "shell",
+      "command": "cargo fmt --all -- --check",
+      "group": "build",
+      "problemMatcher": [
+        "$rustc"
+      ]
+    },
+    {
+      "label": "Cargo: Run Example",
+      "type": "shell",
+      "command": "cargo run -p ukma-code-runtime --example quickstart",
+      "group": "build",
+      "problemMatcher": [
+        "$rustc"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/code.invalidate_revision.request.schema.json",
+  "title": "code.invalidate_revision Request (Phase 4 typed candidate)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "operation",
+    "context",
+    "input"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "1"
+    },
+    "operation": {
+      "const": "ukma.code.invalidate_revision.v1"
+    },
+    "context": {
+      "$ref": "shared.schema.json#/$defs/RequestContext"
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "revision": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_etag": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "repository",
+        "revision",
+        "reason",
+        "expected_etag"
+      ]
+    }
+  }
+}

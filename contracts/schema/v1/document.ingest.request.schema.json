@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/document.ingest.request.schema.json",
+  "title": "document.ingest Request [PHASE2 PROVISIONAL]",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "operation",
+    "context",
+    "input"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "1"
+    },
+    "operation": {
+      "const": "ukma.document.ingest.v1"
+    },
+    "context": {
+      "$ref": "shared.schema.json#/$defs/RequestContext"
+    },
+    "input": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "$comment": "UNRESOLVED TYPE: DocumentSource"
+        },
+        "parser_profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "options": {
+          "$comment": "UNRESOLVED TYPE: unspecified"
+        },
+        "async": {
+          "const": true
+        }
+      },
+      "required": [
+        "source",
+        "parser_profile",
+        "options",
+        "async"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$comment": "NOT A CLOSED INPUT CONTRACT: inferred from normative markdown table; require exact IDL and invariants."
+}

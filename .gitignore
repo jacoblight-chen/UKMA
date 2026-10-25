@@ -1,0 +1,8 @@
+target/
+.codegraph/
+.vscode/.ropeproject
+*.pending
+*.tmp
+__pycache__/
+.pytest_cache/
+*.log

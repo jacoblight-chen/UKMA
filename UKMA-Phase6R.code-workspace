@@ -1,0 +1,19 @@
+{
+  "folders": [
+    {
+      "name": "UKMA (Workspace Root)",
+      "path": "."
+    },
+    {
+      "name": "ukma-contracts",
+      "path": "crates/ukma-contracts"
+    },
+    {
+      "name": "ukma-code-runtime",
+      "path": "crates/ukma-code-runtime"
+    }
+  ],
+  "settings": {
+    "rust-analyzer.cargo.allTargets": true
+  }
+}

@@ -1,0 +1,3 @@
+[workspace]
+members = ["crates/ukma-contracts", "crates/ukma-code-runtime"]
+resolver = "2"

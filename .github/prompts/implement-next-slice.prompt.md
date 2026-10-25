@@ -1,0 +1,1 @@
+Review `docs/PHASE_6_REPORT.md`, `docs/PHASE6R_IMPLEMENTATION_PLAN.md`, and `.github/copilot-instructions.md`. Choose the first incomplete Rust task. Implement one vertical slice using existing traits and tests, then describe exactly which cargo commands were run and which remain unverified. Do not change unrelated domains or claim CodeGraph source has been migrated.

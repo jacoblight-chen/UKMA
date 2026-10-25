@@ -1,0 +1,188 @@
+{
+  "code_api_count": 13,
+  "typed_request_response_candidates": 13,
+  "fully_closed": 0,
+  "rows": [
+    {
+      "operation_id": "code.analyze_repository",
+      "test_id": "CAPI-01",
+      "request_schema_typed": true,
+      "response_schema_typed": true,
+      "source_grounded_response": false,
+      "full_contract_closed": false,
+      "blockers": [
+        "source_missing_response_field_contract",
+        "operation_policy_and_storage_runtime_tests_unexecuted",
+        "no_compiled_rust_types",
+        "event_payload_not_closed",
+        "transaction_and_state_transition_not_verified"
+      ]
+    },
+    {
+      "operation_id": "code.get_analysis_job",
+      "test_id": "CAPI-02",
+      "request_schema_typed": true,
+      "response_schema_typed": true,
+      "source_grounded_response": false,
+      "full_contract_closed": false,
+      "blockers": [
+        "source_missing_response_field_contract",
+        "operation_policy_and_storage_runtime_tests_unexecuted",
+        "no_compiled_rust_types",
+        "event_payload_not_closed"
+      ]
+    },
+    {
+      "operation_id": "code.cancel_analysis_job",
+      "test_id": "CAPI-03",
+      "request_schema_typed": true,
+      "response_schema_typed": true,
+      "source_grounded_response": false,
+      "full_contract_closed": false,
+      "blockers": [
+        "source_missing_response_field_contract",
+        "operation_policy_and_storage_runtime_tests_unexecuted",
+        "no_compiled_rust_types",
+        "event_payload_not_closed",
+        "transaction_and_state_transition_not_verified"
+      ]
+    },
+    {
+      "operation_id": "code.get_symbol",
+      "test_id": "CAPI-04",
+      "request_schema_typed": true,
+      "response_schema_typed": true,
+      "source_grounded_response": true,
+      "full_contract_closed": false,
+      "blockers": [
+        "operation_policy_and_storage_runtime_tests_unexecuted",
+        "no_compiled_rust_types",
+        "event_payload_not_closed"
+      ]
+    },
+    {
+      "operation_id": "code.find_symbols",
+      "test_id": "CAPI-05",
+      "request_schema_typed": true,
+      "response_schema_typed": true,
+      "source_grounded_response": true,
+      "full_contract_closed": false,
+      "blockers": [
+        "operation_policy_and_storage_runtime_tests_unexecuted",
+        "no_compiled_rust_types",
+        "event_payload_not_closed"
+      ]
+    },
+    {
+      "operation_id": "code.find_references",
+      "test_id": "CAPI-06",
+      "request_schema_typed": true,
+      "response_schema_typed": true,
+      "source_grounded_response": true,
+      "full_contract_closed": false,
+      "blockers": [
+        "operation_policy_and_storage_runtime_tests_unexecuted",
+        "no_compiled_rust_types",
+        "event_payload_not_closed"
+      ]
+    },
+    {
+      "operation_id": "code.query_callers",
+      "test_id": "CAPI-07",
+      "request_schema_typed": true,
+      "response_schema_typed": true,
+      "source_grounded_response": true,
+      "full_contract_closed": false,
+      "blockers": [
+        "operation_policy_and_storage_runtime_tests_unexecuted",
+        "no_compiled_rust_types",
+        "event_payload_not_closed"
+      ]
+    },
+    {
+      "operation_id": "code.query_callees",
+      "test_id": "CAPI-08",
+      "request_schema_typed": true,
+      "response_schema_typed": true,
+      "source_grounded_response": true,
+      "full_contract_closed": false,
+      "blockers": [
+        "operation_policy_and_storage_runtime_tests_unexecuted",
+        "no_compiled_rust_types",
+        "event_payload_not_closed"
+      ]
+    },
+    {
+      "operation_id": "code.query_dependencies",
+      "test_id": "CAPI-09",
+      "request_schema_typed": true,
+      "response_schema_typed": true,
+      "source_grounded_response": true,
+      "full_contract_closed": false,
+      "blockers": [
+        "operation_policy_and_storage_runtime_tests_unexecuted",
+        "no_compiled_rust_types",
+        "event_payload_not_closed"
+      ]
+    },
+    {
+      "operation_id": "code.analyze_impact",
+      "test_id": "CAPI-10",
+      "request_schema_typed": true,
+      "response_schema_typed": true,
+      "source_grounded_response": true,
+      "full_contract_closed": false,
+      "blockers": [
+        "operation_policy_and_storage_runtime_tests_unexecuted",
+        "no_compiled_rust_types",
+        "event_payload_not_closed"
+      ]
+    },
+    {
+      "operation_id": "code.get_edit_context",
+      "test_id": "CAPI-11",
+      "request_schema_typed": true,
+      "response_schema_typed": true,
+      "source_grounded_response": true,
+      "full_contract_closed": false,
+      "blockers": [
+        "operation_policy_and_storage_runtime_tests_unexecuted",
+        "no_compiled_rust_types",
+        "event_payload_not_closed"
+      ]
+    },
+    {
+      "operation_id": "code.compare_revisions",
+      "test_id": "CAPI-12",
+      "request_schema_typed": true,
+      "response_schema_typed": true,
+      "source_grounded_response": true,
+      "full_contract_closed": false,
+      "blockers": [
+        "operation_policy_and_storage_runtime_tests_unexecuted",
+        "no_compiled_rust_types",
+        "event_payload_not_closed"
+      ]
+    },
+    {
+      "operation_id": "code.invalidate_revision",
+      "test_id": "CAPI-13",
+      "request_schema_typed": true,
+      "response_schema_typed": true,
+      "source_grounded_response": false,
+      "full_contract_closed": false,
+      "blockers": [
+        "source_missing_response_field_contract",
+        "operation_policy_and_storage_runtime_tests_unexecuted",
+        "no_compiled_rust_types",
+        "event_payload_not_closed",
+        "transaction_and_state_transition_not_verified"
+      ]
+    }
+  ],
+  "proposed_shared_types": [
+    "JobHandle",
+    "JobView",
+    "ChangeReceipt"
+  ]
+}

@@ -1,0 +1,1210 @@
+spec_version: 1.2.3
+api_major: 1
+status: PHASE4_CODE_TYPED_CANDIDATES_NOT_RUNTIME_CLOSED
+source_file: UKMA_v1.2.3_Interface_Runtime_Contract_Specification_Standalone_Consistency_Closure.md
+source_sha256: d556bf27d2d74afd0dbcea9e5592763c8176982adc0917d2dd024f7c95fe96f5
+operations:
+- operation_id: code.analyze_repository
+  api_major: 1
+  test_id: CAPI-01
+  domain: code
+  request_schema: contracts/schema/v1/code.analyze_repository.request.schema.json
+  response_schema: contracts/schema/v1/code.analyze_repository.response.schema.json
+  source_section: '32.2'
+  source_request: '`revision:RepoRevision, parser_profile, include_globs[], exclude_globs[],
+    async:true`'
+  source_response: '`JobHandle`'
+  source_auth: '`code:index`, commit 存在、Profile 可用'
+  source_errors: SOURCE_UNAVAILABLE, CAPABILITY_UNAVAILABLE
+  source_events: '`code.analysis.accepted`; CAPI-01'
+  events:
+  - code.analysis.accepted
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: code.get_analysis_job
+  api_major: 1
+  test_id: CAPI-02
+  domain: code
+  request_schema: contracts/schema/v1/code.get_analysis_job.request.schema.json
+  response_schema: contracts/schema/v1/code.get_analysis_job.response.schema.json
+  source_section: '32.2'
+  source_request: '`job_id`'
+  source_response: '`JobView`；完成時 `CodeAnalysisManifest` 由 result_ref 取得'
+  source_auth: '`code:read`，需能看 job source'
+  source_errors: JOB_NOT_FOUND
+  source_events: read-only; CAPI-02
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: code.cancel_analysis_job
+  api_major: 1
+  test_id: CAPI-03
+  domain: code
+  request_schema: contracts/schema/v1/code.cancel_analysis_job.request.schema.json
+  response_schema: contracts/schema/v1/code.cancel_analysis_job.response.schema.json
+  source_section: '32.2'
+  source_request: '`job_id, reason`'
+  source_response: '`JobView`'
+  source_auth: '`code:index`，僅可取消非提交階段'
+  source_errors: JOB_NOT_CANCELLABLE
+  source_events: '`code.analysis.cancelled`; CAPI-03'
+  events:
+  - code.analysis.cancelled
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: code.get_symbol
+  api_major: 1
+  test_id: CAPI-04
+  domain: code
+  request_schema: contracts/schema/v1/code.get_symbol.request.schema.json
+  response_schema: contracts/schema/v1/code.get_symbol.response.schema.json
+  source_section: '32.2'
+  source_request: '`symbol:Ref`'
+  source_response: '`Symbol`'
+  source_auth: '`code:read`, exact revision'
+  source_errors: NOT_FOUND, INDEX_STALE
+  source_events: read-only; CAPI-04
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: code.find_symbols
+  api_major: 1
+  test_id: CAPI-05
+  domain: code
+  request_schema: contracts/schema/v1/code.find_symbols.request.schema.json
+  response_schema: contracts/schema/v1/code.find_symbols.response.schema.json
+  source_section: '32.2'
+  source_request: '`query:SymbolQuery`'
+  source_response: '`Page<Symbol>`'
+  source_auth: '`code:read`, bound repo'
+  source_errors: CURSOR_EXPIRED, INDEX_STALE
+  source_events: read-only; CAPI-05
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: code.find_references
+  api_major: 1
+  test_id: CAPI-06
+  domain: code
+  request_schema: contracts/schema/v1/code.find_references.request.schema.json
+  response_schema: contracts/schema/v1/code.find_references.response.schema.json
+  source_section: '32.2'
+  source_request: '`query:ReferenceQuery`'
+  source_response: '`Page<CodeLocation>`'
+  source_auth: '`code:read` each location'
+  source_errors: INDEX_STALE
+  source_events: read-only; CAPI-06
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: code.query_callers
+  api_major: 1
+  test_id: CAPI-07
+  domain: code
+  request_schema: contracts/schema/v1/code.query_callers.request.schema.json
+  response_schema: contracts/schema/v1/code.query_callers.response.schema.json
+  source_section: '32.2'
+  source_request: '`query:TraversalQuery`'
+  source_response: '`Page<CodeEdge>`'
+  source_auth: '`code:read`, `direction=in`'
+  source_errors: RESOURCE_LIMIT
+  source_events: read-only; CAPI-07
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: code.query_callees
+  api_major: 1
+  test_id: CAPI-08
+  domain: code
+  request_schema: contracts/schema/v1/code.query_callees.request.schema.json
+  response_schema: contracts/schema/v1/code.query_callees.response.schema.json
+  source_section: '32.2'
+  source_request: '`query:TraversalQuery`'
+  source_response: '`Page<CodeEdge>`'
+  source_auth: '`code:read`, `direction=out`'
+  source_errors: RESOURCE_LIMIT
+  source_events: read-only; CAPI-08
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: code.query_dependencies
+  api_major: 1
+  test_id: CAPI-09
+  domain: code
+  request_schema: contracts/schema/v1/code.query_dependencies.request.schema.json
+  response_schema: contracts/schema/v1/code.query_dependencies.response.schema.json
+  source_section: '32.2'
+  source_request: '`query:TraversalQuery`'
+  source_response: '`Page<CodeEdge>`'
+  source_auth: '`code:read`; edge_kinds includes depends_on/imports'
+  source_errors: RESOURCE_LIMIT
+  source_events: read-only; CAPI-09
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: code.analyze_impact
+  api_major: 1
+  test_id: CAPI-10
+  domain: code
+  request_schema: contracts/schema/v1/code.analyze_impact.request.schema.json
+  response_schema: contracts/schema/v1/code.analyze_impact.response.schema.json
+  source_section: '32.2'
+  source_request: '`query:ImpactQuery`'
+  source_response: '`ImpactReport`'
+  source_auth: '`code:read`, revisions consistent'
+  source_errors: SOURCE_REVISION_MISMATCH
+  source_events: read-only; CAPI-10
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: code.get_edit_context
+  api_major: 1
+  test_id: CAPI-11
+  domain: code
+  request_schema: contracts/schema/v1/code.get_edit_context.request.schema.json
+  response_schema: contracts/schema/v1/code.get_edit_context.response.schema.json
+  source_section: '32.2'
+  source_request: '`query:EditContextQuery`'
+  source_response: '`EditContextResult`'
+  source_auth: '`code:read`, budget/ACL enforced'
+  source_errors: CONTEXT_BUDGET_EXCEEDED
+  source_events: read-only; CAPI-11
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: code.compare_revisions
+  api_major: 1
+  test_id: CAPI-12
+  domain: code
+  request_schema: contracts/schema/v1/code.compare_revisions.request.schema.json
+  response_schema: contracts/schema/v1/code.compare_revisions.response.schema.json
+  source_section: '32.2'
+  source_request: '`repository:Ref, from_revision, to_revision, page`'
+  source_response: '`Page<{change_kind, old?:Ref, new?:Ref, evidence:Evidence[]}>`'
+  source_auth: '`code:read` both revisions'
+  source_errors: SOURCE_UNAVAILABLE
+  source_events: read-only; CAPI-12
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: code.invalidate_revision
+  api_major: 1
+  test_id: CAPI-13
+  domain: code
+  request_schema: contracts/schema/v1/code.invalidate_revision.request.schema.json
+  response_schema: contracts/schema/v1/code.invalidate_revision.response.schema.json
+  source_section: '32.2'
+  source_request: '`repository:Ref, revision, reason, expected_etag`'
+  source_response: '`ChangeReceipt`'
+  source_auth: '`code:index_admin`; stale-not-delete historical content'
+  source_errors: ETAG_MISMATCH
+  source_events: '`code.revision.stale`; CAPI-13'
+  events:
+  - code.revision.stale
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: document.ingest
+  api_major: 1
+  test_id: DAPI-01
+  domain: document
+  request_schema: contracts/schema/v1/document.ingest.request.schema.json
+  response_schema: contracts/schema/v1/document.ingest.response.schema.json
+  source_section: '33.2'
+  source_request: '`source:DocumentSource, parser_profile, options, async:true`'
+  source_response: '`JobHandle`'
+  source_auth: '`document:index`, Artifact 經 hash 驗證'
+  source_errors: UNSUPPORTED_MEDIA_TYPE, SOURCE_TOO_LARGE
+  source_events: '`document.ingest.accepted`; DAPI-01'
+  events:
+  - document.ingest.accepted
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: document.get_ingest_job
+  api_major: 1
+  test_id: DAPI-02
+  domain: document
+  request_schema: contracts/schema/v1/document.get_ingest_job.request.schema.json
+  response_schema: contracts/schema/v1/document.get_ingest_job.response.schema.json
+  source_section: '33.2'
+  source_request: '`job_id`'
+  source_response: '`JobView`'
+  source_auth: '`document:read`'
+  source_errors: JOB_NOT_FOUND
+  source_events: read-only; DAPI-02
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: document.cancel_ingest_job
+  api_major: 1
+  test_id: DAPI-03
+  domain: document
+  request_schema: contracts/schema/v1/document.cancel_ingest_job.request.schema.json
+  response_schema: contracts/schema/v1/document.cancel_ingest_job.response.schema.json
+  source_section: '33.2'
+  source_request: '`job_id, reason`'
+  source_response: '`JobView`'
+  source_auth: '`document:index`, 限可取消階段'
+  source_errors: JOB_NOT_CANCELLABLE
+  source_events: '`document.ingest.cancelled`; DAPI-03'
+  events:
+  - document.ingest.cancelled
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: document.get_document
+  api_major: 1
+  test_id: DAPI-04
+  domain: document
+  request_schema: contracts/schema/v1/document.get_document.request.schema.json
+  response_schema: contracts/schema/v1/document.get_document.response.schema.json
+  source_section: '33.2'
+  source_request: '`document:Ref, include_blocks:boolean, page:PageRequest`'
+  source_response: '`{document:Ref, source:DocumentSource, blocks:Page<DocumentBlock>,
+    completeness:string}`'
+  source_auth: '`document:read`, historical revision'
+  source_errors: NOT_FOUND
+  source_events: read-only; DAPI-04
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: document.parse_preview
+  api_major: 1
+  test_id: DAPI-05
+  domain: document
+  request_schema: contracts/schema/v1/document.parse_preview.request.schema.json
+  response_schema: contracts/schema/v1/document.parse_preview.response.schema.json
+  source_section: '33.2'
+  source_request: '`source:DocumentSource, parser_profile, limits`'
+  source_response: '`ParsedDocument`'
+  source_auth: '`document:analyze`, read artifact'
+  source_errors: SOURCE_PARSE_FAILED
+  source_events: read-only/nonpersistent; DAPI-05
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: document.search
+  api_major: 1
+  test_id: DAPI-06
+  domain: document
+  request_schema: contracts/schema/v1/document.search.request.schema.json
+  response_schema: contracts/schema/v1/document.search.response.schema.json
+  source_section: '33.2'
+  source_request: '`query:DocQuery`'
+  source_response: '`Page<SearchHit>`'
+  source_auth: '`document:read`, scope filter'
+  source_errors: INDEX_STALE
+  source_events: read-only; DAPI-06
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: document.extract_requirements
+  api_major: 1
+  test_id: DAPI-07
+  domain: document
+  request_schema: contracts/schema/v1/document.extract_requirements.request.schema.json
+  response_schema: contracts/schema/v1/document.extract_requirements.response.schema.json
+  source_section: '33.2'
+  source_request: '`document:Ref, section_refs?:Ref[], extractor_profile`'
+  source_response: '`Page<RequirementCandidate>`'
+  source_auth: '`document:analyze`'
+  source_errors: MODEL_UNAVAILABLE
+  source_events: '`document.extraction.proposed` only if persist; DAPI-07'
+  events:
+  - document.extraction.proposed
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: document.extract_relations
+  api_major: 1
+  test_id: DAPI-08
+  domain: document
+  request_schema: contracts/schema/v1/document.extract_relations.request.schema.json
+  response_schema: contracts/schema/v1/document.extract_relations.response.schema.json
+  source_section: '33.2'
+  source_request: '`document:Ref, target_scope:ScopeRef, relation_kinds:string[],
+    extractor_profile`'
+  source_response: '`Page<ExtractedRelation>`'
+  source_auth: '`document:analyze` + both scopes access'
+  source_errors: CROSS_SCOPE_DENIED
+  source_events: '`document.relation.proposed` only if persist; DAPI-08'
+  events:
+  - document.relation.proposed
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: document.review_requirement
+  api_major: 1
+  test_id: DAPI-09
+  domain: document
+  request_schema: contracts/schema/v1/document.review_requirement.request.schema.json
+  response_schema: contracts/schema/v1/document.review_requirement.response.schema.json
+  source_section: '33.2'
+  source_request: '`candidate:Ref, decision:''approve'''
+  source_response: '''reject'', rationale, evidence_ids:ID[], expected_etag`'
+  source_auth: '`{requirement:RequirementCandidate, receipt:ChangeReceipt}`'
+  source_errors: '`document:review`'
+  source_events: EVIDENCE_REQUIRED, ETAG_MISMATCH
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: document.list_requirements
+  api_major: 1
+  test_id: DAPI-10
+  domain: document
+  request_schema: contracts/schema/v1/document.list_requirements.request.schema.json
+  response_schema: contracts/schema/v1/document.list_requirements.response.schema.json
+  source_section: '33.2'
+  source_request: '`document:Ref, status?:string[], page`'
+  source_response: '`Page<RequirementCandidate>`'
+  source_auth: '`document:read`'
+  source_errors: CURSOR_EXPIRED
+  source_events: read-only; DAPI-10
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: document.verify_consistency
+  api_major: 1
+  test_id: DAPI-11
+  domain: document
+  request_schema: contracts/schema/v1/document.verify_consistency.request.schema.json
+  response_schema: contracts/schema/v1/document.verify_consistency.response.schema.json
+  source_section: '33.2'
+  source_request: '`document_refs:Ref[], compare_code:boolean, max_findings:number`'
+  source_response: '`ConsistencyReport`'
+  source_auth: '`document:analyze` + code:read if needed'
+  source_errors: INDEX_STALE
+  source_events: read-only; DAPI-11
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: document.compare_revisions
+  api_major: 1
+  test_id: DAPI-12
+  domain: document
+  request_schema: contracts/schema/v1/document.compare_revisions.request.schema.json
+  response_schema: contracts/schema/v1/document.compare_revisions.response.schema.json
+  source_section: '33.2'
+  source_request: '`from:Ref, to:Ref`'
+  source_response: '`DocDiff`'
+  source_auth: '`document:read` both'
+  source_errors: SOURCE_REVISION_MISMATCH
+  source_events: read-only; DAPI-12
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: document.invalidate_revision
+  api_major: 1
+  test_id: DAPI-13
+  domain: document
+  request_schema: contracts/schema/v1/document.invalidate_revision.request.schema.json
+  response_schema: contracts/schema/v1/document.invalidate_revision.response.schema.json
+  source_section: '33.2'
+  source_request: '`document:Ref, reason, expected_etag`'
+  source_response: '`ChangeReceipt`'
+  source_auth: '`document:index_admin`'
+  source_errors: ETAG_MISMATCH
+  source_events: '`document.revision.stale`; DAPI-13'
+  events:
+  - document.revision.stale
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: document.get_source_span
+  api_major: 1
+  test_id: DAPI-14
+  domain: document
+  request_schema: contracts/schema/v1/document.get_source_span.request.schema.json
+  response_schema: contracts/schema/v1/document.get_source_span.response.schema.json
+  source_section: '33.2'
+  source_request: '`span:Span, max_bytes:number`'
+  source_response: '`{text?:string, artifact_ref:Ref, span:Span, redacted:boolean}`'
+  source_auth: '`document:read` on artifact'
+  source_errors: FORBIDDEN
+  source_events: read-only; DAPI-14
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.open_agent_scope
+  api_major: 1
+  test_id: MAPI-01
+  domain: memory
+  request_schema: contracts/schema/v1/memory.open_agent_scope.request.schema.json
+  response_schema: contracts/schema/v1/memory.open_agent_scope.response.schema.json
+  source_section: '34.2'
+  source_request: '`grant:AgentScopeGrant`'
+  source_response: '`{scope_id:ID, expires_at:ISODate}`'
+  source_auth: '`memory:delegate`, parent may only attenuate rights'
+  source_errors: POLICY_DENIED, CONTEXT_BUDGET_EXCEEDED
+  source_events: '`memory.scope.opened`; MAPI-01'
+  events:
+  - memory.scope.opened
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.close_agent_scope
+  api_major: 1
+  test_id: MAPI-02
+  domain: memory
+  request_schema: contracts/schema/v1/memory.close_agent_scope.request.schema.json
+  response_schema: contracts/schema/v1/memory.close_agent_scope.response.schema.json
+  source_section: '34.2'
+  source_request: '`scope_id, reason`'
+  source_response: '`{closed:boolean, folded_result?:FoldedResult}`'
+  source_auth: '`memory:delegate` of parent'
+  source_errors: CROSS_SCOPE_DENIED
+  source_events: '`memory.scope.closed`; MAPI-02'
+  events:
+  - memory.scope.closed
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.put_working_block
+  api_major: 1
+  test_id: MAPI-03
+  domain: memory
+  request_schema: contracts/schema/v1/memory.put_working_block.request.schema.json
+  response_schema: contracts/schema/v1/memory.put_working_block.response.schema.json
+  source_section: '34.2'
+  source_request: '`input:WorkingBlockInput`'
+  source_response: '`MemoryRef`'
+  source_auth: '`memory:write` and current session'
+  source_errors: CONTEXT_BUDGET_EXCEEDED
+  source_events: '`memory.working.updated`; MAPI-03'
+  events:
+  - memory.working.updated
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.list_working_blocks
+  api_major: 1
+  test_id: MAPI-04
+  domain: memory
+  request_schema: contracts/schema/v1/memory.list_working_blocks.request.schema.json
+  response_schema: contracts/schema/v1/memory.list_working_blocks.response.schema.json
+  source_section: '34.2'
+  source_request: '`session_id, agent_id, page`'
+  source_response: '`Page<MemoryView>`'
+  source_auth: '`memory:read` same sandbox'
+  source_errors: CROSS_SCOPE_DENIED
+  source_events: read-only; MAPI-04
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.remove_working_block
+  api_major: 1
+  test_id: MAPI-05
+  domain: memory
+  request_schema: contracts/schema/v1/memory.remove_working_block.request.schema.json
+  response_schema: contracts/schema/v1/memory.remove_working_block.response.schema.json
+  source_section: '34.2'
+  source_request: '`block:Ref, expected_etag`'
+  source_response: '`DeletionReceipt`'
+  source_auth: '`memory:write`; protected block guard'
+  source_errors: POLICY_DENIED
+  source_events: '`memory.working.removed`; MAPI-05'
+  events:
+  - memory.working.removed
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.store_episode
+  api_major: 1
+  test_id: MAPI-06
+  domain: memory
+  request_schema: contracts/schema/v1/memory.store_episode.request.schema.json
+  response_schema: contracts/schema/v1/memory.store_episode.response.schema.json
+  source_section: '34.2'
+  source_request: '`input:EpisodeInput`'
+  source_response: '`ChangeReceipt`'
+  source_auth: '`memory:write`; idempotency'
+  source_errors: IDEMPOTENCY_CONFLICT
+  source_events: '`memory.episode.committed`; MAPI-06'
+  events:
+  - memory.episode.committed
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.search
+  api_major: 1
+  test_id: MAPI-07
+  domain: memory
+  request_schema: contracts/schema/v1/memory.search.request.schema.json
+  response_schema: contracts/schema/v1/memory.search.response.schema.json
+  source_section: '34.2'
+  source_request: '`query:MemoryQuery`'
+  source_response: '`Page<MemoryView>`'
+  source_auth: '`memory:read`; scope constraints'
+  source_errors: RESOURCE_LIMIT, INDEX_STALE
+  source_events: read-only; MAPI-07
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.retrieve
+  api_major: 1
+  test_id: MAPI-08
+  domain: memory
+  request_schema: contracts/schema/v1/memory.retrieve.request.schema.json
+  response_schema: contracts/schema/v1/memory.retrieve.response.schema.json
+  source_section: '34.2'
+  source_request: '`memory:Ref, detail:string, max_tokens:number`'
+  source_response: '`MemoryView`'
+  source_auth: '`memory:read` + artifact ACL'
+  source_errors: NOT_FOUND, CONTEXT_BUDGET_EXCEEDED
+  source_events: read-only; MAPI-08
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.update_revision
+  api_major: 1
+  test_id: MAPI-09
+  domain: memory
+  request_schema: contracts/schema/v1/memory.update_revision.request.schema.json
+  response_schema: contracts/schema/v1/memory.update_revision.response.schema.json
+  source_section: '34.2'
+  source_request: '`memory:Ref, patch:object, expected_etag`'
+  source_response: '`ChangeReceipt`'
+  source_auth: '`memory:write`; immutable old revision'
+  source_errors: ETAG_MISMATCH
+  source_events: '`memory.revision.committed`; MAPI-09'
+  events:
+  - memory.revision.committed
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.propose_fact
+  api_major: 1
+  test_id: MAPI-10
+  domain: memory
+  request_schema: contracts/schema/v1/memory.propose_fact.request.schema.json
+  response_schema: contracts/schema/v1/memory.propose_fact.response.schema.json
+  source_section: '34.2'
+  source_request: '`input:SemanticFactInput`'
+  source_response: '`MemoryRef` candidate'
+  source_auth: '`memory:write`; evidence required'
+  source_errors: EVIDENCE_REQUIRED
+  source_events: '`memory.fact.proposed`; MAPI-10'
+  events:
+  - memory.fact.proposed
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.verify_fact
+  api_major: 1
+  test_id: MAPI-11
+  domain: memory
+  request_schema: contracts/schema/v1/memory.verify_fact.request.schema.json
+  response_schema: contracts/schema/v1/memory.verify_fact.response.schema.json
+  source_section: '34.2'
+  source_request: '`fact:Ref, evidence_ids:ID[], decision:''verify'''
+  source_response: '''reject'', expected_etag`'
+  source_auth: '`ChangeReceipt`'
+  source_errors: '`memory:review`, independent evidence'
+  source_events: CONFLICTING_EVIDENCE
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.find_conflicts
+  api_major: 1
+  test_id: MAPI-12
+  domain: memory
+  request_schema: contracts/schema/v1/memory.find_conflicts.request.schema.json
+  response_schema: contracts/schema/v1/memory.find_conflicts.response.schema.json
+  source_section: '34.2'
+  source_request: '`fact:Ref, max_results:number`'
+  source_response: '`Page<MemoryView>`'
+  source_auth: '`memory:read`'
+  source_errors: RESOURCE_LIMIT
+  source_events: read-only; MAPI-12
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.fold
+  api_major: 1
+  test_id: MAPI-13
+  domain: memory
+  request_schema: contracts/schema/v1/memory.fold.request.schema.json
+  response_schema: contracts/schema/v1/memory.fold.response.schema.json
+  source_section: '34.2'
+  source_request: '`input:FoldInput`'
+  source_response: '`FoldedResult`'
+  source_auth: '`memory:fold`, safety preserve gate'
+  source_errors: POLICY_DENIED
+  source_events: '`memory.folded`; MAPI-13'
+  events:
+  - memory.folded
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.page_out
+  api_major: 1
+  test_id: MAPI-14
+  domain: memory
+  request_schema: contracts/schema/v1/memory.page_out.request.schema.json
+  response_schema: contracts/schema/v1/memory.page_out.response.schema.json
+  source_section: '34.2'
+  source_request: '`block:Ref, policy_id:ID`'
+  source_response: '`PagingReceipt`'
+  source_auth: '`memory:write`, not protected'
+  source_errors: POLICY_DENIED
+  source_events: '`memory.paged_out`; MAPI-14'
+  events:
+  - memory.paged_out
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.page_in
+  api_major: 1
+  test_id: MAPI-15
+  domain: memory
+  request_schema: contracts/schema/v1/memory.page_in.request.schema.json
+  response_schema: contracts/schema/v1/memory.page_in.response.schema.json
+  source_section: '34.2'
+  source_request: '`page_ref:Ref, expected_hash:Hash`'
+  source_response: '`{block:MemoryView, receipt:PagingReceipt}`'
+  source_auth: '`memory:read`, integrity verified'
+  source_errors: SOURCE_UNAVAILABLE
+  source_events: '`memory.paged_in`; MAPI-15'
+  events:
+  - memory.paged_in
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.begin_reconsolidation
+  api_major: 1
+  test_id: MAPI-16
+  domain: memory
+  request_schema: contracts/schema/v1/memory.begin_reconsolidation.request.schema.json
+  response_schema: contracts/schema/v1/memory.begin_reconsolidation.response.schema.json
+  source_section: '34.2'
+  source_request: '`fact:Ref, expected_etag`'
+  source_response: '`ReconsolidationWindow`'
+  source_auth: '`memory:write`, valid window'
+  source_errors: ETAG_MISMATCH
+  source_events: '`memory.reconsolidation.opened`; MAPI-16'
+  events:
+  - memory.reconsolidation.opened
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.commit_reconsolidation
+  api_major: 1
+  test_id: MAPI-17
+  domain: memory
+  request_schema: contracts/schema/v1/memory.commit_reconsolidation.request.schema.json
+  response_schema: contracts/schema/v1/memory.commit_reconsolidation.response.schema.json
+  source_section: '34.2'
+  source_request: '`window_id, patch:object, evidence:Evidence[], expected_etag`'
+  source_response: '`ChangeReceipt`'
+  source_auth: '`memory:write`; within window'
+  source_errors: POLICY_DENIED, CONFLICTING_EVIDENCE
+  source_events: '`memory.reconsolidation.committed`; MAPI-17'
+  events:
+  - memory.reconsolidation.committed
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.consolidate
+  api_major: 1
+  test_id: MAPI-18
+  domain: memory
+  request_schema: contracts/schema/v1/memory.consolidate.request.schema.json
+  response_schema: contracts/schema/v1/memory.consolidate.response.schema.json
+  source_section: '34.2'
+  source_request: '`episode_refs:Ref[], policy_id:ID, async:true`'
+  source_response: '`JobHandle`'
+  source_auth: '`memory:consolidate`, nine-stage DAG'
+  source_errors: INDEX_NOT_READY
+  source_events: '`memory.consolidation.accepted`; MAPI-18'
+  events:
+  - memory.consolidation.accepted
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.get_consolidation_job
+  api_major: 1
+  test_id: MAPI-19
+  domain: memory
+  request_schema: contracts/schema/v1/memory.get_consolidation_job.request.schema.json
+  response_schema: contracts/schema/v1/memory.get_consolidation_job.response.schema.json
+  source_section: '34.2'
+  source_request: '`job_id`'
+  source_response: '`JobView`'
+  source_auth: '`memory:read` same project'
+  source_errors: JOB_NOT_FOUND
+  source_events: read-only; MAPI-19
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.register_procedure_candidate
+  api_major: 1
+  test_id: MAPI-20
+  domain: memory
+  request_schema: contracts/schema/v1/memory.register_procedure_candidate.request.schema.json
+  response_schema: contracts/schema/v1/memory.register_procedure_candidate.response.schema.json
+  source_section: '34.2'
+  source_request: '`draft:ProcedureDraft`'
+  source_response: '`ProcedureView`'
+  source_auth: '`memory:procedure_write`'
+  source_errors: EVIDENCE_REQUIRED
+  source_events: '`memory.procedure.candidate`; MAPI-20'
+  events:
+  - memory.procedure.candidate
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.review_procedure
+  api_major: 1
+  test_id: MAPI-21
+  domain: memory
+  request_schema: contracts/schema/v1/memory.review_procedure.request.schema.json
+  response_schema: contracts/schema/v1/memory.review_procedure.response.schema.json
+  source_section: '34.2'
+  source_request: '`procedure:Ref, decision:''activate'''
+  source_response: '''refine'''
+  source_auth: '''disable'', evidence_ids:ID[], expected_etag`'
+  source_errors: '`ProcedureView`'
+  source_events: '`memory:procedure_review`, tool approval separately'
+  events:
+  - memory:procedure_review
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.record_procedure_outcome
+  api_major: 1
+  test_id: MAPI-22
+  domain: memory
+  request_schema: contracts/schema/v1/memory.record_procedure_outcome.request.schema.json
+  response_schema: contracts/schema/v1/memory.record_procedure_outcome.response.schema.json
+  source_section: '34.2'
+  source_request: '`procedure:Ref, success:boolean, evidence:Evidence[], expected_etag`'
+  source_response: '`ChangeReceipt`'
+  source_auth: '`memory:procedure_write`'
+  source_errors: ETAG_MISMATCH
+  source_events: '`memory.procedure.outcome`; MAPI-22'
+  events:
+  - memory.procedure.outcome
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.forget
+  api_major: 1
+  test_id: MAPI-23
+  domain: memory
+  request_schema: contracts/schema/v1/memory.forget.request.schema.json
+  response_schema: contracts/schema/v1/memory.forget.response.schema.json
+  source_section: '34.2'
+  source_request: '`memory:Ref, reason, expected_etag`'
+  source_response: '`DeletionReceipt`'
+  source_auth: '`memory:forget`, retention/legal hold check'
+  source_errors: DELETION_BLOCKED
+  source_events: '`memory.deleted`; MAPI-23'
+  events:
+  - memory.deleted
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.evaluate_eviction
+  api_major: 1
+  test_id: MAPI-24
+  domain: memory
+  request_schema: contracts/schema/v1/memory.evaluate_eviction.request.schema.json
+  response_schema: contracts/schema/v1/memory.evaluate_eviction.response.schema.json
+  source_section: '34.2'
+  source_request: '`agent_id, session_id, policy_id, dry_run:boolean`'
+  source_response: '`{candidates:Ref[], selected:Ref[], model_profile?:string, deterministic_fallback:boolean}`'
+  source_auth: '`memory:manage`, hard safety gate'
+  source_errors: MODEL_UNAVAILABLE only if fallback forbidden
+  source_events: '`memory.eviction.planned` if persisted; MAPI-24'
+  events:
+  - memory.eviction.planned
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: memory.get_budget
+  api_major: 1
+  test_id: MAPI-25
+  domain: memory
+  request_schema: contracts/schema/v1/memory.get_budget.request.schema.json
+  response_schema: contracts/schema/v1/memory.get_budget.response.schema.json
+  source_section: '34.2'
+  source_request: '`agent_id, session_id`'
+  source_response: '`{model_context:number, available:number, agent_budget:number,
+    wm:number, core:number, ring:number, used:number}`'
+  source_auth: '`memory:read` only scope'
+  source_errors: CONTEXT_BUDGET_EXCEEDED
+  source_events: read-only; MAPI-25
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: traceability.propose_link
+  api_major: 1
+  test_id: TAPI-01
+  domain: traceability
+  request_schema: contracts/schema/v1/traceability.propose_link.request.schema.json
+  response_schema: contracts/schema/v1/traceability.propose_link.response.schema.json
+  source_section: '35.2'
+  source_request: '`link:TraceLinkInput`'
+  source_response: '`TraceLink` state proposed'
+  source_auth: '`trace:write`, read ACL both ends'
+  source_errors: EVIDENCE_REQUIRED
+  source_events: '`trace.link.proposed`; TAPI-01'
+  events:
+  - trace.link.proposed
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: traceability.validate_link
+  api_major: 1
+  test_id: TAPI-02
+  domain: traceability
+  request_schema: contracts/schema/v1/traceability.validate_link.request.schema.json
+  response_schema: contracts/schema/v1/traceability.validate_link.response.schema.json
+  source_section: '35.2'
+  source_request: '`link:Ref, evidence_ids:ID[], expected_etag`'
+  source_response: '`TraceLink` state validated/rejected'
+  source_auth: '`trace:verify`, source revisions valid'
+  source_errors: SOURCE_REVISION_MISMATCH
+  source_events: '`trace.link.validated`; TAPI-02'
+  events:
+  - trace.link.validated
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: traceability.accept_link
+  api_major: 1
+  test_id: TAPI-03
+  domain: traceability
+  request_schema: contracts/schema/v1/traceability.accept_link.request.schema.json
+  response_schema: contracts/schema/v1/traceability.accept_link.response.schema.json
+  source_section: '35.2'
+  source_request: '`link:Ref, decision:''accept'''
+  source_response: '''reject'', expected_etag`'
+  source_auth: '`TraceLink`'
+  source_errors: '`trace:approve`, must validated first'
+  source_events: LINK_STATE_CONFLICT
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: traceability.revoke_link
+  api_major: 1
+  test_id: TAPI-04
+  domain: traceability
+  request_schema: contracts/schema/v1/traceability.revoke_link.request.schema.json
+  response_schema: contracts/schema/v1/traceability.revoke_link.response.schema.json
+  source_section: '35.2'
+  source_request: '`link:Ref, reason, expected_etag`'
+  source_response: '`TraceLink` state revoked'
+  source_auth: '`trace:approve`, keep audit/history'
+  source_errors: ETAG_MISMATCH
+  source_events: '`trace.link.revoked`; TAPI-04'
+  events:
+  - trace.link.revoked
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: traceability.get_link
+  api_major: 1
+  test_id: TAPI-05
+  domain: traceability
+  request_schema: contracts/schema/v1/traceability.get_link.request.schema.json
+  response_schema: contracts/schema/v1/traceability.get_link.response.schema.json
+  source_section: '35.2'
+  source_request: '`link:Ref`'
+  source_response: '`TraceLink`'
+  source_auth: '`trace:read` and both endpoints read'
+  source_errors: NOT_FOUND
+  source_events: read-only; TAPI-05
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: traceability.list_links
+  api_major: 1
+  test_id: TAPI-06
+  domain: traceability
+  request_schema: contracts/schema/v1/traceability.list_links.request.schema.json
+  response_schema: contracts/schema/v1/traceability.list_links.response.schema.json
+  source_section: '35.2'
+  source_request: '`endpoint:Ref, kinds?:TraceKind[], states?:TraceState[], page`'
+  source_response: '`Page<TraceLink>`'
+  source_auth: '`trace:read`, per-edge ACL'
+  source_errors: CURSOR_EXPIRED
+  source_events: read-only; TAPI-06
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: traceability.query_coverage
+  api_major: 1
+  test_id: TAPI-07
+  domain: traceability
+  request_schema: contracts/schema/v1/traceability.query_coverage.request.schema.json
+  response_schema: contracts/schema/v1/traceability.query_coverage.response.schema.json
+  source_section: '35.2'
+  source_request: '`query:CoverageQuery`'
+  source_response: '`CoverageReport`'
+  source_auth: '`trace:read`, authorized denominator'
+  source_errors: INDEX_STALE
+  source_events: read-only; TAPI-07
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: traceability.analyze_change_impact
+  api_major: 1
+  test_id: TAPI-08
+  domain: traceability
+  request_schema: contracts/schema/v1/traceability.analyze_change_impact.request.schema.json
+  response_schema: contracts/schema/v1/traceability.analyze_change_impact.response.schema.json
+  source_section: '35.2'
+  source_request: '`query:TraceImpactQuery`'
+  source_response: '`TraceImpact`'
+  source_auth: '`trace:read`, bounded traversal'
+  source_errors: RESOURCE_LIMIT
+  source_events: read-only; TAPI-08
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: traceability.find_design_gaps
+  api_major: 1
+  test_id: TAPI-09
+  domain: traceability
+  request_schema: contracts/schema/v1/traceability.find_design_gaps.request.schema.json
+  response_schema: contracts/schema/v1/traceability.find_design_gaps.response.schema.json
+  source_section: '35.2'
+  source_request: '`scope:ScopeRef, requirement_refs?:Ref[]`'
+  source_response: '`GapReport`'
+  source_auth: '`trace:read`, read source docs/code/test'
+  source_errors: INDEX_STALE
+  source_events: read-only; TAPI-09
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: traceability.compare_revisions
+  api_major: 1
+  test_id: TAPI-10
+  domain: traceability
+  request_schema: contracts/schema/v1/traceability.compare_revisions.request.schema.json
+  response_schema: contracts/schema/v1/traceability.compare_revisions.response.schema.json
+  source_section: '35.2'
+  source_request: '`from_revision:ID, to_revision:ID, scope:ScopeRef`'
+  source_response: '`{added:TraceLink[], changed:TraceLink[], removed:TraceLink[]}`'
+  source_auth: '`trace:read`, both snapshots'
+  source_errors: SOURCE_UNAVAILABLE
+  source_events: read-only; TAPI-10
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: traceability.explain_with_evidence
+  api_major: 1
+  test_id: TAPI-11
+  domain: traceability
+  request_schema: contracts/schema/v1/traceability.explain_with_evidence.request.schema.json
+  response_schema: contracts/schema/v1/traceability.explain_with_evidence.response.schema.json
+  source_section: '35.2'
+  source_request: '`claim:string, refs:Ref[], max_tokens:number`'
+  source_response: '`EvidenceReport`'
+  source_auth: '`trace:read`, Evidence ACL check'
+  source_errors: CONTEXT_BUDGET_EXCEEDED
+  source_events: read-only; TAPI-11
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: traceability.revalidate_stale
+  api_major: 1
+  test_id: TAPI-12
+  domain: traceability
+  request_schema: contracts/schema/v1/traceability.revalidate_stale.request.schema.json
+  response_schema: contracts/schema/v1/traceability.revalidate_stale.response.schema.json
+  source_section: '35.2'
+  source_request: '`link_refs:Ref[], policy_id:ID, async:true`'
+  source_response: '`JobHandle`'
+  source_auth: '`trace:verify`, versions available'
+  source_errors: INDEX_NOT_READY
+  source_events: '`trace.revalidation.accepted`; TAPI-12'
+  events:
+  - trace.revalidation.accepted
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved
+- operation_id: traceability.get_revalidation_job
+  api_major: 1
+  test_id: TAPI-13
+  domain: traceability
+  request_schema: contracts/schema/v1/traceability.get_revalidation_job.request.schema.json
+  response_schema: contracts/schema/v1/traceability.get_revalidation_job.response.schema.json
+  source_section: '35.2'
+  source_request: '`job_id`'
+  source_response: '`JobView`'
+  source_auth: '`trace:read`'
+  source_errors: JOB_NOT_FOUND
+  source_events: read-only; TAPI-13
+  events: []
+  closure_status: provisional
+  blockers:
+  - request_fields_need_exact_types_and_invariants
+  - response_data_schema_unresolved
+  - operation_specific_security_state_storage_tests_unresolved

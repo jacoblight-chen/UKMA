@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/document.extract_relations.request.schema.json",
+  "title": "document.extract_relations Request [PHASE2 PROVISIONAL]",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "operation",
+    "context",
+    "input"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "1"
+    },
+    "operation": {
+      "const": "ukma.document.extract_relations.v1"
+    },
+    "context": {
+      "$ref": "shared.schema.json#/$defs/RequestContext"
+    },
+    "input": {
+      "type": "object",
+      "properties": {
+        "document": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "target_scope": {
+          "$comment": "UNRESOLVED TYPE: ScopeRef"
+        },
+        "relation_kinds": {
+          "type": "array",
+          "items": {
+            "$comment": "ITEM TYPE REQUIRES MANUAL CLOSURE"
+          }
+        },
+        "extractor_profile": {
+          "$comment": "UNRESOLVED TYPE: unspecified"
+        }
+      },
+      "required": [
+        "document",
+        "target_scope",
+        "relation_kinds",
+        "extractor_profile"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$comment": "NOT A CLOSED INPUT CONTRACT: inferred from normative markdown table; require exact IDL and invariants."
+}

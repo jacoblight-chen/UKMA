@@ -1,0 +1,10 @@
+{
+  "domain": "code",
+  "kind": "function",
+  "id": "s1",
+  "revision": "abc",
+  "scope": {
+    "tenant_id": "t",
+    "project_id": "p"
+  }
+}

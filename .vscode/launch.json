@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug UKMA Rust quickstart",
+      "cargo": {
+        "args": [
+          "build",
+          "-p",
+          "ukma-code-runtime",
+          "--example",
+          "quickstart"
+        ],
+        "filter": {
+          "name": "quickstart",
+          "kind": "example"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

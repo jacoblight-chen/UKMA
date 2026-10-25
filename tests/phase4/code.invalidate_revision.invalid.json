@@ -1,0 +1,23 @@
+{
+  "api_version": "1",
+  "operation": "ukma.code.invalidate_revision.v1",
+  "context": {
+    "request_id": "req1",
+    "trace_id": "trace1",
+    "scope": {
+      "tenant_id": "t",
+      "project_id": "p"
+    },
+    "principal_id": "user",
+    "scopes": [
+      "code:read",
+      "code:index"
+    ],
+    "consistency": "eventual"
+  },
+  "input": {
+    "revision": "abc",
+    "reason": "obsolete",
+    "expected_etag": "etag1"
+  }
+}

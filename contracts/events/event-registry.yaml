@@ -1,0 +1,212 @@
+source_spec: UKMA v1.2.3 §31.5, §32.2–§35.2
+events:
+- event_type: code.analysis.accepted
+  event_version: '1'
+  operations:
+  - code.analyze_repository
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: code.analysis.cancelled
+  event_version: '1'
+  operations:
+  - code.cancel_analysis_job
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: code.revision.stale
+  event_version: '1'
+  operations:
+  - code.invalidate_revision
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: document.extraction.proposed
+  event_version: '1'
+  operations:
+  - document.extract_requirements
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: document.ingest.accepted
+  event_version: '1'
+  operations:
+  - document.ingest
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: document.ingest.cancelled
+  event_version: '1'
+  operations:
+  - document.cancel_ingest_job
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: document.relation.proposed
+  event_version: '1'
+  operations:
+  - document.extract_relations
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: document.revision.stale
+  event_version: '1'
+  operations:
+  - document.invalidate_revision
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: memory.consolidation.accepted
+  event_version: '1'
+  operations:
+  - memory.consolidate
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: memory.deleted
+  event_version: '1'
+  operations:
+  - memory.forget
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: memory.episode.committed
+  event_version: '1'
+  operations:
+  - memory.store_episode
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: memory.eviction.planned
+  event_version: '1'
+  operations:
+  - memory.evaluate_eviction
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: memory.fact.proposed
+  event_version: '1'
+  operations:
+  - memory.propose_fact
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: memory.folded
+  event_version: '1'
+  operations:
+  - memory.fold
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: memory.paged_in
+  event_version: '1'
+  operations:
+  - memory.page_in
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: memory.paged_out
+  event_version: '1'
+  operations:
+  - memory.page_out
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: memory.procedure.candidate
+  event_version: '1'
+  operations:
+  - memory.register_procedure_candidate
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: memory.procedure.outcome
+  event_version: '1'
+  operations:
+  - memory.record_procedure_outcome
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: memory.reconsolidation.committed
+  event_version: '1'
+  operations:
+  - memory.commit_reconsolidation
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: memory.reconsolidation.opened
+  event_version: '1'
+  operations:
+  - memory.begin_reconsolidation
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: memory.revision.committed
+  event_version: '1'
+  operations:
+  - memory.update_revision
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: memory.scope.closed
+  event_version: '1'
+  operations:
+  - memory.close_agent_scope
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: memory.scope.opened
+  event_version: '1'
+  operations:
+  - memory.open_agent_scope
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: memory.working.removed
+  event_version: '1'
+  operations:
+  - memory.remove_working_block
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: memory.working.updated
+  event_version: '1'
+  operations:
+  - memory.put_working_block
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: memory:procedure_review
+  event_version: '1'
+  operations:
+  - memory.review_procedure
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: trace.link.proposed
+  event_version: '1'
+  operations:
+  - traceability.propose_link
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: trace.link.revoked
+  event_version: '1'
+  operations:
+  - traceability.revoke_link
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: trace.link.validated
+  event_version: '1'
+  operations:
+  - traceability.validate_link
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table
+- event_type: trace.revalidation.accepted
+  event_version: '1'
+  operations:
+  - traceability.revalidate_stale
+  payload_status: UNRESOLVED
+  payload_schema: null
+  source_section: 31.5 + domain operation table

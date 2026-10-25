@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/code.analyze_repository.request.schema.json",
+  "title": "code.analyze_repository Request (Phase 4 typed candidate)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "operation",
+    "context",
+    "input"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "1"
+    },
+    "operation": {
+      "const": "ukma.code.analyze_repository.v1"
+    },
+    "context": {
+      "$ref": "shared.schema.json#/$defs/RequestContext"
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "revision": {
+          "$ref": "shared.schema.json#/$defs/RepoRevision"
+        },
+        "parser_profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "include_globs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "exclude_globs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "async": {
+          "const": true
+        }
+      },
+      "required": [
+        "revision",
+        "parser_profile",
+        "include_globs",
+        "exclude_globs",
+        "async"
+      ]
+    }
+  }
+}

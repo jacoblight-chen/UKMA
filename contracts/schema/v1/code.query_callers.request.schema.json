@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/code.query_callers.request.schema.json",
+  "title": "code.query_callers Request (Phase 4 typed candidate)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "operation",
+    "context",
+    "input"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "1"
+    },
+    "operation": {
+      "const": "ukma.code.query_callers.v1"
+    },
+    "context": {
+      "$ref": "shared.schema.json#/$defs/RequestContext"
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "query": {
+          "allOf": [
+            {
+              "$ref": "shared.schema.json#/$defs/TraversalQuery"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "direction": {
+                  "const": "in"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "query"
+      ]
+    }
+  }
+}

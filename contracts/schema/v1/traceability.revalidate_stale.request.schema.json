@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/traceability.revalidate_stale.request.schema.json",
+  "title": "traceability.revalidate_stale Request [PHASE2 PROVISIONAL]",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "operation",
+    "context",
+    "input"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "1"
+    },
+    "operation": {
+      "const": "ukma.traceability.revalidate_stale.v1"
+    },
+    "context": {
+      "$ref": "shared.schema.json#/$defs/RequestContext"
+    },
+    "input": {
+      "type": "object",
+      "properties": {
+        "link_refs": {
+          "type": "array",
+          "items": {
+            "$comment": "ITEM TYPE REQUIRES MANUAL CLOSURE"
+          }
+        },
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "async": {
+          "const": true
+        }
+      },
+      "required": [
+        "link_refs",
+        "policy_id",
+        "async"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$comment": "NOT A CLOSED INPUT CONTRACT: inferred from normative markdown table; require exact IDL and invariants."
+}

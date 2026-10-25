@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/code.compare_revisions.request.schema.json",
+  "title": "code.compare_revisions Request (Phase 4 typed candidate)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "operation",
+    "context",
+    "input"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "1"
+    },
+    "operation": {
+      "const": "ukma.code.compare_revisions.v1"
+    },
+    "context": {
+      "$ref": "shared.schema.json#/$defs/RequestContext"
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "from_revision": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "to_revision": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "page": {
+          "$ref": "shared.schema.json#/$defs/PageRequest"
+        }
+      },
+      "required": [
+        "repository",
+        "from_revision",
+        "to_revision",
+        "page"
+      ]
+    }
+  }
+}

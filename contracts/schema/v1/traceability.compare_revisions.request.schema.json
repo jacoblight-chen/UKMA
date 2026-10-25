@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/traceability.compare_revisions.request.schema.json",
+  "title": "traceability.compare_revisions Request [PHASE2 PROVISIONAL]",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "operation",
+    "context",
+    "input"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "1"
+    },
+    "operation": {
+      "const": "ukma.traceability.compare_revisions.v1"
+    },
+    "context": {
+      "$ref": "shared.schema.json#/$defs/RequestContext"
+    },
+    "input": {
+      "type": "object",
+      "properties": {
+        "from_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "$comment": "UNRESOLVED TYPE: ScopeRef"
+        }
+      },
+      "required": [
+        "from_revision",
+        "to_revision",
+        "scope"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$comment": "NOT A CLOSED INPUT CONTRACT: inferred from normative markdown table; require exact IDL and invariants."
+}
