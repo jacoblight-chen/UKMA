@@ -82,12 +82,30 @@ model (High) · R4 toolchain deviation 1.94.1-msvc vs 1.99.1-gnu (Medium) ·
 R5 untyped PropertyMap (Medium) · R6 write_batch atomicity vs outbox model (Medium) ·
 R7 parser churn (Low) · R8 stale "27 parsers" doc (Low; actual 38, verified).
 
-## 7. Pending decisions (must resolve before S1 code — architecture approval required)
+## 7. Decisions — RESOLVED by ADR-031 (ACCEPTED, 2026-10-25)
 
-1. UKMA canonical ID format (string vs structured).
-2. Exact `CAPABILITY_UNAVAILABLE` wire error code (v1.2.3 registry is preliminary).
-3. Adopt vs remap upstream `NodeType/EdgeType` wire names (schemas preliminary;
-   65/65 closure NOT claimed).
+1. **Canonical ID format** → structured string `graph.node.<ULID>` /
+   `graph.edge.<ULID>`, engine-assigned at creation via injectable `IdGenerator`,
+   persisted → stable across adapter substitution (ADR-023, PROP-02; spec
+   `ID = string`; vendor u64 counters stay internal; golden parity via structure
+   + deterministic mapping, never raw u64).
+2. **CAPABILITY_UNAVAILABLE** → the spec-registered ErrorCode used as-is
+   (non-retryable; adapter capability probes, never config claims). No new wire
+   code invented.
+3. **NodeType/EdgeType wire names** → new addition (no graph operations exist in
+   the 65 registry — nothing established is modified): v1 adopts the upstream
+   semantics in snake_case wire form (`code_file`…`generic`; `imports`…
+   `runtime_calls`; `outgoing`/`incoming`/`both`), versioned, unknown values
+   rejected. 65/65 closure NOT claimed.
 
-**Until approved: no S1 code is written; this plan and `s1-contract-proposal.md` are
-documents only, and document delivery never substitutes for code acceptance.**
+See `docs/adr/ADR-031-s1-graph-contract-decisions.md`.
+
+**Additional S1 constraints:**
+- Ported tests use cross-platform temp paths (`std::env::temp_dir()`); the
+  upstream `/tmp/` hardcoding is never carried over (accepted known upstream
+  defect).
+- **Deterministic bounded termination (PROP-03):** traversal APIs require
+  `max_depth`/`max_nodes` bounds with hard limits and sorted-adjacency ordering.
+
+**S1 code start is authorized by owner instruction with ADR-031 in force;
+document delivery never substitutes for code acceptance.**

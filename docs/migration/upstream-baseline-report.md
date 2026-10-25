@@ -137,10 +137,21 @@ runner infrastructure flake); `f:\codegraph-workspace\upstream-baseline-test.log
   all S0 records corrected to the verified numbers.
 - Repo protection (plan §5 item 6): lightweight guardrails IMPLEMENTED —
   `.github/pull_request_template.md` (S1+ checklist: ledger/license/tests mandatory) +
-  `.github/CODEOWNERS` (owner review required). Platform-level branch protection
-  rules are **BLOCKED** (GitHub free plan: branch protection is unavailable for
-  private repositories — recorded explicitly, not marked as success); S1 PRs are
-  enforced via the reviewer checklist in the template.
+  `.github/CODEOWNERS` (owner review required) + **CI-based PR merge gate**
+  (`.github/workflows/s1-merge-gate.yml`: fails PRs to main missing slice id /
+  ledger reference / license / test evidence). Platform-level branch protection
+  rules remain **BLOCKED** (GitHub free plan: branch protection is unavailable
+  for private repositories — recorded explicitly, not marked as success); the CI
+  gate is the enforced mitigation.
+- Accepted known upstream defect: `test_header_type_resolution` (codegraph-c)
+  hardcodes the POSIX path `/tmp/...` and fails on **any Windows host** (the
+  upstream reference repository is read-only — NOT modified, per S0 constraints).
+  Resolved as an accepted known defect with attribution; UKMA-side ports use
+  cross-platform temp paths (`std::env::temp_dir()`), recorded in the S1 plan.
+- Toolchain deviation resolution: `.github/workflows/upstream-baseline.yml` now
+  includes a **windows-latest job running the pinned MSVC 1.94.1** (rustup 1.94.1
+  msvc + VS 2022 C++ + Windows 11 SDK) — the pinned-toolchain re-verification
+  required before S1 merge, with explicit detection of the known upstream defect.
 - Golden fixture: `tests/golden/graph-basic-ops.golden.json` (from observed upstream test semantics).
 - S1 contract: PROPOSAL only — pending architecture approval; no S1 code written.
 - No upstream source has been migrated into UKMA.

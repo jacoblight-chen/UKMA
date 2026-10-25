@@ -1,0 +1,47 @@
+# CI-based PR merge gate (best-effort replacement for platform-level branch
+# protection, which is BLOCKED on the GitHub free plan for private repos).
+#
+# Enforces the S1+ pre-merge checklist from .github/pull_request_template.md:
+# a PR to main must reference a slice id, a migration ledger entry, license
+# preservation, and test results. Failures here are explicit, recorded, and
+# not marked as success. See docs/migration/upstream-baseline-report.md §7.
+
+name: S1+ Merge Gate (CI-based protection)
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  pr-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check PR body for required checklist markers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          body="$(gh pr view "$GITHUB_PULL_REQUEST_NUMBER" --json body -q .body)"
+          missing=""
+          # slice identification
+          echo "$body" | grep -qiE "slice[ _-]*(id)?[[:space:]:=]*[A-Z0-9-]+" \
+            || missing="$missing slice-identification"
+          # migration ledger reference
+          echo "$body" | grep -qi "docs/migration/ledger/" \
+            || missing="$missing ledger-reference"
+          # license section
+          echo "$body" | grep -qi "license" \
+            || missing="$missing license-section"
+          # test evidence
+          echo "$body" | grep -qiE "test.*(passed|exit 0)|cargo test" \
+            || missing="$missing test-evidence"
+          if [ -n "$missing" ]; then
+            echo "::error::PR to main is missing required checklist items:$missing"
+            echo "Complete the .github/pull_request_template.md checklist (slice id, migration ledger reference, license, test results) before merge."
+            exit 1
+          fi
+          echo "PR gate: all required checklist markers present."

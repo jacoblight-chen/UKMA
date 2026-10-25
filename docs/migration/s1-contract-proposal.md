@@ -1,7 +1,10 @@
 # UKMA Phase 7 — S1 Contract Proposal (Graph / Storage)
 
-**Status: PROPOSAL — requires explicit architecture approval before S1 implementation
-(wire-level public API semantics are locked per v1.2.3; no API has been approved yet).**
+**Status: APPROVED via ADR-031 (ACCEPTED, 2026-10-25) — the three pending
+decisions (§6) are resolved in `docs/adr/ADR-031-s1-graph-contract-decisions.md`;
+S1 implementation is authorized by owner instruction. Wire-level public API
+semantics remain locked per v1.2.3 (this proposal is an addition, not a
+modification; 65/65 closure NOT claimed).**
 
 Source basis: upstream SHA `590c2ca7dd7b37bd1d41caf45fac535b6522f969`
 (observed only; nothing invented).
@@ -73,8 +76,10 @@ Source basis: upstream SHA `590c2ca7dd7b37bd1d41caf45fac535b6522f969`
   ACL isolation, revision invalidation, ETag, outbox replay, backend substitution.
 - **A single Memory Adapter + JSON dev adapter does NOT prove cross-production-DB portability** — stated, not claimed.
 
-## 6. Pending decisions (must be resolved before S1 code)
+## 6. Decisions — RESOLVED by ADR-031 (ACCEPTED, 2026-10-25)
 
-1. UKMA canonical ID format (string vs structured) — needs architecture approval.
-2. Exact `CAPABILITY_UNAVAILABLE` wire error code from v1.2.3 registry (registry is preliminary; not finalized).
-3. Whether upstream `NodeType/EdgeType` wire names are adopted or remapped — schema is preliminary, 65/65 closure NOT claimed.
+1. Canonical ID format → structured string `graph.node.<ULID>` / `graph.edge.<ULID>` (see ADR-031 D1).
+2. `CAPABILITY_UNAVAILABLE` → spec-registered ErrorCode used as-is (ADR-031 D2).
+3. `NodeType/EdgeType` wire names → new addition in snake_case v1, upstream semantics adopted (ADR-031 D3).
+
+Full text: `docs/adr/ADR-031-s1-graph-contract-decisions.md`.
