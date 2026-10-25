@@ -311,29 +311,30 @@ phases:
     blocked_reason: null
 
 - id: P7
-  name: Traceability 13 ops
-  status: not_started
+  name: Traceability
+  status: done
   work_packages:
   - id: P7-WP1
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'crates/traceability-engine/src/link.rs: the full §35.2 transition matrix (proposed->validated->accepted, proposed/validated->rejected, validated/accepted->stale, stale->validated, any non-terminal->revoked), rejected/revoked terminal, evidence immutable after acceptance (append_evidence is LINK_STATE_CONFLICT once accepted) with duplicate evidence ids collapsed. Tests: link::tests::the_transition_matrix_is_the_registered_one (11 allowed + 8 refused), evidence_is_immutable_after_acceptance, tapi_matrix tapi02/tapi03/tapi04.'
     blocked_reason: null
   - id: P7-WP2
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'ValidityVector with independent historical_validity / current_applicability / index_freshness dimensions (§40.3). A new source head sets current_applicability=requires_revalidation while historical_validity stays valid; a revoked verified link also keeps valid history and becomes not_applicable; unknown heads yield unknown. observe_endpoint records a head and moves affected links to stale, recomputing the vector. Tests: link::tests::historical_validity_is_not_changed_by_a_new_head / applicability_covers_unknown_and_terminal_links, tapi_matrix tapi07_a_stale_link_becomes_unknown_not_covered.'
     blocked_reason: null
   - id: P7-WP3
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'crates/traceability-engine/src/analysis.rs coverage(): denominator is the authorised in-scope requirements, only applicable+index-usable validated/accepted links count as covered, unknown is never covered, denominator=0 yields coverage_ratio=None (never 100%), and any excluded or unknown requirement sets coverage_incomplete. Tests: analysis::tests::coverage_counts_only_applicable_verified_links / an_empty_denominator_has_no_ratio / stale_or_lagging_links_become_unknown_not_covered / accepted_only_ignores_validated_links, tapi_matrix tapi07_* (no false 100%).'
     blocked_reason: null
   - id: P7-WP4
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'TraceImpact via bounded BFS (max_depth 1..=10, 5000-candidate cap -> RESOURCE_LIMIT) that stops at requires_revalidation edges and reports unknown_due_to_stale with completeness=partial; GapReport (missing_implementation, missing_tests, stale_links, unverifiable, coverage_incomplete); EvidenceReport with contradicted>supported>insufficient, omitted_due_to_access and CONTEXT_BUDGET_EXCEEDED. Tests: analysis::tests impact/gaps/explain (5), tapi_matrix tapi08/tapi09/tapi11.'
     blocked_reason: null
   - id: P7-WP5
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'All 13 operations implemented on TraceabilityService (TAPI-01 propose_link .. TAPI-13 get_revalidation_job) plus the §37 async TraceabilityPort with all 13 methods. compare_revisions diffs recorded snapshots (added/changed/removed, unknown snapshot -> SOURCE_UNAVAILABLE); revalidate_stale revalidates only when the asserted revision matches the observed head and keeps stale links stale otherwise (never auto-accept). Tests: tests/tapi_matrix.rs 18 covering positive/negative/authorization/cross-tenant/version/terminal-state/job paths and the port. NOTE: no persistence adapter and revalidation runs synchronously (ADR-053 gaps 1-2).'
     blocked_reason: null
+
 - id: P8
   name: Gateway MCP/REST/SDK/CLI/Server
   status: not_started

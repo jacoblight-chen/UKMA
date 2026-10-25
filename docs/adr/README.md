@@ -40,6 +40,7 @@
 | [ADR-050](./ADR-050.md) | Document Intelligence 實作決策（14 ops、no-OCR 結構性強制、rule-based 需求抽取、span 語意、redaction） | ACCEPTED | §9.1 / §31.4 / §33.1 / §33.2 / §33.3 / §37 / §40.4 / §41.4 |
 | [ADR-051](./ADR-051.md) | Fractal Memory 核心實作（P5）：reuse context/retrieval engine、抽取式 fold、FSRS/TTL、gzip 熵、BM25+RRF 檢索、sandbox 隔離、tombstone 與投影撤銷、CAPABILITY_UNAVAILABLE 邊界 | ACCEPTED | §21 / §22 / §23 / §26.4 / §34.1 / §34.2 / §37 / §40.2 |
 | [ADR-052](./ADR-052.md) | Memory Advanced 實作決策（P6）：四欄 trust＋Beta/Kalman、fact 三態與 promotion gate、九階段 DAG（Promote 為 commit point）、procedure 生命週期、poisoning quarantine、script 級多語 gate、embedding generation、maintenance jobs；supersedes ADR-051 D-09 | ACCEPTED | §23.3 / §25 / §26.1-§26.3 / §27.1-§27.3 / §29.4 / §34.2 |
+| [ADR-053](./ADR-053.md) | Traceability 實作決策（P7）：TraceState 僅流程狀態＋三維有效性、11 條狀態轉移與終態、accepted 後 evidence immutable、coverage 的 unknown/denominator=0 語意、有界 impact、revalidation 永不自動 accept | ACCEPTED | §35.1 / §35.2 / §40.3 / §29.4 |
 
 ## 編號衝突與對照（摘要）
 

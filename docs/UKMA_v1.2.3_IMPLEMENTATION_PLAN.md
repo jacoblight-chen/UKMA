@@ -256,11 +256,11 @@ flowchart LR
 
 | WP | 目標 | 交付物 | 驗收 | 規模 |
 |---|---|---|---|---|
-| **P7-WP1** | TraceLink 狀態機 | `proposed→validated→accepted`；`proposed/validated→rejected`；`validated/accepted→stale`（來源改版）；`stale→validated`（重驗）；`→revoked`；`rejected/revoked` terminal 不可復活 | TAPI-03/04 `LINK_STATE_CONFLICT` 負向；accepted 後 evidence immutable | M |
-| **P7-WP2** | 三維有效性 | `ValidityVector{historical_validity, current_applicability, index_freshness, asserted_source_revision, observed_head_revision, assessed_at, evidence_refs}`；歷史 valid 不因新版本變 invalid | TRACE-001、PROP-06、E2E-API-04 | L |
-| **P7-WP3** | Coverage 語意 | denominator = 已授權 in-scope Requirements；`denominator=0 → ratio=null`（禁 100%）；`unknown` 不算 covered；不足則 `coverage_incomplete=true` | TAPI-07、SEC-001（partial/coverage_incomplete） | M |
-| **P7-WP4** | Impact / Gap / Explain | `TraceImpact{impacted, links, paths, unknown_due_to_stale, completeness}`、`GapReport`、`EvidenceReport{conclusion: supported \| contradicted \| insufficient}` | TAPI-08/09/11、E2E-API-03 | L |
-| **P7-WP5** | 13 ops 全量 | `TraceabilityPort`（§37） | TAPI-01..13 各 8 子案例 | L |
+| ~~**P7-WP1**~~ ✅ | TraceLink 狀態機 | `proposed→validated→accepted`；`proposed/validated→rejected`；`validated/accepted→stale`（來源改版）；`stale→validated`（重驗）；`→revoked`；`rejected/revoked` terminal 不可復活 | `link.rs`：完整轉移矩陣（11 允許 / 8 拒絕）、accepted 後 evidence immutable、重複 evidence id 收斂 | `link::tests` 6；`tapi02`/`tapi03`/`tapi04`；`LINK_STATE_CONFLICT` 負向 | M |
+| ~~**P7-WP2**~~ ✅ | 三維有效性 | `ValidityVector{historical_validity, current_applicability, index_freshness, asserted_source_revision, observed_head_revision, assessed_at, evidence_refs}`；歷史 valid 不因新版本變 invalid | `link::assess`：新 head → `requires_revalidation` 但歷史仍 `valid`；revoke 亦不改歷史；`observe_endpoint` 觸發 stale 並重算 | TRACE-001、PROP-06、`tapi07` | L |
+| ~~**P7-WP3**~~ ✅ | Coverage 語意 | denominator = 已授權 in-scope Requirements；`denominator=0 → ratio=null`（禁 100%）；`unknown` 不算 covered；不足則 `coverage_incomplete=true` | `analysis::coverage`：只有 applicable＋索引可用＋validated/accepted 才 covered；excluded/unknown → incomplete | `analysis::tests` coverage 4；`tapi07_*`（含無假 100%） | M |
+| ~~**P7-WP4**~~ ✅ | Impact / Gap / Explain | `TraceImpact{impacted, links, paths, unknown_due_to_stale, completeness}`、`GapReport`、`EvidenceReport{conclusion: supported \| contradicted \| insufficient}` | `analysis::impact`（BFS 有界 1..=10、5000 候選上限 → `RESOURCE_LIMIT`、stale 邊不展開）、`gaps`、`explain`（contradicted 優先、`omitted_due_to_access`、`CONTEXT_BUDGET_EXCEEDED`） | `analysis::tests` 5；`tapi08`/`tapi09`/`tapi11` | L |
+| ~~**P7-WP5**~~ ✅ | 13 ops 全量 | `TraceabilityPort`（§37） | `TraceabilityService` 實作 TAPI-01..13 ＋ §37 async port；`compare_revisions` 用 `record_snapshot`（未知快照 → `SOURCE_UNAVAILABLE`）、`revalidate_stale` 只在斷言 revision == 觀測 head 時回 validated（否則保留 stale，永不自動 accept） | `tests/tapi_matrix.rs` 18 tests 覆蓋 TAPI-01..13；**無持久化 adapter、revalidation 同步執行**（ADR-053 缺口 1–2） | L |
 
 ---
 
