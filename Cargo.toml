@@ -23,6 +23,7 @@ members = [
     "crates/ukma-cli",
     "crates/ukma-code-runtime",
     "crates/ukma-contracts",
+    "crates/ukma-integration",
     "crates/ukma-mcp",
     "crates/ukma-security",
     "crates/ukma-types",

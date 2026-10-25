@@ -1,0 +1,948 @@
+{
+  "spec_version": "1.2.3",
+  "generated_by": "crates/ukma-integration/tests/coverage_matrix.rs",
+  "sources": [
+    "docs/UKMA_v1.2.3_Full_Spec.md#17.1",
+    "docs/UKMA_v1.2.3_Full_Spec.md#29.4"
+  ],
+  "dispositions": [
+    {
+      "id": "REP-001",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/code-intelligence/tests/s2_coverage.rs",
+          "test": "every_baseline_language_has_a_ledger_slice"
+        }
+      ],
+      "note": "the pinned upstream commit is locked in docs/migration/upstream-lock.yaml and every ported slice names it"
+    },
+    {
+      "id": "REP-002",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/code-intelligence/tests/s2_coverage.rs",
+          "test": "ported_slices_record_their_changes_and_evidence"
+        }
+      ],
+      "note": "each slice records source path, changes and evidence in the migration ledger"
+    },
+    {
+      "id": "REP-003",
+      "source": "17.1",
+      "disposition": "gap",
+      "reason": "licences are recorded per slice in the migration ledger, but there is no automated LICENSE/NOTICE/third-party asset audit"
+    },
+    {
+      "id": "ARC-001",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/ukma-integration/tests/coverage_matrix.rs",
+          "test": "arc001_the_dependency_graph_is_acyclic_and_free_of_vendor_sdks"
+        }
+      ],
+      "note": "workspace manifests are parsed: no backend SDK is reachable and no crate cycle exists"
+    },
+    {
+      "id": "ARC-002",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/adapters/embedded/tests/durability.rs",
+          "test": "metadata_survives_flush_and_reload"
+        }
+      ],
+      "note": "one aggregate has one fencing writer; a second writer is refused after reload"
+    },
+    {
+      "id": "DB-001",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/ukma-integration/tests/coverage_matrix.rs",
+          "test": "db001_domain_crates_declare_no_database_sdk"
+        }
+      ],
+      "note": "domain crates declare no database SDK and no backend-specific schema"
+    },
+    {
+      "id": "DB-002",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/ukma-integration/tests/coverage_matrix.rs",
+          "test": "db002_two_independent_graph_stores_pass_the_same_contract"
+        }
+      ],
+      "note": "InMemoryGraphStore and FileGraphStore satisfy the same CRUD/identity/isolation assertions"
+    },
+    {
+      "id": "DB-003",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/ukma-integration/tests/e2e_api.rs",
+          "test": "e2e_api_11_a_store_copy_preserves_logical_ids_revisions_and_scope"
+        }
+      ],
+      "note": "ids, revisions, etags and ACL scope survive an adapter cutover"
+    },
+    {
+      "id": "DB-004",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/ukma-integration/tests/property_matrix.rs",
+          "test": "prop_07_vectors_from_different_profiles_cannot_be_compared"
+        }
+      ],
+      "note": "a dimension/metric mismatch is MODEL_PROFILE_MISMATCH, never a silent comparison"
+    },
+    {
+      "id": "DB-005",
+      "source": "17.1",
+      "disposition": "partial",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/tests/p5_contracts.rs",
+          "test": "ttl_sweep_respects_holds_and_regulation"
+        }
+      ],
+      "note": "memory TTL/hold semantics are proven inside the memory store; no cross-domain test proves a code or document artifact is untouched"
+    },
+    {
+      "id": "DB-006",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/adapters/embedded/tests/durability.rs",
+          "test": "outbox_replays_after_reload_and_keeps_ack_state"
+        }
+      ],
+      "note": "outbox replay is idempotent per consumer and survives a reload"
+    },
+    {
+      "id": "DB-007",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/adapters/embedded/tests/durability.rs",
+          "test": "unavailable_profile_helper_reports_honestly"
+        }
+      ],
+      "note": "a missing required capability fails closed (assert_minimum_profile) instead of degrading silently"
+    },
+    {
+      "id": "DB-008",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/ukma-integration/tests/e2e_api.rs",
+          "test": "e2e_api_10_the_shipped_adapters_need_no_rocksdb_and_meet_the_minimum_profile"
+        }
+      ],
+      "note": "the shipped profile meets the minimum capabilities and Cargo.lock contains no RocksDB crate"
+    },
+    {
+      "id": "DB-009",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/adapters/embedded/tests/durability.rs",
+          "test": "scope_isolation_holds_across_reload"
+        },
+        {
+          "file": "crates/adapters/filesystem/tests/artifact_contract.rs",
+          "test": "scope_isolation_hides_other_tenants_artifacts"
+        },
+        {
+          "file": "crates/graph-engine/tests/tenant_isolation_contract.rs",
+          "test": "cross_scope_read_is_not_found"
+        }
+      ],
+      "note": "metadata, artifact and graph adapters each refuse a foreign scope"
+    },
+    {
+      "id": "DB-010",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/ukma-integration/tests/e2e_api.rs",
+          "test": "e2e_api_11_a_store_copy_preserves_logical_ids_revisions_and_scope"
+        },
+        {
+          "file": "crates/ukma-integration/tests/property_matrix.rs",
+          "test": "prop_04_repeated_mutations_converge_on_one_canonical_version"
+        }
+      ],
+      "note": "single-writer fencing, replay and cutover are exercised; rollback is only modelled by retained generations"
+    },
+    {
+      "id": "CODE-001",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/code-intelligence/tests/s2_languages.rs",
+          "test": "every_language_extracts_the_expected_symbols_and_spans"
+        }
+      ],
+      "note": "golden expectations per language; unported grammars fail typed instead of returning empty results"
+    },
+    {
+      "id": "CODE-002",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/graph-engine/tests/traversal_contract.rs",
+          "test": "cycle_terminates_with_dedup"
+        },
+        {
+          "file": "crates/ukma-integration/tests/property_matrix.rs",
+          "test": "prop_03_graph_cycles_and_bounds_terminate_deterministically"
+        }
+      ],
+      "note": "cycles and bounds terminate deterministically; over-large traversals are typed refusals"
+    },
+    {
+      "id": "DOC-001",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/document-intelligence/tests/p4_markdown.rs",
+          "test": "blocks_match_the_hand_written_expectation"
+        },
+        {
+          "file": "crates/document-intelligence/tests/p4_pdf_docx.rs",
+          "test": "pdf_text_layer_becomes_a_paragraph_with_its_text"
+        }
+      ],
+      "note": "markdown headings/spans plus the PDF/DOCX sample acceptance are pinned"
+    },
+    {
+      "id": "DOC-002",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/document-intelligence/tests/dapi_matrix.rs",
+          "test": "dapi14_source_span_returns_text_or_redacts_it"
+        }
+      ],
+      "note": "extracted text resolves back to a source location and the artifact hash"
+    },
+    {
+      "id": "TRACE-001",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/traceability-engine/tests/tapi_matrix.rs",
+          "test": "tapi03_and_04_accept_then_revoke_keeps_history"
+        },
+        {
+          "file": "crates/ukma-integration/tests/e2e_api.rs",
+          "test": "e2e_api_04_a_new_head_makes_the_link_stale_and_revalidation_restores_it"
+        }
+      ],
+      "note": "positive and negative relations plus revision invalidation"
+    },
+    {
+      "id": "MEM-001",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/tests/p5_contracts.rs",
+          "test": "a_child_agent_cannot_read_its_parents_episodes"
+        }
+      ],
+      "note": "sandbox isolation between parent and child"
+    },
+    {
+      "id": "MEM-002",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/context-engine/src/budget.rs",
+          "test": "b_eff_is_monotonic_in_depth_and_never_exceeds_c_usable"
+        }
+      ],
+      "note": "B_eff never exceeds C_usable at any depth, and shares sum to B_eff"
+    },
+    {
+      "id": "MEM-003",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/tests/p5_contracts.rs",
+          "test": "fold_keeps_every_evidence_reference_across_a_chain"
+        }
+      ],
+      "note": "protected evidence survives folds; eviction never selects protected content"
+    },
+    {
+      "id": "MEM-004",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/tests/p5_contracts.rs",
+          "test": "episodic_state_machine_is_reachable_only_through_legal_moves"
+        },
+        {
+          "file": "crates/memory-domain/tests/p5_contracts.rs",
+          "test": "ttl_sweep_archives_then_purges_a_record"
+        }
+      ],
+      "note": "FSRS/TTL/archive/hold/forget follow one lifecycle"
+    },
+    {
+      "id": "MEM-005",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/src/consolidation.rs",
+          "test": "a_full_run_commits_and_records_every_stage"
+        },
+        {
+          "file": "crates/memory-domain/src/facts.rs",
+          "test": "promotion_needs_three_groups_and_the_confidence_gate"
+        }
+      ],
+      "note": "nine-stage DAG, promotion gate, checkpoint and idempotent replay"
+    },
+    {
+      "id": "MEM-006",
+      "source": "17.1",
+      "disposition": "partial",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/src/language.rs",
+          "test": "mixed_scripts_are_detected_and_tagged"
+        },
+        {
+          "file": "crates/memory-domain/src/facts.rs",
+          "test": "a_negated_or_numeric_difference_is_a_contradiction"
+        }
+      ],
+      "note": "script segmentation and cross-lingual contradiction detection are proven, but there is no end-to-end query test across zh/en/ja with synonyms"
+    },
+    {
+      "id": "MCP-001",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/ukma-integration/tests/property_matrix.rs",
+          "test": "prop_10_every_artefact_is_projected_from_one_registry"
+        },
+        {
+          "file": "crates/ukma-mcp/tests/gateway_matrix.rs",
+          "test": "the_manifest_is_projected_from_the_registry_without_drift"
+        }
+      ],
+      "note": "tool schema, auth, errors and the (empty) compatibility matrix all project from one registry"
+    },
+    {
+      "id": "SEC-001",
+      "source": "17.1",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/ukma-integration/tests/property_matrix.rs",
+          "test": "prop_01_a_hidden_object_is_indistinguishable_from_an_absent_one"
+        },
+        {
+          "file": "crates/ukma-integration/tests/e2e_api.rs",
+          "test": "e2e_api_08_a_connected_cross_tenant_edge_never_leaks_between_tenants"
+        },
+        {
+          "file": "crates/memory-domain/src/poisoning.rs",
+          "test": "injected_text_stays_data_and_only_raises_a_signal"
+        }
+      ],
+      "note": "prompt injection stays data, cross-tenant traversal leaks nothing, and errors carry no source text"
+    },
+    {
+      "id": "OPS-001",
+      "source": "17.1",
+      "disposition": "gap",
+      "reason": "no backup/restore or re-index drill: the embedded adapter's flush/reload is tested, but there is no restore or index rebuild exercise"
+    },
+    {
+      "id": "FM-001",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/src/scope.rs",
+          "test": "isolation_key_is_the_registered_unit"
+        }
+      ],
+      "note": "parent and child never share a private WM/EM key"
+    },
+    {
+      "id": "FM-002",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/adapters/embedded/tests/durability.rs",
+          "test": "metadata_survives_flush_and_reload"
+        }
+      ],
+      "note": "a shared port keeps one writer ownership per aggregate via fencing"
+    },
+    {
+      "id": "FM-003",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/tests/mapi_matrix.rs",
+          "test": "mapi07_search_ranks_live_records_and_hides_other_tenants"
+        },
+        {
+          "file": "crates/memory-domain/tests/mapi_matrix.rs",
+          "test": "mapi08_retrieve_refuses_another_tenant"
+        }
+      ],
+      "note": "read/store/fold/forget never cross a scope"
+    },
+    {
+      "id": "FM-004",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/tests/mapi_matrix.rs",
+          "test": "mapi09_update_revision_appends_and_checks_the_etag"
+        }
+      ],
+      "note": "transitions are legal-only and recoverable through a new revision"
+    },
+    {
+      "id": "FM-005",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/ukma-integration/tests/e2e_api.rs",
+          "test": "e2e_api_12_a_lost_response_is_resolved_by_the_idempotency_receipt"
+        },
+        {
+          "file": "crates/ukma-integration/tests/e2e_api.rs",
+          "test": "e2e_api_07_consolidation_promotes_only_at_the_commit_stage_and_replays"
+        }
+      ],
+      "note": "episode to consolidated fact flows end to end through the public API"
+    },
+    {
+      "id": "FM-006",
+      "source": "29.4",
+      "disposition": "gap",
+      "reason": "canonical schema versioning/migration is not implemented: the embedded snapshot carries a format number and refuses unknown versions, but no migration exists"
+    },
+    {
+      "id": "FM-007",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/src/fsrs.rs",
+          "test": "retrievability_refuses_invalid_inputs"
+        },
+        {
+          "file": "crates/context-engine/src/folding.rs",
+          "test": "nan_model_score_is_rejected_not_trusted"
+        },
+        {
+          "file": "crates/retrieval-engine/src/lib.rs",
+          "test": "final_score_is_monotone_and_rejects_invalid_inputs"
+        }
+      ],
+      "note": "zero/NaN/negative inputs are typed refusals, not silent fallbacks"
+    },
+    {
+      "id": "FM-008",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/src/language.rs",
+          "test": "an_incompatible_embedding_profile_requires_a_new_generation"
+        },
+        {
+          "file": "crates/embedding-engine/src/lib.rs",
+          "test": "registry_rejects_dimension_or_metric_drift_for_the_same_id"
+        }
+      ],
+      "note": "a profile change cannot reuse an incompatible vector generation"
+    },
+    {
+      "id": "FM-009",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/adapters/embedded/tests/durability.rs",
+          "test": "outbox_replays_after_reload_and_keeps_ack_state"
+        },
+        {
+          "file": "crates/ukma-integration/tests/e2e_api.rs",
+          "test": "e2e_api_09_a_generation_is_refused_until_the_projection_is_published"
+        }
+      ],
+      "note": "the outbox is the recovery path; a generation is not readable before publication"
+    },
+    {
+      "id": "FM-010",
+      "source": "29.4",
+      "disposition": "gap",
+      "reason": "no 1M episode benchmark harness or reproducible report exists yet"
+    },
+    {
+      "id": "FO-001",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/context-engine/src/folding.rs",
+          "test": "level_boundaries_are_exact"
+        }
+      ],
+      "note": "the 0.3/0.7 boundaries are exact"
+    },
+    {
+      "id": "FO-002",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/context-engine/src/folding.rs",
+          "test": "feature_order_matches_spec_groups"
+        },
+        {
+          "file": "crates/context-engine/src/folding.rs",
+          "test": "feature_vector_tracks_missing_mask"
+        }
+      ],
+      "note": "feature shape/order/missing mask and weight version are pinned"
+    },
+    {
+      "id": "FO-003",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/context-engine/src/folding.rs",
+          "test": "all_eight_preserve_rules_force_preserve"
+        },
+        {
+          "file": "crates/memory-domain/tests/p5_contracts.rs",
+          "test": "fold_keeps_every_evidence_reference_across_a_chain"
+        }
+      ],
+      "note": "every preserve rule forces lossless output; evidence is never dropped"
+    },
+    {
+      "id": "FO-004",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/src/trust.rs",
+          "test": "discounts_only_reduce_the_ranking_signal"
+        },
+        {
+          "file": "crates/memory-domain/src/trust.rs",
+          "test": "column_validation_is_bounded_and_authorization_is_not_a_score"
+        }
+      ],
+      "note": "depth/fold discounts never change an authority verification"
+    },
+    {
+      "id": "FO-005",
+      "source": "29.4",
+      "disposition": "partial",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/src/language.rs",
+          "test": "the_cross_lingual_gate_requires_every_condition"
+        }
+      ],
+      "note": "the cross-lingual gate is proven, but a multilingual fold keeping original propositions has no dedicated test"
+    },
+    {
+      "id": "RE-001",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/retrieval-engine/src/lib.rs",
+          "test": "planner_reports_unavailable_strategies_as_partial"
+        }
+      ],
+      "note": "strategies run singly or combined and report partial when unavailable"
+    },
+    {
+      "id": "RE-002",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/retrieval-engine/src/lib.rs",
+          "test": "rrf_matches_the_formula"
+        },
+        {
+          "file": "crates/retrieval-engine/src/lib.rs",
+          "test": "ppr_converges_and_stays_normalised"
+        },
+        {
+          "file": "crates/retrieval-engine/src/lib.rs",
+          "test": "bm25_ranks_the_matching_document_first"
+        }
+      ],
+      "note": "RRF/PPR/BM25 mathematics match the spec; HNSW recall is measured separately"
+    },
+    {
+      "id": "RE-003",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/retrieval-engine/src/lib.rs",
+          "test": "detail_tiers_require_calibrated_relevance"
+        }
+      ],
+      "note": "detail tiers never treat raw RRF as a calibrated similarity"
+    },
+    {
+      "id": "CT-001",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/context-engine/src/budget.rs",
+          "test": "zero_and_negative_reserves_are_rejected"
+        },
+        {
+          "file": "crates/memory-domain/tests/mapi_matrix.rs",
+          "test": "mapi08_retrieve_honours_detail_and_the_token_ceiling"
+        }
+      ],
+      "note": "a budget below the reserves fails closed"
+    },
+    {
+      "id": "CT-002",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/context-engine/src/budget.rs",
+          "test": "golden_depth_vectors_from_spec_40_2"
+        }
+      ],
+      "note": "the five-stage thresholds per depth are the spec vectors"
+    },
+    {
+      "id": "CT-003",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/context-engine/src/eviction.rs",
+          "test": "shadow_proposal_cannot_include_protected_blocks"
+        },
+        {
+          "file": "crates/context-engine/src/eviction.rs",
+          "test": "shadow_policy_never_overrides_deterministic_selection"
+        }
+      ],
+      "note": "an RL proposal cannot bypass the deterministic protected gate"
+    },
+    {
+      "id": "CT-004",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/context-engine/src/paging.rs",
+          "test": "every_guard_is_enforced"
+        },
+        {
+          "file": "crates/context-engine/src/paging.rs",
+          "test": "tampered_payload_is_rejected"
+        }
+      ],
+      "note": "paging checks ACL, cache hash and revision"
+    },
+    {
+      "id": "AG-001",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/tests/mapi_matrix.rs",
+          "test": "mapi02_close_agent_scope_can_hand_over_a_folded_result_only"
+        },
+        {
+          "file": "crates/ukma-integration/tests/e2e_api.rs",
+          "test": "e2e_api_05_a_parent_sees_the_folded_result_not_the_child_transcript"
+        }
+      ],
+      "note": "only a FoldedResult crosses the child to parent gate"
+    },
+    {
+      "id": "AG-002",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/tests/p5_contracts.rs",
+          "test": "ttl_sweep_archives_then_purges_a_record"
+        },
+        {
+          "file": "crates/memory-domain/src/fsrs.rs",
+          "test": "effective_active_until_prefers_the_earlier_horizon"
+        }
+      ],
+      "note": "active TTL, followup, archive and purge are distinct states"
+    },
+    {
+      "id": "AG-003",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/src/trust.rs",
+          "test": "column_validation_is_bounded_and_authorization_is_not_a_score"
+        }
+      ],
+      "note": "trust depth never changes a verified source's authority"
+    },
+    {
+      "id": "TR-001",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/src/trust.rs",
+          "test": "kalman_cold_start_then_smooths_towards_the_measurement"
+        },
+        {
+          "file": "crates/memory-domain/src/trust.rs",
+          "test": "a_repeated_restatement_never_counts_twice"
+        }
+      ],
+      "note": "Bayesian/Kalman boundaries, cold start and source-group de-duplication"
+    },
+    {
+      "id": "TR-002",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/src/poisoning.rs",
+          "test": "every_signal_quarantines_and_freezes_promotion"
+        },
+        {
+          "file": "crates/memory-domain/src/poisoning.rs",
+          "test": "quarantine_can_only_be_lifted_by_an_audited_review"
+        }
+      ],
+      "note": "poisoning, injection, translation ACL and quarantine"
+    },
+    {
+      "id": "CO-001",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/src/consolidation.rs",
+          "test": "the_stage_order_is_the_registered_dag"
+        },
+        {
+          "file": "crates/memory-domain/src/consolidation.rs",
+          "test": "replaying_a_completed_stage_is_idempotent"
+        }
+      ],
+      "note": "nine-stage order, idempotency and checkpoints"
+    },
+    {
+      "id": "LC-001",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/src/fsrs.rs",
+          "test": "success_increases_and_failure_halves_stability"
+        },
+        {
+          "file": "crates/memory-domain/src/fsrs.rs",
+          "test": "state_validation_rejects_zero_stability_and_bad_difficulty"
+        }
+      ],
+      "note": "FSRS success/failure, zero stability and time skew"
+    },
+    {
+      "id": "LC-002",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/src/fsrs.rs",
+          "test": "entropy_signal_skips_empty_and_flags_redundancy"
+        }
+      ],
+      "note": "empty gzip case and reference retention"
+    },
+    {
+      "id": "LC-003",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/tests/p5_contracts.rs",
+          "test": "a_concurrent_edit_makes_the_window_commit_fail_without_overwriting"
+        }
+      ],
+      "note": "the four-hour window is a CAS; a concurrent edit fails the commit"
+    },
+    {
+      "id": "PM-001",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/src/procedures.rs",
+          "test": "an_active_procedure_still_grants_no_tool"
+        },
+        {
+          "file": "crates/memory-domain/tests/p6_matrix.rs",
+          "test": "mapi22_record_outcomes_is_refused_once_the_procedure_is_disabled"
+        }
+      ],
+      "note": "LEARN/CONSOLIDATE/APPLY/REFINE/DISABLE with counter-examples"
+    },
+    {
+      "id": "ML-001",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/src/language.rs",
+          "test": "mixed_scripts_are_detected_and_tagged"
+        },
+        {
+          "file": "crates/retrieval-engine/src/lib.rs",
+          "test": "planner_only_plans_cross_lingual_for_multilingual_queries"
+        }
+      ],
+      "note": "mixed-script ingest routes to cross-lingual candidates"
+    },
+    {
+      "id": "ML-002",
+      "source": "29.4",
+      "disposition": "partial",
+      "evidence": [
+        {
+          "file": "crates/retrieval-engine/src/lib.rs",
+          "test": "bm25_length_normalisation_discounts_longer_documents"
+        }
+      ],
+      "note": "the analyzer id is recorded and BM25 is pinned, but no ICU/CJK analyzer reproducibility test exists (no ICU dependency)"
+    },
+    {
+      "id": "ML-003",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/src/language.rs",
+          "test": "an_incompatible_embedding_profile_requires_a_new_generation"
+        }
+      ],
+      "note": "a truncated embedding switches the index generation"
+    },
+    {
+      "id": "ML-004",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/src/facts.rs",
+          "test": "a_negated_or_numeric_difference_is_a_contradiction"
+        }
+      ],
+      "note": "negated/numeric/version-opposite propositions are not merged"
+    },
+    {
+      "id": "SR-001",
+      "source": "29.4",
+      "disposition": "partial",
+      "evidence": [
+        {
+          "file": "crates/memory-domain/src/deletion.rs",
+          "test": "legal_hold_retention_and_active_jobs_block_the_deletion"
+        }
+      ],
+      "note": "memory holds block its own deletion, but no test proves a code/document source artifact is untouched by memory TTL/RL"
+    },
+    {
+      "id": "SR-002",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/traceability-engine/tests/tapi_matrix.rs",
+          "test": "tapi07_a_stale_link_becomes_unknown_not_covered"
+        },
+        {
+          "file": "crates/ukma-integration/tests/property_matrix.rs",
+          "test": "prop_06_an_accepted_link_never_outlives_its_evidence_revision"
+        }
+      ],
+      "note": "KnowledgeRef staleness is revalidated before it is trusted again"
+    },
+    {
+      "id": "SR-003",
+      "source": "29.4",
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/code-intelligence/tests/s2_coverage.rs",
+          "test": "parity_report_covers_every_language"
+        }
+      ],
+      "note": "two upstream repositories are mirrored with generated, traceable manifests"
+    },
+    {
+      "id": "SR-004",
+      "source": "29.4",
+      "disposition": "gap",
+      "reason": "no RocksDB or SQL adapter is implemented: the postgres/qdrant/neo4j/sqlite adapters declare themselves unavailable, so the same contract cannot run on a second live backend"
+    }
+  ]
+}

@@ -2594,6 +2594,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "ukma-integration"
+version = "0.1.0"
+dependencies = [
+ "code-intelligence",
+ "document-intelligence",
+ "graph-engine",
+ "indexing-engine",
+ "memory-domain",
+ "serde_json",
+ "storage-ports",
+ "traceability-engine",
+ "ukma-adapter-embedded",
+ "ukma-adapter-filesystem",
+ "ukma-contracts",
+ "ukma-mcp",
+]
+
+[[package]]
 name = "ukma-mcp"
 version = "0.1.0"
 dependencies = [

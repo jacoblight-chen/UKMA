@@ -280,11 +280,11 @@ flowchart LR
 
 | WP | 目標 | 驗收 | 規模 |
 |---|---|---|---|
-| **P9-WP1** | 12 個 E2E | E2E-API-01..12（§38.1）全通過 | L |
-| **P9-WP2** | 10 個 Property 測試 | PROP-01..10（§38.2）全通過 | L |
-| **P9-WP3** | §17.1 全表 | REP-001..003、ARC-001/002、DB-001..010、CODE-001/002、DOC-001/002、TRACE-001、MEM-001..006、MCP-001、SEC-001、OPS-001 | L |
-| **P9-WP4** | §29.4 40 項 | FM/FO/RE/CT/AG/TR/CO/LC/PM/ML/SR 全綠；`coverage_matrix=100% disposition` | L |
-| **P9-WP5** | Chaos / 崩潰重播 | 崩潰於 canonical commit 後、index publish 前 → outbox replay → 唯一 READY generation，無幽靈記錄（E2E-API-06/09/12） | M |
+| ~~**P9-WP1**~~ ✅ | 12 個 E2E | E2E-API-01..12（§38.1）全通過 | `ukma-integration/tests/e2e_api.rs` 13 tests：全走 public API（envelope → gateway → envelope）；E2E-API-08/09/10/11 為 adapter-level（無 wire operation），其餘為 API-level | L |
+| ~~**P9-WP2**~~ ✅ | 10 個 Property 測試 | PROP-01..10（§38.2）全通過 | `ukma-integration/tests/property_matrix.rs` 10 tests：存在性不洩漏、身分穩定、bounded 終止、重放收斂、preserve gate、版本失效、profile 不可比、分頁穩定、cancel 不刪資料、單一 registry | L |
+| ~~**P9-WP3**~~ ✅ | §17.1 全表 | REP-001..003、ARC-001/002、DB-001..010、CODE-001/002、DOC-001/002、TRACE-001、MEM-001..006、MCP-001、SEC-001、OPS-001 | `contracts/testing/test-coverage.json`＋`docs/testing/coverage-matrix.md`：29 項 25 covered / 2 partial / 2 gap（REP-003、OPS-001）；矩陣由 `coverage_matrix.rs` 驗證，引用不存在的測試即 fail | L |
+| ~~**P9-WP4**~~ ✅ | §29.4 40 項 | FM/FO/RE/CT/AG/TR/CO/LC/PM/ML/SR 全綠；`coverage_matrix=100% disposition` | 40 項 100% 已分類：34 covered / 3 partial（FO-005、ML-002、SR-001）/ 3 gap（FM-006、FM-010、SR-004）；**未宣稱全綠**，缺口與未覆蓋面逐項記錄（ADR-055 D-10） | L |
+| ~~**P9-WP5**~~ ✅ | Chaos / 崩潰重播 | 崩潰於 canonical commit 後、index publish 前 → outbox replay → 唯一 READY generation，無幽靈記錄（E2E-API-06/09/12） | `ukma-integration/tests/chaos.rs` 3 tests：commit 後 publish 前崩潰 → 重播得單一 READY generation 且 retained 為空；半套 projection 不宣稱 current；commit 前 cancel 不留 canonical 資料 | M |
 
 ---
 

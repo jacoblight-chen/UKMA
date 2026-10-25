@@ -1,0 +1,21 @@
+[package]
+name = "ukma-integration"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+description = "Cross-domain E2E, property and coverage tests (P9)."
+
+[dependencies]
+serde_json = "1"
+ukma-contracts = { path = "../ukma-contracts" }
+ukma-mcp = { path = "../ukma-mcp" }
+code-intelligence = { path = "../code-intelligence" }
+document-intelligence = { path = "../document-intelligence" }
+memory-domain = { path = "../memory-domain" }
+traceability-engine = { path = "../traceability-engine" }
+graph-engine = { path = "../graph-engine" }
+indexing-engine = { path = "../indexing-engine" }
+storage-ports = { path = "../storage-ports" }
+ukma-adapter-embedded = { path = "../adapters/embedded" }
+ukma-adapter-filesystem = { path = "../adapters/filesystem" }

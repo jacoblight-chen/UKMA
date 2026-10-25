@@ -359,29 +359,30 @@ phases:
     status: done
     evidence: 'crates/ukma-mcp/src/alias.rs: AliasTable is inert by default (zero entries, is_enabled()=false, resolve()=None), enable() requires the pinned upstream commit 590c2ca7dd7b37bd1d41caf45fac535b6522f969 plus a non-empty parity test plus a registered target operation, and difference_matrix_json() reports alias_count=0 with enabled=false - no compatibility is claimed. Tests: gateway_matrix the_codegraph_alias_layer_is_inert_and_unclaimed.'
     blocked_reason: null
+
 - id: P9
   name: 跨域 E2E + Security + Chaos
-  status: not_started
+  status: done
   work_packages:
   - id: P9-WP1
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'crates/ukma-integration (publish = false) + tests/e2e_api.rs 13 tests: all 12 E2E-API-01..12 scenarios pass through the public API (envelope -> gateway -> envelope); API-level 01/02/03/04/05/06/07/12 and adapter-level 08 (graph query facade), 09 (outbox/generation pointer), 10 (adapter profile + Cargo.lock), 11 (store cutover) because those destinations have no wire operation. Contract gaps found while writing them are recorded in ADR-055 section 5 (trace enum casing, code.find_symbols NOT_FOUND declaration, Symbol.definition.revision = worktree, commit_reconsolidation EVIDENCE_REQUIRED, close_agent_scope status token, consolidate request-level idempotency).'
     blocked_reason: null
   - id: P9-WP2
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'tests/property_matrix.rs 10 tests, one per PROP-01..10: hidden vs absent indistinguishability across all detail levels (PROP-01), symbol identity independent of file order (PROP-02), cycle/bound termination determinism (PROP-03), replay converging on one canonical version plus fencing and idempotent ack (PROP-04), eviction never selecting protected/task_state blocks (PROP-05), accepted link never outliving its evidence revision (PROP-06), MODEL_PROFILE_MISMATCH for cross-profile vectors (PROP-07), stable duplicate-free pagination (PROP-08), cancel keeping committed data and final state (PROP-09), every manifest/tool/route/schema projected from one registry (PROP-10).'
     blocked_reason: null
   - id: P9-WP3
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'contracts/testing/test-coverage.json + docs/testing/coverage-matrix.md cover all 29 section 17.1 ids: 25 covered, 2 partial (DB-005, MEM-006), 2 gap (REP-003 licence audit, OPS-001 restore drill). tests/coverage_matrix.rs enforces that each id is classified exactly once, that a gap carries a reason, and that every cited file::test pair really exists; ARC-001 (dependency acyclicity + no vendor SDK), DB-001 (no DB SDK in domain crates) and DB-002 (InMemoryGraphStore and FileGraphStore both pass one contract function) are real tests in that file.'
     blocked_reason: null
   - id: P9-WP4
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'all 40 section 29.4 ids are classified in the same machine-readable matrix: 34 covered, 3 partial (FO-005 multilingual fold, ML-002 ICU/CJK reproducibility, SR-001 cross-domain source retention), 3 gap (FM-006 schema migration, FM-010 1M episode benchmark, SR-004 second live backend). disposition coverage is 100 percent (69/69 classified) but full-green is explicitly NOT claimed: each gap and partial states the uncovered surface (ADR-055 D-10). Every operation in the registry also declares a contract test id in a known family (CAPI 13, DAPI 14, MAPI 25, TAPI 13, SYS 4).'
     blocked_reason: null
   - id: P9-WP5
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'tests/chaos.rs 3 tests: a crash after the canonical commit but before the projection publish replays through the outbox to exactly one READY generation with an empty retained list and exactly one canonical record (no ghost); a crashed half-applied projection never claims to be current and replays to one searchable document; a pre-commit cancel leaves CommitPhase::NotCommitted while a post-commit failure keeps the commit and retries to Ready.'
     blocked_reason: null
 - id: P10
   name: Production Readiness
@@ -1030,3 +1031,4 @@ notes:
 - P3 ??????? 38 ?? registry ???S2 ???????38 ? ledger?parity report?s2_coverage ????????????? grammar ?? 0/38?
 - B(sql)/C(hybrid) adapter ? declared-unavailable?? DB-002/DB-08 ? partial?
 - P8 done = 69/69 handlers (65 domain + 4 system); manifest, routes and error sets are projected from the registry with empty drift; ScopeResolver-injected authz returns NOT_FOUND for a foreign scope; typed SDK plus ukma-server (std::net HTTP) and ukma CLI; legacy alias layer inert with zero aliases; gaps remain (no persistence, development auth profile, no streaming/rate limit/TLS, schemas still preliminary)
+- P9 done = 12 E2E, 10 properties and 3 chaos tests through the public API in crates/ukma-integration; section 17.1 and 29.4 fully classified in contracts/testing/test-coverage.json (69/69; covered 59, partial 5, gap 5) with a gate that rejects unclassified ids or evidence pointing at a missing test; dependency acyclicity, no-vendor-SDK and two-store graph portability are real tests; full-green is NOT claimed
