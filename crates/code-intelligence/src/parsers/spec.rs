@@ -26,8 +26,8 @@ pub struct LanguageSpec {
     pub name_field: &'static str,
     /// Node kinds that represent a call.
     pub call_kinds: &'static [&'static str],
-    /// Field that holds the callee of a call node.
-    pub call_field: &'static str,
+    /// Fields that may hold the callee of a call node, tried in order.
+    pub call_fields: &'static [&'static str],
     /// Node kinds that represent an import/include.
     pub import_kinds: &'static [&'static str],
     /// Transparent scopes whose members belong to the type named in `type`.
@@ -99,7 +99,7 @@ pub static RUST: LanguageSpec = LanguageSpec {
     ],
     name_field: "name",
     call_kinds: &["call_expression"],
-    call_field: "function",
+    call_fields: &["function"],
     import_kinds: &["use_declaration"],
     type_impl_kinds: &["impl_item"],
     body_fields: &["body"],
@@ -123,7 +123,7 @@ pub static PYTHON: LanguageSpec = LanguageSpec {
     ],
     name_field: "name",
     call_kinds: &["call"],
-    call_field: "function",
+    call_fields: &["function"],
     import_kinds: &["import_statement", "import_from_statement"],
     type_impl_kinds: &[],
     body_fields: &["body"],
@@ -143,7 +143,7 @@ pub static GO: LanguageSpec = LanguageSpec {
     ],
     name_field: "name",
     call_kinds: &["call_expression"],
-    call_field: "function",
+    call_fields: &["function"],
     import_kinds: &["import_declaration"],
     type_impl_kinds: &[],
     body_fields: &["body"],
@@ -167,7 +167,7 @@ pub static JAVA: LanguageSpec = LanguageSpec {
     ],
     name_field: "name",
     call_kinds: &["method_invocation"],
-    call_field: "name",
+    call_fields: &["name"],
     import_kinds: &["import_declaration"],
     type_impl_kinds: &[],
     body_fields: &["body"],
@@ -188,7 +188,7 @@ pub static BASH: LanguageSpec = LanguageSpec {
     // Bash has no static call graph: a command is a lookup by name at run time,
     // so the best a call edge may claim is `static_possible`.
     call_kinds: &["command"],
-    call_field: "name",
+    call_fields: &["name"],
     import_kinds: &[],
     type_impl_kinds: &[],
     body_fields: &["body"],
@@ -210,7 +210,7 @@ pub static C: LanguageSpec = LanguageSpec {
     ],
     name_field: "name",
     call_kinds: &["call_expression"],
-    call_field: "function",
+    call_fields: &["function"],
     import_kinds: &["preproc_include"],
     type_impl_kinds: &[],
     body_fields: &["body"],
@@ -234,11 +234,195 @@ pub static CPP: LanguageSpec = LanguageSpec {
     ],
     name_field: "name",
     call_kinds: &["call_expression"],
-    call_field: "function",
+    call_fields: &["function"],
     import_kinds: &["preproc_include"],
     type_impl_kinds: &[],
     body_fields: &["body"],
     declarator_names: true,
+};
+
+// ---------------------------------------------------------------------------
+// Batch 2
+// ---------------------------------------------------------------------------
+
+/// TypeScript (also used for the js/jsx extensions of the baseline language set).
+#[cfg(feature = "parser-s2-batch2")]
+pub static TYPESCRIPT: LanguageSpec = LanguageSpec {
+    language: "typescript",
+    profile: "tree-sitter-typescript-0.23.2/ts-0.25.10",
+    grammar: || tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
+    declarations: &[
+        ("class_declaration", SymbolKind::Class),
+        ("abstract_class_declaration", SymbolKind::Class),
+        ("interface_declaration", SymbolKind::Interface),
+        ("enum_declaration", SymbolKind::Enum),
+        ("function_declaration", SymbolKind::Function),
+        ("method_definition", SymbolKind::Method),
+        ("type_alias_declaration", SymbolKind::Other),
+    ],
+    name_field: "name",
+    call_kinds: &["call_expression"],
+    call_fields: &["function"],
+    import_kinds: &["import_statement"],
+    type_impl_kinds: &[],
+    body_fields: &["body"],
+    declarator_names: false,
+};
+
+/// Ruby.
+#[cfg(feature = "parser-s2-batch2")]
+pub static RUBY: LanguageSpec = LanguageSpec {
+    language: "ruby",
+    profile: "tree-sitter-ruby-0.23.1/ts-0.25.10",
+    grammar: || tree_sitter_ruby::LANGUAGE.into(),
+    declarations: &[
+        ("class", SymbolKind::Class),
+        ("module", SymbolKind::Module),
+        // a Ruby `def` at the top level is a method on Object, but for the code
+        // graph it is a free function; inside a class it is promoted to Method
+        ("method", SymbolKind::Function),
+        ("singleton_method", SymbolKind::Method),
+    ],
+    name_field: "name",
+    call_kinds: &["call"],
+    call_fields: &["method"],
+    import_kinds: &[],
+    type_impl_kinds: &[],
+    body_fields: &["body"],
+    declarator_names: false,
+};
+
+/// PHP.
+#[cfg(feature = "parser-s2-batch2")]
+pub static PHP: LanguageSpec = LanguageSpec {
+    language: "php",
+    profile: "tree-sitter-php-0.24.2/ts-0.25.10",
+    grammar: || tree_sitter_php::LANGUAGE_PHP.into(),
+    declarations: &[
+        ("class_declaration", SymbolKind::Class),
+        ("interface_declaration", SymbolKind::Interface),
+        ("trait_declaration", SymbolKind::Trait),
+        ("enum_declaration", SymbolKind::Enum),
+        ("function_definition", SymbolKind::Function),
+        ("method_declaration", SymbolKind::Method),
+        ("namespace_definition", SymbolKind::Module),
+    ],
+    name_field: "name",
+    call_kinds: &["function_call_expression", "member_call_expression"],
+    call_fields: &["function", "name"],
+    import_kinds: &["namespace_use_declaration"],
+    type_impl_kinds: &[],
+    body_fields: &["body"],
+    declarator_names: false,
+};
+
+/// C#.
+#[cfg(feature = "parser-s2-batch2")]
+pub static CSHARP: LanguageSpec = LanguageSpec {
+    language: "csharp",
+    profile: "tree-sitter-c-sharp-0.23.5/ts-0.25.10",
+    grammar: || tree_sitter_c_sharp::LANGUAGE.into(),
+    declarations: &[
+        ("class_declaration", SymbolKind::Class),
+        ("interface_declaration", SymbolKind::Interface),
+        ("struct_declaration", SymbolKind::Struct),
+        ("enum_declaration", SymbolKind::Enum),
+        ("method_declaration", SymbolKind::Function),
+        ("namespace_declaration", SymbolKind::Module),
+    ],
+    name_field: "name",
+    call_kinds: &["invocation_expression"],
+    call_fields: &["function"],
+    import_kinds: &["using_directive"],
+    type_impl_kinds: &[],
+    body_fields: &["body"],
+    declarator_names: false,
+};
+
+/// Scala.
+#[cfg(feature = "parser-s2-batch2")]
+pub static SCALA: LanguageSpec = LanguageSpec {
+    language: "scala",
+    profile: "tree-sitter-scala-0.25.0/ts-0.25.10",
+    grammar: || tree_sitter_scala::LANGUAGE.into(),
+    declarations: &[
+        ("class_definition", SymbolKind::Class),
+        ("object_definition", SymbolKind::Class),
+        ("trait_definition", SymbolKind::Trait),
+        ("function_definition", SymbolKind::Function),
+    ],
+    name_field: "name",
+    call_kinds: &["call_expression"],
+    call_fields: &["function"],
+    import_kinds: &["import_declaration"],
+    type_impl_kinds: &[],
+    body_fields: &["body"],
+    declarator_names: false,
+};
+
+/// Swift.
+#[cfg(feature = "parser-s2-batch2")]
+pub static SWIFT: LanguageSpec = LanguageSpec {
+    language: "swift",
+    profile: "tree-sitter-swift-0.7.1/ts-0.25.10",
+    grammar: || tree_sitter_swift::LANGUAGE.into(),
+    declarations: &[
+        ("class_declaration", SymbolKind::Class),
+        ("struct_declaration", SymbolKind::Struct),
+        ("protocol_declaration", SymbolKind::Interface),
+        ("enum_declaration", SymbolKind::Enum),
+        ("function_declaration", SymbolKind::Function),
+    ],
+    name_field: "name",
+    call_kinds: &["call_expression"],
+    call_fields: &["function"],
+    import_kinds: &["import_declaration"],
+    type_impl_kinds: &[],
+    body_fields: &["body"],
+    declarator_names: false,
+};
+
+/// Solidity.
+#[cfg(feature = "parser-s2-batch2")]
+pub static SOLIDITY: LanguageSpec = LanguageSpec {
+    language: "solidity",
+    profile: "tree-sitter-solidity-1.2.13/ts-0.25.10",
+    grammar: || tree_sitter_solidity::LANGUAGE.into(),
+    declarations: &[
+        ("contract_declaration", SymbolKind::Class),
+        ("interface_declaration", SymbolKind::Interface),
+        ("library_declaration", SymbolKind::Module),
+        ("function_definition", SymbolKind::Function),
+        ("struct_declaration", SymbolKind::Struct),
+        ("enum_declaration", SymbolKind::Enum),
+    ],
+    name_field: "name",
+    call_kinds: &["call_expression"],
+    call_fields: &["function"],
+    import_kinds: &["import_directive"],
+    type_impl_kinds: &[],
+    body_fields: &["body"],
+    declarator_names: false,
+};
+
+/// Kotlin.
+#[cfg(feature = "parser-s2-batch2")]
+pub static KOTLIN: LanguageSpec = LanguageSpec {
+    language: "kotlin",
+    profile: "tree-sitter-kotlin-ng-1.1.0/ts-0.25.10 (deviation from baseline 0.3.5: ABI)",
+    grammar: || tree_sitter_kotlin_ng::LANGUAGE.into(),
+    declarations: &[
+        ("class_declaration", SymbolKind::Class),
+        ("object_declaration", SymbolKind::Class),
+        ("function_declaration", SymbolKind::Function),
+    ],
+    name_field: "name",
+    call_kinds: &["call_expression"],
+    call_fields: &["function"],
+    import_kinds: &["import"],
+    type_impl_kinds: &[],
+    body_fields: &["body"],
+    declarator_names: false,
 };
 
 /// Every spec compiled into this build.
@@ -255,6 +439,17 @@ pub fn specs() -> Vec<&'static LanguageSpec> {
         list.push(&BASH);
         list.push(&C);
         list.push(&CPP);
+    }
+    #[cfg(feature = "parser-s2-batch2")]
+    {
+        list.push(&TYPESCRIPT);
+        list.push(&RUBY);
+        list.push(&PHP);
+        list.push(&CSHARP);
+        list.push(&SCALA);
+        list.push(&SWIFT);
+        list.push(&SOLIDITY);
+        list.push(&KOTLIN);
     }
     list
 }

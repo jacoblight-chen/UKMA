@@ -11,7 +11,7 @@ Upstream commit: `590c2ca7dd7b37bd1d41caf45fac535b6522f969`  ·  languages: 38  
 | clojure | 6 | no | not_run | [s2-clojure.yaml](ledger/s2-clojure.yaml) |
 | cobol | 9 | no | not_run | [s2-cobol.yaml](ledger/s2-cobol.yaml) |
 | cpp | 7 | **yes** | **passed** (8 tests) | [s2-cpp.yaml](ledger/s2-cpp.yaml) |
-| csharp | 8 | no | not_run | [s2-csharp.yaml](ledger/s2-csharp.yaml) |
+| csharp | 8 | **yes** | **passed** (8 tests) | [s2-csharp.yaml](ledger/s2-csharp.yaml) |
 | css | 6 | no | not_run | [s2-css.yaml](ledger/s2-css.yaml) |
 | dart | 8 | no | not_run | [s2-dart.yaml](ledger/s2-dart.yaml) |
 | dockerfile | 9 | no | not_run | [s2-dockerfile.yaml](ledger/s2-dockerfile.yaml) |
@@ -25,22 +25,22 @@ Upstream commit: `590c2ca7dd7b37bd1d41caf45fac535b6522f969`  ·  languages: 38  
 | hcl | 5 | no | not_run | [s2-hcl.yaml](ledger/s2-hcl.yaml) |
 | java | 7 | **yes** | **passed** (8 tests) | [s2-java.yaml](ledger/s2-java.yaml) |
 | julia | 5 | no | not_run | [s2-julia.yaml](ledger/s2-julia.yaml) |
-| kotlin | 9 | no | not_run | [s2-kotlin.yaml](ledger/s2-kotlin.yaml) |
+| kotlin | 9 | **yes** | **passed** (8 tests) | [s2-kotlin.yaml](ledger/s2-kotlin.yaml) |
 | lua | 6 | no | not_run | [s2-lua.yaml](ledger/s2-lua.yaml) |
 | objc | 5 | no | not_run | [s2-objc.yaml](ledger/s2-objc.yaml) |
 | ocaml | 5 | no | not_run | [s2-ocaml.yaml](ledger/s2-ocaml.yaml) |
 | perl | 7 | no | not_run | [s2-perl.yaml](ledger/s2-perl.yaml) |
-| php | 8 | no | not_run | [s2-php.yaml](ledger/s2-php.yaml) |
+| php | 8 | **yes** | **passed** (8 tests) | [s2-php.yaml](ledger/s2-php.yaml) |
 | python | 17 | **yes** | **passed** (8 tests) | [s2-python.yaml](ledger/s2-python.yaml) |
 | r | 8 | no | not_run | [s2-r.yaml](ledger/s2-r.yaml) |
-| ruby | 7 | no | not_run | [s2-ruby.yaml](ledger/s2-ruby.yaml) |
+| ruby | 7 | **yes** | **passed** (8 tests) | [s2-ruby.yaml](ledger/s2-ruby.yaml) |
 | rust | 7 | **yes** | **passed** (10 tests) | [s2-rust.yaml](ledger/s2-rust.yaml) |
-| scala | 6 | no | not_run | [s2-scala.yaml](ledger/s2-scala.yaml) |
-| solidity | 6 | no | not_run | [s2-solidity.yaml](ledger/s2-solidity.yaml) |
-| swift | 7 | no | not_run | [s2-swift.yaml](ledger/s2-swift.yaml) |
+| scala | 6 | **yes** | **passed** (8 tests) | [s2-scala.yaml](ledger/s2-scala.yaml) |
+| solidity | 6 | **yes** | **passed** (8 tests) | [s2-solidity.yaml](ledger/s2-solidity.yaml) |
+| swift | 7 | **yes** | **passed** (8 tests) | [s2-swift.yaml](ledger/s2-swift.yaml) |
 | tcl | 11 | no | not_run | [s2-tcl.yaml](ledger/s2-tcl.yaml) |
 | toml | 7 | no | not_run | [s2-toml.yaml](ledger/s2-toml.yaml) |
-| typescript | 7 | no | not_run | [s2-typescript.yaml](ledger/s2-typescript.yaml) |
+| typescript | 7 | **yes** | **passed** (8 tests) | [s2-typescript.yaml](ledger/s2-typescript.yaml) |
 | verilog | 9 | no | not_run | [s2-verilog.yaml](ledger/s2-verilog.yaml) |
 | yaml | 5 | no | not_run | [s2-yaml.yaml](ledger/s2-yaml.yaml) |
 | zig | 8 | no | not_run | [s2-zig.yaml](ledger/s2-zig.yaml) |

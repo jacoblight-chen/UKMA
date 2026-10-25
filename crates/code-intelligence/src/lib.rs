@@ -487,7 +487,23 @@ pub const UPSTREAM_LANGUAGES: [&str; 38] = [
 /// golden parity test (see `tests/s2_rust_parity.rs`). The registry and the
 /// migration paperwork are cross-checked by `tests/s2_coverage.rs`, so editing
 /// this list without the evidence fails the build.
-pub const PORTED_LANGUAGES: &[&str] = &["bash", "c", "cpp", "go", "java", "python", "rust"];
+pub const PORTED_LANGUAGES: &[&str] = &[
+    "bash",
+    "c",
+    "cpp",
+    "csharp",
+    "go",
+    "java",
+    "kotlin",
+    "php",
+    "python",
+    "ruby",
+    "rust",
+    "scala",
+    "solidity",
+    "swift",
+    "typescript",
+];
 
 fn extensions_for(language: &str) -> Vec<String> {
     let list: &[&str] = match language {

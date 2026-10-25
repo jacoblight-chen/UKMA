@@ -62,11 +62,35 @@ fn field_name<'a>(source: &'a str, node: Node<'_>, field: &str) -> Option<&'a st
 }
 
 /// Declaration header text (`fn name(args) -> ret`), used as the signature.
+///
+/// The header ends where the body starts. Most grammars expose the body as a
+/// `body` field; the rest (kotlin) use an unnamed `*_body`/`block` child, so the
+/// first such child is used as the boundary.
 fn signature_of(source: &str, node: Node<'_>, body_fields: &[&str]) -> Option<String> {
-    let body = body_fields
+    let body_start: usize = body_fields
         .iter()
-        .find_map(|field| node.child_by_field_name(field))?;
-    let end = body.start_byte();
+        .find_map(|field| {
+            node.child_by_field_name(field)
+                .map(|child| child.start_byte())
+        })
+        .or_else(|| {
+            let mut cursor = node.walk();
+            let mut found: Option<usize> = None;
+            for child in node.children(&mut cursor) {
+                let kind = child.kind();
+                if kind.ends_with("_body")
+                    || matches!(
+                        kind,
+                        "block" | "statement_block" | "compound_statement" | "declaration_list"
+                    )
+                {
+                    found = Some(child.start_byte());
+                    break;
+                }
+            }
+            found
+        })?;
+    let end = body_start;
     if end <= node.start_byte() {
         return None;
     }
@@ -215,6 +239,14 @@ impl<'a> Extractor<'a> {
         let kind = node.kind();
         let mut child_parent = parent.map(str::to_string);
 
+        // Only *named* nodes are constructs: an unnamed token can share a kind
+        // name with a real node (kotlin's `import` keyword token vs. node), which
+        // would otherwise double-count it.
+        if !node.is_named() {
+            self.walk_children(node, child_parent.as_deref());
+            return;
+        }
+
         if let Some(declared) = self.spec.declaration(kind) {
             if let Some(name) = self.resolve_name(node) {
                 // A function declared directly inside a type is a method.
@@ -246,12 +278,17 @@ impl<'a> Extractor<'a> {
                     .push((parent_id.to_string(), line_of(node, true)));
             }
         } else if self.spec.is_call(kind) {
-            if let (Some(parent_id), Some(callee)) = (
-                parent,
-                node.child_by_field_name(self.spec.call_field)
-                    .map(|child| text(self.source, child)),
-            ) {
-                if let Some(simple) = callee_name(callee) {
+            if let Some(parent_id) = parent {
+                let callee = self
+                    .spec
+                    .call_fields
+                    .iter()
+                    .find_map(|field| node.child_by_field_name(field))
+                    // grammars like swift/kotlin put the callee in an unnamed
+                    // first child, so fall back to it
+                    .or_else(|| node.named_child(0))
+                    .map(|child| text(self.source, child));
+                if let Some(simple) = callee.and_then(callee_name) {
                     self.calls
                         .push((parent_id.to_string(), simple, line_of(node, true)));
                 }

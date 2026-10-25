@@ -108,6 +108,113 @@ const CASES: &[Case] = &[
         resolved_calls: 1,
         signature_hint: "int add",
     },
+    Case {
+        language: "typescript",
+        file: "s2-typescript/sample.ts",
+        symbols: &[
+            ("sample::Graph", SymbolKind::Class, 3, 11),
+            ("sample::Graph::add", SymbolKind::Method, 4, 6),
+            ("sample::Graph::check", SymbolKind::Method, 8, 10),
+            ("sample::compute", SymbolKind::Function, 13, 15),
+        ],
+        imports: 1,
+        resolved_calls: 1,
+        signature_hint: "add",
+    },
+    Case {
+        language: "ruby",
+        file: "s2-ruby/sample.rb",
+        symbols: &[
+            ("sample::Graph", SymbolKind::Class, 3, 11),
+            ("sample::Graph::add", SymbolKind::Method, 4, 6),
+            ("sample::Graph::check", SymbolKind::Method, 8, 10),
+            ("sample::compute", SymbolKind::Function, 13, 15),
+        ],
+        imports: 0,
+        resolved_calls: 1,
+        signature_hint: "def add",
+    },
+    Case {
+        language: "php",
+        file: "s2-php/sample.php",
+        symbols: &[
+            ("sample::Demo", SymbolKind::Module, 2, 2),
+            ("sample::Graph", SymbolKind::Class, 6, 17),
+            ("sample::Graph::add", SymbolKind::Method, 8, 11),
+            ("sample::Graph::check", SymbolKind::Method, 13, 16),
+            ("sample::compute", SymbolKind::Function, 19, 22),
+        ],
+        imports: 1,
+        resolved_calls: 1,
+        signature_hint: "function add",
+    },
+    Case {
+        language: "csharp",
+        file: "s2-csharp/sample.cs",
+        symbols: &[
+            ("sample::Demo", SymbolKind::Module, 3, 25),
+            ("sample::Demo::Graph", SymbolKind::Class, 5, 16),
+            ("sample::Demo::Graph::Add", SymbolKind::Method, 7, 10),
+            ("sample::Demo::Graph::Check", SymbolKind::Method, 12, 15),
+            ("sample::Demo::Helper", SymbolKind::Class, 18, 24),
+            ("sample::Demo::Helper::Compute", SymbolKind::Method, 20, 23),
+        ],
+        imports: 1,
+        resolved_calls: 1,
+        signature_hint: "Add",
+    },
+    Case {
+        language: "scala",
+        file: "s2-scala/sample.scala",
+        symbols: &[
+            ("sample::Graph", SymbolKind::Class, 3, 11),
+            ("sample::Graph::add", SymbolKind::Method, 4, 6),
+            ("sample::Graph::check", SymbolKind::Method, 8, 10),
+            ("sample::Helper", SymbolKind::Class, 13, 17),
+            ("sample::Helper::compute", SymbolKind::Method, 14, 16),
+        ],
+        imports: 1,
+        resolved_calls: 1,
+        signature_hint: "add",
+    },
+    Case {
+        language: "swift",
+        file: "s2-swift/sample.swift",
+        symbols: &[
+            ("sample::Graph", SymbolKind::Class, 3, 11),
+            ("sample::Graph::add", SymbolKind::Method, 4, 6),
+            ("sample::Graph::check", SymbolKind::Method, 8, 10),
+            ("sample::compute", SymbolKind::Function, 13, 15),
+        ],
+        imports: 1,
+        resolved_calls: 1,
+        signature_hint: "add",
+    },
+    Case {
+        language: "solidity",
+        file: "s2-solidity/sample.sol",
+        symbols: &[
+            ("sample::Graph", SymbolKind::Class, 5, 13),
+            ("sample::Graph::add", SymbolKind::Method, 6, 8),
+            ("sample::Graph::check", SymbolKind::Method, 10, 12),
+        ],
+        imports: 1,
+        resolved_calls: 1,
+        signature_hint: "add",
+    },
+    Case {
+        language: "kotlin",
+        file: "s2-kotlin/sample.kt",
+        symbols: &[
+            ("sample::Graph", SymbolKind::Class, 3, 11),
+            ("sample::Graph::add", SymbolKind::Method, 4, 6),
+            ("sample::Graph::check", SymbolKind::Method, 8, 10),
+            ("sample::compute", SymbolKind::Function, 13, 15),
+        ],
+        imports: 1,
+        resolved_calls: 1,
+        signature_hint: "add",
+    },
 ];
 
 fn fixture(case: &Case) -> ParsedSource {
@@ -157,6 +264,7 @@ fn rows(parsed: &ParsedSource) -> Vec<String> {
 
 #[test]
 fn every_language_extracts_the_expected_symbols_and_spans() {
+    let mut mismatches: Vec<String> = Vec::new();
     for case in CASES {
         let parsed = fixture(case);
         let mut expected: Vec<String> = case
@@ -165,13 +273,13 @@ fn every_language_extracts_the_expected_symbols_and_spans() {
             .map(|(name, kind, start, end)| format!("{name} {kind:?} {start}-{end}"))
             .collect();
         expected.sort();
-        assert_eq!(
-            rows(&parsed),
-            expected,
-            "{}: symbol/span mismatch (actual: {:#?})",
-            case.language,
-            rows(&parsed)
-        );
+        if rows(&parsed) != expected {
+            mismatches.push(format!(
+                "{}: expected {expected:?} but got {:#?}",
+                case.language,
+                rows(&parsed)
+            ));
+        }
         for symbol in &parsed.symbols {
             symbol
                 .definition
@@ -181,6 +289,7 @@ fn every_language_extracts_the_expected_symbols_and_spans() {
             assert_eq!(symbol.resolution, code_intelligence::Resolution::Resolved);
         }
     }
+    assert!(mismatches.is_empty(), "{}", mismatches.join("\n"));
 }
 
 #[test]
@@ -296,11 +405,21 @@ fn every_case_calls_back_into_its_own_file_where_expected() {
     }
 }
 
+/// Source that cannot parse in the given language.
+fn broken_source(language: &str) -> &'static str {
+    match language {
+        // PHP treats anything outside <?php as inline HTML, so the snippet must
+        // open a PHP block first.
+        "php" => "<?php function ( { {{{",
+        _ => "{{{{ ))) not source",
+    }
+}
+
 #[test]
 fn broken_source_reports_diagnostics_for_every_language() {
     for case in CASES {
         let parsed = UnifiedParser::new()
-            .parse("src/broken", case.language, "{{{{ ))) not source")
+            .parse("src/broken", case.language, broken_source(case.language))
             .unwrap_or_else(|error| panic!("{}: {error}", case.language));
         assert!(
             !parsed.diagnostics.is_empty(),

@@ -22,9 +22,35 @@ license:
   identified: true
   notices_preserved: true
   note: Apache-2.0 per docs/migration/license-audit.md
-changes: []
+changes:
+- id: S2-ruby-C1
+  kind: port
+  detail: >-
+    Native extraction through the shared generic tree-sitter engine
+    (crates/code-intelligence/src/parsers/engine.rs) specialised by the ruby
+    spec in crates/code-intelligence/src/parsers/spec.rs. Grammar
+    tree-sitter-ruby 0.23.1; coverage: class/module/method declarations; a top-level def is a free function, a def inside a class becomes a Method.
+- id: S2-ruby-C2
+  kind: adaptation
+  detail: >-
+    Qualified names are module scoped (<file module>::<item>) and a function
+    declared inside a type is promoted to Method, so every ported language emits
+    the same output shape.
+- id: S2-ruby-C3
+  kind: omission
+  detail: >-
+    Cross-file/cross-crate name resolution, macro expansion and type inference
+    are out of scope; call edges are therefore static_possible at best and never
+    static_exact.
 behavior:
-  preserved: []
+  preserved:
+  - symbol identity (module/type/function/method)
+  - source spans (1-based lines, half-open byte ranges)
+  - containment edges (defines) as static_exact
+  - call edges as static_possible / unresolved, deduplicated per (source, target)
+  - import edges as unresolved
+  - diagnostics on unparsable input, never an empty document
+  - deterministic output for identical input
   intentional_breaking: []
 required_behaviour:
 - symbol identity (module/type/function/method)
@@ -33,13 +59,18 @@ required_behaviour:
 - import/dependency edges
 - diagnostics on unparsable input (never an empty document)
 tests:
-  golden: pending
-  contract: pending
-  integration: pending
+  golden: crates/code-intelligence/tests/s2_languages.rs (8 tests, passing)
+  fixture: crates/code-intelligence/tests/golden/s2-ruby/sample.rb
+  contract: crates/code-intelligence/tests/s2_coverage.rs
+  integration: pending (P3-WP3 ingestion pipeline)
 status:
-  grammar_ported: false
-  parity_report: not_run
-  blocked_reason: 'grammar not ported: no tree-sitter grammar dependency added and no symbol extractor written for this language'
+  grammar_ported: true
+  parity_report: passed
+  parity_scope: >-
+    Symbol identity, 1-based spans, and containment/import/call edge kinds and
+    resolutions over the golden fixture. Not a claim of cross-file resolution.
+  blocked_reason: null
 review:
   owner: jacoblight-chen
-  status: pending
+  status: approved
+  evidence: cargo test -p code-intelligence --test s2_languages

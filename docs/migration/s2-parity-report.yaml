@@ -4,9 +4,9 @@ scope: 'ADR-048 O-01: all 38 languages of the locked baseline'
 rule: 'A language may be reported as Ported ONLY when its ledger slice records grammar_ported: true AND a golden parity report exists (CODE-001). Anything else stays NotPorted, no matter how small the port looks.'
 summary:
   languages: 38
-  ported: 7
+  ported: 15
   ported_unverified: 0
-  not_ported: 31
+  not_ported: 23
   upstream_rs_files: 277
   last_updated: '2026-01-01'
   note: >-
@@ -63,10 +63,14 @@ languages:
 - language: csharp
   ledger_slice: S2-csharp
   upstream_paths: 8
-  grammar_ported: false
-  parity: not_run
-  golden_fixture: null
-  reason: 'grammar not ported: no tree-sitter grammar dependency added and no symbol extractor written for this language'
+  grammar_ported: true
+  parity: passed
+  golden_fixture: crates/code-intelligence/tests/golden/s2-csharp/sample.cs
+  golden_test: crates/code-intelligence/tests/s2_languages.rs
+  parser_profile: tree-sitter-c-sharp-0.23.5/ts-0.25.10
+  parity_scope: symbol identity + 1-based spans + containment/import/call edge kinds and resolutions
+  not_covered: cross-file name resolution, macro expansion, type/lifetime inference
+  reason: null
 - language: css
   ledger_slice: S2-css
   upstream_paths: 6
@@ -169,10 +173,14 @@ languages:
 - language: kotlin
   ledger_slice: S2-kotlin
   upstream_paths: 9
-  grammar_ported: false
-  parity: not_run
-  golden_fixture: null
-  reason: 'grammar not ported: no tree-sitter grammar dependency added and no symbol extractor written for this language'
+  grammar_ported: true
+  parity: passed
+  golden_fixture: crates/code-intelligence/tests/golden/s2-kotlin/sample.kt
+  golden_test: crates/code-intelligence/tests/s2_languages.rs
+  parser_profile: 'tree-sitter-kotlin-ng-1.1.0/ts-0.25.10 (deviation from baseline 0.3.5: ABI)'
+  parity_scope: symbol identity + 1-based spans + containment/import/call edge kinds and resolutions
+  not_covered: cross-file name resolution, macro expansion, type/lifetime inference
+  reason: null
 - language: lua
   ledger_slice: S2-lua
   upstream_paths: 6
@@ -204,10 +212,14 @@ languages:
 - language: php
   ledger_slice: S2-php
   upstream_paths: 8
-  grammar_ported: false
-  parity: not_run
-  golden_fixture: null
-  reason: 'grammar not ported: no tree-sitter grammar dependency added and no symbol extractor written for this language'
+  grammar_ported: true
+  parity: passed
+  golden_fixture: crates/code-intelligence/tests/golden/s2-php/sample.php
+  golden_test: crates/code-intelligence/tests/s2_languages.rs
+  parser_profile: tree-sitter-php-0.24.2/ts-0.25.10
+  parity_scope: symbol identity + 1-based spans + containment/import/call edge kinds and resolutions
+  not_covered: cross-file name resolution, macro expansion, type/lifetime inference
+  reason: null
 - language: python
   ledger_slice: S2-python
   upstream_paths: 17
@@ -229,10 +241,14 @@ languages:
 - language: ruby
   ledger_slice: S2-ruby
   upstream_paths: 7
-  grammar_ported: false
-  parity: not_run
-  golden_fixture: null
-  reason: 'grammar not ported: no tree-sitter grammar dependency added and no symbol extractor written for this language'
+  grammar_ported: true
+  parity: passed
+  golden_fixture: crates/code-intelligence/tests/golden/s2-ruby/sample.rb
+  golden_test: crates/code-intelligence/tests/s2_languages.rs
+  parser_profile: tree-sitter-ruby-0.23.1/ts-0.25.10
+  parity_scope: symbol identity + 1-based spans + containment/import/call edge kinds and resolutions
+  not_covered: cross-file name resolution, macro expansion, type/lifetime inference
+  reason: null
 - language: rust
   ledger_slice: S2-rust
   upstream_paths: 7
@@ -247,24 +263,36 @@ languages:
 - language: scala
   ledger_slice: S2-scala
   upstream_paths: 6
-  grammar_ported: false
-  parity: not_run
-  golden_fixture: null
-  reason: 'grammar not ported: no tree-sitter grammar dependency added and no symbol extractor written for this language'
+  grammar_ported: true
+  parity: passed
+  golden_fixture: crates/code-intelligence/tests/golden/s2-scala/sample.scala
+  golden_test: crates/code-intelligence/tests/s2_languages.rs
+  parser_profile: tree-sitter-scala-0.25.0/ts-0.25.10
+  parity_scope: symbol identity + 1-based spans + containment/import/call edge kinds and resolutions
+  not_covered: cross-file name resolution, macro expansion, type/lifetime inference
+  reason: null
 - language: solidity
   ledger_slice: S2-solidity
   upstream_paths: 6
-  grammar_ported: false
-  parity: not_run
-  golden_fixture: null
-  reason: 'grammar not ported: no tree-sitter grammar dependency added and no symbol extractor written for this language'
+  grammar_ported: true
+  parity: passed
+  golden_fixture: crates/code-intelligence/tests/golden/s2-solidity/sample.sol
+  golden_test: crates/code-intelligence/tests/s2_languages.rs
+  parser_profile: tree-sitter-solidity-1.2.13/ts-0.25.10
+  parity_scope: symbol identity + 1-based spans + containment/import/call edge kinds and resolutions
+  not_covered: cross-file name resolution, macro expansion, type/lifetime inference
+  reason: null
 - language: swift
   ledger_slice: S2-swift
   upstream_paths: 7
-  grammar_ported: false
-  parity: not_run
-  golden_fixture: null
-  reason: 'grammar not ported: no tree-sitter grammar dependency added and no symbol extractor written for this language'
+  grammar_ported: true
+  parity: passed
+  golden_fixture: crates/code-intelligence/tests/golden/s2-swift/sample.swift
+  golden_test: crates/code-intelligence/tests/s2_languages.rs
+  parser_profile: tree-sitter-swift-0.7.1/ts-0.25.10
+  parity_scope: symbol identity + 1-based spans + containment/import/call edge kinds and resolutions
+  not_covered: cross-file name resolution, macro expansion, type/lifetime inference
+  reason: null
 - language: tcl
   ledger_slice: S2-tcl
   upstream_paths: 11
@@ -282,10 +310,14 @@ languages:
 - language: typescript
   ledger_slice: S2-typescript
   upstream_paths: 7
-  grammar_ported: false
-  parity: not_run
-  golden_fixture: null
-  reason: 'grammar not ported: no tree-sitter grammar dependency added and no symbol extractor written for this language'
+  grammar_ported: true
+  parity: passed
+  golden_fixture: crates/code-intelligence/tests/golden/s2-typescript/sample.ts
+  golden_test: crates/code-intelligence/tests/s2_languages.rs
+  parser_profile: tree-sitter-typescript-0.23.2/ts-0.25.10
+  parity_scope: symbol identity + 1-based spans + containment/import/call edge kinds and resolutions
+  not_covered: cross-file name resolution, macro expansion, type/lifetime inference
+  reason: null
 - language: verilog
   ledger_slice: S2-verilog
   upstream_paths: 9
