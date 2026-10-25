@@ -1,10 +1,16 @@
-﻿[package]
+[package]
 name = "ukma-adapter-neo4j"
 version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 publish = false
-description = "Neo4j adapter placeholder: declares itself unavailable until a real backend is wired (ADR-038)"
+description = "Neo4j graph adapter: GraphStore over the HTTP transactional API with scope-keyed nodes and edges (profile C)"
 
 [dependencies]
+graph-engine = { path = "../../graph-engine" }
 storage-ports = { path = "../../storage-ports" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# HTTP transactional API instead of Bolt keeps the adapter synchronous: no
+# tonic/tokio in the workspace for one port (ADR-061).
+ureq = { version = "2", features = ["json"] }

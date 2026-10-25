@@ -99,7 +99,12 @@ pub struct MetadataEntry {
 
 /// Authoritative metadata store; also owns generation manifests.
 pub trait MetadataPort: Send + Sync {
-    /// Compare-and-swap write. `None` means "create only".
+    /// Compare-and-swap write.
+    ///
+    /// `expected_revision = Some(n)` requires the current revision to be `n`
+    /// (`ETAG_MISMATCH` otherwise, including when the key does not exist).
+    /// `expected_revision = None` means "no precondition": it creates the key at
+    /// revision 1 or bumps an existing key by one.
     fn put_cas(
         &self,
         scope: &ScopeRef,

@@ -1,10 +1,10 @@
 {
-  "bytes": 156544,
-  "components": 351,
+  "bytes": 178123,
+  "components": 399,
   "format": "CycloneDX 1.5",
   "note": "a SHA-256 digest is an integrity check, not a cryptographic signature; signing needs an Ed25519 key the build does not hold — use `cargo run -p ukma-release-evidence -- sign --key <file>`",
   "refresh": "run `cargo run -p ukma-release-evidence`; crates/ukma-integration/tests/release_evidence.rs fails until the digest and component set match",
   "sbom": "contracts/testing/sbom.cyclonedx.json",
-  "sha256": "748edfd95227b0aa9836b0c72c4d9b6d71ce2dfaf233e7caaf97bf6da558726d",
+  "sha256": "c5f8d767a68adeeec68f33f4d3a495396ca582af3b0a500f10bfbef8e96e8bee",
   "signature": null
 }

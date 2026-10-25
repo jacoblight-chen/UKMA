@@ -1,10 +1,16 @@
-﻿[package]
+[package]
 name = "ukma-adapter-qdrant"
 version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 publish = false
-description = "Qdrant adapter placeholder: declares itself unavailable until a real backend is wired (ADR-038)"
+description = "Qdrant vector adapter: VectorPort over the REST API with one collection per (scope, profile) (profile C)"
 
 [dependencies]
 storage-ports = { path = "../../storage-ports" }
+ukma-contracts = { path = "../../ukma-contracts" }
+serde_json = "1"
+sha2 = "0.10"
+# REST instead of gRPC keeps the adapter synchronous: no async runtime is pulled
+# into the workspace for one port (ADR-061).
+ureq = { version = "2", features = ["json"] }

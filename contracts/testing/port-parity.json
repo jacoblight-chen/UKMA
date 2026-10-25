@@ -5,7 +5,10 @@
   "rocksdb_loaded": false,
   "two_way_equivalence": {
     "verified": true,
-    "profiles_compared": ["A", "B"],
+    "profiles_compared": [
+      "A",
+      "B"
+    ],
     "test": "crates/ukma-integration/tests/port_parity.rs::the_two_available_profiles_agree_on_what_they_store",
     "scope": "metadata CAS + revision + content-derived etag + stable key order over five identical writes",
     "not_verified": "three-way equivalence (profile C needs PostgreSQL, Qdrant and Neo4j)"
@@ -66,8 +69,18 @@
       "id": "C",
       "name": "hybrid",
       "status": "unavailable",
-      "reason": "ukma-adapter-postgres, ukma-adapter-qdrant and ukma-adapter-neo4j declare themselves unavailable: no client dependency and no server available in this environment. Profile C cannot be exercised until all three servers exist and the adapters pass the same contract",
-      "servers_required": ["PostgreSQL", "Qdrant", "Neo4j"]
+      "reason": "the three profile-C adapters are implemented and configuration driven: PostgreSQL (MetadataPort + OutboxPort + canonical schema version), Qdrant (VectorPort over REST) and Neo4j (GraphPort over the HTTP transactional API). Each reports unavailable until UKMA_POSTGRES_DSN / UKMA_QDRANT_URL / UKMA_NEO4J_URL is set, so this report describes an unconfigured machine",
+      "servers_required": [
+        "PostgreSQL",
+        "Qdrant",
+        "Neo4j"
+      ],
+      "ports": {
+        "MetadataPort": "available when configured",
+        "OutboxPort": "available when configured",
+        "VectorPort": "available when configured",
+        "GraphPort": "available when configured"
+      }
     }
   ]
 }

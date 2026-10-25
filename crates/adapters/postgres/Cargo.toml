@@ -1,10 +1,19 @@
-﻿[package]
+[package]
 name = "ukma-adapter-postgres"
 version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 publish = false
-description = "PostgreSQL adapter placeholder: declares itself unavailable until a real backend is wired (ADR-038)"
+description = "PostgreSQL canonical adapter: MetadataPort, OutboxPort, canonical schema version and capability probing (profile C)"
 
 [dependencies]
 storage-ports = { path = "../../storage-ports" }
+ukma-contracts = { path = "../../ukma-contracts" }
+serde_json = "1"
+sha2 = "0.10"
+# The only backend SDK in this crate: arc001/db001 allow SQL clients under
+# `crates/adapters/` and nowhere else (ADR-021, ADR-061).
+postgres = "0.19"
+
+[dev-dependencies]
+ukma-adapter-embedded = { path = "../embedded" }

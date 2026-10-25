@@ -91,6 +91,18 @@ fn scope_key(scope: &ScopeRef) -> String {
     )
 }
 
+/// Smallest string greater than every string starting with `prefix`.
+fn prefix_upper(prefix: &str) -> Option<String> {
+    let mut chars: Vec<char> = prefix.chars().collect();
+    while let Some(last) = chars.pop() {
+        if let Some(next) = char::from_u32(u32::from(last) + 1) {
+            chars.push(next);
+            return Some(chars.into_iter().collect());
+        }
+    }
+    None
+}
+
 fn etag_of(key: &str, revision: u64, value: &Value) -> String {
     let mut hasher = Sha256::new();
     hasher.update(key.as_bytes());
@@ -375,35 +387,43 @@ impl MetadataPort for SqliteStore {
         validate_scope(scope)?;
         let connection = self.connection.lock().map_err(|_| lock_error())?;
         let scope_key_value = scope_key(scope);
-        // A cursor is the last key already returned, so the next page starts
-        // strictly after it; without a cursor the prefix is the lower bound.
-        let (condition, after) = match cursor {
-            Some(cursor) => ("key > ?2", cursor.to_string()),
-            None => ("key >= ?2", prefix.to_string()),
-        };
-        let sql = format!(
-            "SELECT key, revision, etag, value FROM metadata
-             WHERE scope = ?1 AND {condition}
-             ORDER BY key ASC LIMIT ?3"
-        );
-        let mut statement = connection.prepare(&sql).map_err(to_internal)?;
+        // The prefix bounds every page, not only the first: a cursor alone would
+        // let keys beyond the prefix range leak into a later page. A cursor is
+        // the last key already returned, so the next page starts strictly after.
+        let sql = "SELECT key, revision, etag, value FROM metadata
+             WHERE scope = ?1
+               AND key >= ?2
+               AND (?3 IS NULL OR key < ?3)
+               AND (?4 IS NULL OR key > ?4)
+             ORDER BY key ASC LIMIT ?5";
+        let mut statement = connection.prepare(sql).map_err(to_internal)?;
+        let upper = prefix_upper(prefix);
         let rows = statement
-            .query_map(params![scope_key_value, after, (limit + 1) as i64], |row| {
-                let raw: String = row.get(3)?;
-                let value = serde_json::from_str(&raw).map_err(|error| {
-                    rusqlite::Error::FromSqlConversionFailure(
-                        3,
-                        rusqlite::types::Type::Text,
-                        Box::new(error),
-                    )
-                })?;
-                Ok(MetadataEntry {
-                    key: row.get(0)?,
-                    revision: row.get(1)?,
-                    etag: row.get(2)?,
-                    value,
-                })
-            })
+            .query_map(
+                params![
+                    scope_key_value,
+                    prefix,
+                    upper,
+                    cursor.map(str::to_string),
+                    (limit + 1) as i64
+                ],
+                |row| {
+                    let raw: String = row.get(3)?;
+                    let value = serde_json::from_str(&raw).map_err(|error| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            3,
+                            rusqlite::types::Type::Text,
+                            Box::new(error),
+                        )
+                    })?;
+                    Ok(MetadataEntry {
+                        key: row.get(0)?,
+                        revision: row.get(1)?,
+                        etag: row.get(2)?,
+                        value,
+                    })
+                },
+            )
             .map_err(to_internal)?;
         let mut entries: Vec<MetadataEntry> = Vec::new();
         for row in rows {

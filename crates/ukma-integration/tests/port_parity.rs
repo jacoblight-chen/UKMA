@@ -292,23 +292,67 @@ fn the_two_available_profiles_agree_on_what_they_store() {
 }
 
 #[test]
-fn profile_c_declares_itself_unavailable_with_a_reason() {
-    // A profile is only "declared" when its adapters really say so. Nothing here
-    // is allowed to look available without a server behind it.
-    for (name, capabilities) in [
-        ("postgres", ukma_adapter_postgres::capabilities()),
-        ("qdrant", ukma_adapter_qdrant::capabilities()),
-        ("neo4j", ukma_adapter_neo4j::capabilities()),
+fn profile_c_adapters_are_fail_closed_without_configuration() {
+    // A profile is only "declared" when its adapters really say so. Without a
+    // DSN/URL each adapter must report unavailable with a reason an operator can
+    // act on, and must refuse the minimum profile.
+    for (name, capabilities, hint) in [
+        (
+            "postgres",
+            ukma_adapter_postgres::capabilities_with(None),
+            "UKMA_POSTGRES_DSN",
+        ),
+        (
+            "qdrant",
+            ukma_adapter_qdrant::capabilities_with(None),
+            "UKMA_QDRANT_URL",
+        ),
+        (
+            "neo4j",
+            ukma_adapter_neo4j::capabilities_with(None),
+            "UKMA_NEO4J_URL",
+        ),
     ] {
         assert!(!capabilities.available, "{name} claims to be available");
         assert!(
-            !capabilities.unavailable_reason.trim().is_empty(),
-            "{name} is unavailable without a reason"
+            capabilities.unavailable_reason.contains(hint),
+            "{name} must name the variable that enables it"
         );
         assert!(
             capabilities.assert_minimum_profile().is_err(),
             "{name} must fail closed"
         );
+    }
+}
+
+#[test]
+fn profile_c_is_available_exactly_when_it_is_configured() {
+    // Configuration-driven availability: a configured adapter must satisfy the
+    // minimum profile, an unconfigured one must not claim anything.
+    let configured = ukma_adapter_postgres::capabilities_with(Some("host=127.0.0.1"));
+    assert!(configured.available);
+    configured
+        .assert_minimum_profile()
+        .expect("a configured PostgreSQL canonical store serves the minimum profile");
+
+    let vector = ukma_adapter_qdrant::capabilities_with(Some("http://127.0.0.1:6333"));
+    assert!(vector.available);
+    assert_eq!(vector.supported_ports, vec!["VectorPort".to_string()]);
+
+    // The committed report documents the unconfigured baseline; when adapters are
+    // live the assertion above already proves they are available.
+    let postgres_live = ukma_adapter_postgres::capabilities().available;
+    if !postgres_live {
+        let report_path = root().join(REPORT);
+        let report: Value =
+            serde_json::from_str(&std::fs::read_to_string(report_path).unwrap()).unwrap();
+        let profile_c = report["profiles"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|profile| profile["id"] == "C")
+            .expect("profile C is declared");
+        assert_eq!(profile_c["status"], "unavailable");
     }
 }
 
