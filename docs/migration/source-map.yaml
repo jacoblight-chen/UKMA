@@ -136,3 +136,65 @@ s1_focus:
   tests:
     - crates/codegraph/tests/unit/graph_ops_test.rs
     - crates/codegraph/tests/integration/memory_backend_test.rs
+
+# ---------------------------------------------------------------------------
+# S1 Graph Engine Vertical Slice — recorded changes (per the migration rules:
+# preserve upstream algorithm semantics; every UKMA-mandated change is recorded
+# here and in docs/migration/ledger/s1-graph-vertical-slice.yaml).
+# ---------------------------------------------------------------------------
+s1_changes:
+  upstream_files:
+    - crates/codegraph/src/graph/types.rs       # -> ukma-graph-engine/src/types.rs
+    - crates/codegraph/src/graph/property.rs   # -> ukma-graph-engine/src/types.rs (PropertyMap/PropertyValue)
+    - crates/codegraph/src/graph/algorithms.rs # -> ukma-graph-engine/src/algorithms.rs
+    - crates/codegraph/src/graph/codegraph.rs  # -> ukma-graph-engine/src/engine.rs (API re-mapped to ports)
+    - crates/codegraph/src/storage/mod.rs      # -> ukma-graph-engine/src/store.rs (scope-keyed port)
+    - crates/codegraph/src/storage/memory.rs   # -> ukma-graph-engine/src/memory_store.rs
+  ukma_files:
+    - crates/ukma-graph-engine/src/ids.rs      # NEW: canonical IDs (ADR-031 D1)
+    - crates/ukma-graph-engine/src/error.rs    # NEW: UKMA ErrorContract mapping (registered codes only)
+  changes:
+    - area: identifiers
+      upstream: "NodeId/EdgeId = u64 monotonic counters (vendor-internal)"
+      ukma: "CanonicalId = 'graph.node.<26-char Crockford base32 ULID>' / 'graph.edge.<ULID>'; engine-assigned, persisted, stable across adapter substitution (ADR-031 D1, PROP-02, ADR-023)"
+      rationale: "vendor counters are not stable across adapter substitution and leak implementation detail"
+    - area: storage_contract
+      upstream: "StorageBackend trait: KV-level (key/value get/put/delete/iter), no scope"
+      ukma: "GraphStore trait: every record keyed by (tenant, project) scope; &self + interior mutability (Send+Sync); capabilities() probe (ADR-022); flush on non-persistent store returns CAPABILITY_UNAVAILABLE"
+      rationale: "tenant isolation + capability negotiation are UKMA contract invariants"
+    - area: error_mapping
+      upstream: "thiserror Result types"
+      ukma: "GraphError variants mapped to registered v1.2.3 ErrorDetail codes only (NOT_FOUND, ETAG_MISMATCH, IDEMPOTENCY_CONFLICT, INVALID_ARGUMENT, CAPABILITY_UNAVAILABLE, CROSS_SCOPE_DENIED, RESOURCE_LIMIT, INTERNAL); no invented wire codes"
+      rationale: "UKMA v1.2.3 ErrorContract (spec lines 1263-1271)"
+    - area: get_neighbors
+      upstream: "returns Vec<(u64, EdgeType)> in hash-ordered (non-deterministic) order"
+      ukma: "returns Vec<(CanonicalId, EdgeType)> sorted (deterministic)"
+      rationale: "ordering was never part of the upstream contract; PROP-03 determinism"
+    - area: strongly_connected_components
+      upstream: "iterates node ids in hash order; output order hash-dependent; len>1 filter"
+      ukma: "iterates sorted node ids; sorted members + sorted SCC list; len>1 filter preserved; iterative (explicit stack) to avoid deep-graph stack overflow"
+      rationale: "determinism (PROP-03); the algorithm (Tarjan) and its len>1 filter are preserved"
+    - area: traversal_bounds
+      upstream: "bfs/dfs/find_all_paths depth-limited only; unbounded result size"
+      ukma: "depth-limited + mandatory max_nodes/max_paths bounds -> RESOURCE_LIMIT on overflow; sorted output"
+      rationale: "Phase 6R PROP-03 bounded termination contract"
+    - area: versioning
+      upstream: "none (no revision/etag fields)"
+      ukma: "GraphNode/GraphEdge carry revision: u64 + etag: String; update_node requires expected_revision -> ETAG_MISMATCH on mismatch; etag = deterministic hash of (revision, type wire name, sorted properties)"
+      rationale: "Phase 6R optimistic concurrency pattern"
+    - area: delete_node
+      upstream: "deletes the node and all incident edges (cascade)"
+      ukma: "preserved: delete_node cascades to incident edges"
+      rationale: "preserved upstream semantics"
+    - area: idempotency
+      upstream: "none"
+      ukma: "add_node/add_edge accept an optional idempotency key (per-scope): same key + same payload fingerprint -> same entity; same key + different payload -> IDEMPOTENCY_CONFLICT"
+      rationale: "Phase 6R idempotency semantics"
+    - area: wire_names
+      upstream: "NodeType/EdgeType PascalCase serde names"
+      ukma: "snake_case wire names (code_file, imports_from, runtime_calls, ...); versioned v1 addition — the 65-operation registry contains no graph operations, so no existing API semantics change (ADR-031 D3)"
+      rationale: "ADR-031 D3"
+    - area: scope_validation
+      upstream: "none"
+      ukma: "every operation validates non-empty tenant_id/project_id -> INVALID_ARGUMENT"
+      rationale: "spec ScopeRef required fields"
