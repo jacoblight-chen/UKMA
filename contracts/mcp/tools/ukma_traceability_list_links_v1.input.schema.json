@@ -68,7 +68,7 @@
       "type": "object"
     },
     "wire.TraceKind": {
-      "description": "Relation kind of a link (\u00a735.1).",
+      "description": "Relation kind of a link (§35.1).",
       "oneOf": [
         {
           "description": "Requirement specifies an artefact.",
@@ -115,7 +115,7 @@
       ]
     },
     "wire.TraceState": {
-      "description": "Workflow state of a link (\u00a735.1).",
+      "description": "Workflow state of a link (§35.1).",
       "oneOf": [
         {
           "description": "Proposed, not yet verified.",
@@ -162,7 +162,7 @@
       ]
     },
     "wire.TraceabilityPageRequest": {
-      "description": "Cursor page request (\u00a731.4).",
+      "description": "Cursor page request (§31.4).",
       "properties": {
         "cursor": {
           "description": "Opaque cursor.",

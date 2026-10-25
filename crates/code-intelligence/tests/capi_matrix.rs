@@ -10,18 +10,20 @@
 use std::sync::Arc;
 
 use code_intelligence::domain::{
-    AnalyzeRepository, CancelJob, CodeRevisionDiff, Direction, DirtyPolicy, EditContextQuery,
-    GetJob, GetSymbol, ImpactQuery, InvalidateCodeRevision, PageRequest, ReferenceQuery,
-    RepoRevision, SourceFile, SymbolQuery, TraversalQuery,
+    AnalyzeRepository, CancelJob, CodeRevisionDiff, CuratedContextQuery, Direction, DirtyPolicy,
+    EditContextQuery, GetJob, GetSymbol, ImpactQuery, InvalidateCodeRevision, PageRequest,
+    ReferenceQuery, RepoRevision, SourceFile, SymbolQuery, TraversalQuery,
 };
 use code_intelligence::parsers::rust::RustParser;
+use code_intelligence::search::SearchPolicy;
 use code_intelligence::service::{
-    CodeAuthorizer, CodeIntelligenceService, InMemorySources, ScopeAuthorizer, CHARS_PER_TOKEN,
-    SCOPE_INDEX, SCOPE_INDEX_ADMIN, SCOPE_READ,
+    CodeAuthorizer, CodeIntelligenceService, InMemorySources, ScopeAuthorizer, SourceSnapshotPort,
+    CHARS_PER_TOKEN, SCOPE_INDEX, SCOPE_INDEX_ADMIN, SCOPE_READ,
 };
 use code_intelligence::{
     CodeEdgeKind, CodeError, CodeResult, ParserPort, SupportLevel, Symbol, SymbolKind,
 };
+use embedding_engine::{BackendMode, OnnxEmbedder};
 use ukma_contracts::{Consistency, RequestContext, ScopeRef};
 
 const REPO: &str = "repo-1";
@@ -1171,4 +1173,328 @@ fn port_surface_matches_the_thirteen_operations() {
 fn parser_support_level_gates_the_analysis() {
     assert_eq!(RustParser::new().support("rust"), SupportLevel::Ported);
     assert_eq!(RustParser::new().support("python"), SupportLevel::NotPorted);
+}
+
+#[test]
+fn a_registered_alias_stands_for_the_concrete_revision() {
+    // Positive: the port resolves the alias to the registered snapshot.
+    let sources = InMemorySources::new()
+        .with_commit(COMMIT_A, files_a())
+        .with_alias("@cwd", COMMIT_A);
+    let snapshot = sources
+        .snapshot(&RepoRevision::git(REPO, "@cwd"))
+        .expect("the alias resolves");
+    assert_eq!(snapshot.commit_sha, COMMIT_A);
+
+    // The service accepts the alias end-to-end (CAPI-01).
+    let svc = CodeIntelligenceService::new(Arc::new(RustParser::new()), Arc::new(sources));
+    assert!(svc
+        .analyze_repository(&full_ctx(), &analyze_request("@cwd"))
+        .is_ok());
+
+    // Negative: an unregistered alias is still rejected by validation.
+    let plain = InMemorySources::new().with_commit(COMMIT_A, files_a());
+    assert_eq!(
+        plain
+            .snapshot(&RepoRevision::git(REPO, "@cwd"))
+            .unwrap_err()
+            .code(),
+        "INVALID_ARGUMENT"
+    );
+
+    // Failure: an alias whose target snapshot is missing is a source error.
+    let dangling = InMemorySources::new().with_alias("@cwd", COMMIT_B);
+    assert_eq!(
+        dangling
+            .snapshot(&RepoRevision::git(REPO, "@cwd"))
+            .unwrap_err()
+            .code(),
+        "SOURCE_UNAVAILABLE"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// code.get_curated_context — search-policy (full-body) matrix
+// ---------------------------------------------------------------------------
+
+/// A source whose `process` body contains a distinctive word (`quantumflux`)
+/// that appears in no name, qualified name or signature — only in the body.
+const BODY_WORD_RS: &str = "\
+fn process() -> i32 {
+    let quantumflux = 42;
+    quantumflux
+}
+";
+
+fn body_word_sources() -> InMemorySources {
+    InMemorySources::new().with_commit(COMMIT_A, vec![SourceFile::new("src/body.rs", BODY_WORD_RS)])
+}
+
+/// Build a service bound to the body-word source with an explicit policy.
+fn body_word_service(policy: SearchPolicy) -> CodeIntelligenceService {
+    CodeIntelligenceService::new(Arc::new(RustParser::new()), Arc::new(body_word_sources()))
+        .with_search_policy(policy)
+}
+
+fn curated(query: &str, max: u32) -> CuratedContextQuery {
+    CuratedContextQuery {
+        repository_id: REPO.to_string(),
+        revision: COMMIT_A.to_string(),
+        query: query.to_string(),
+        max_results: max,
+    }
+}
+
+/// Positive: with `full_body`, a body-only word matches the symbol.
+#[test]
+fn curated_full_body_makes_the_body_text_searchable() {
+    let svc = body_word_service(SearchPolicy {
+        full_body: true,
+        ..SearchPolicy::default()
+    });
+    let ctx = full_ctx();
+    analyze(&svc, &ctx, COMMIT_A);
+    let result = svc
+        .get_curated_context(&ctx, &curated("quantumflux", 5))
+        .expect("full-body search must succeed");
+    assert!(
+        !result.matches.is_empty(),
+        "the body-only word must match with full_body on"
+    );
+    assert!(
+        result.matches.iter().any(|m| m.name == "process"),
+        "the `process` symbol is matched via its body"
+    );
+}
+
+/// Negative (control): with `graph_only` (keyword channel only, no semantic
+/// noise) and `full_body` off, the body-only word has no keyword overlap and
+/// matches nothing.
+#[test]
+fn curated_graph_only_without_body_ignores_the_body() {
+    let svc = body_word_service(SearchPolicy {
+        full_body: false,
+        graph_only: true,
+        ..SearchPolicy::default()
+    });
+    let ctx = full_ctx();
+    analyze(&svc, &ctx, COMMIT_A);
+    let result = svc
+        .get_curated_context(&ctx, &curated("quantumflux", 5))
+        .expect("graph-only search must succeed");
+    assert!(
+        result.matches.is_empty(),
+        "the body-only word must not match without full_body (keyword channel only)"
+    );
+}
+
+/// Version (revision binding): the same query resolves against the requested
+/// revision; a symbol only present in `COMMIT_B` is found there, not in A.
+#[test]
+fn curated_is_bound_to_the_requested_revision() {
+    // `sub` exists only in the `COMMIT_B` revision.
+    let svc = CodeIntelligenceService::new(Arc::new(RustParser::new()), Arc::new(source_set()));
+    let ctx = full_ctx();
+    analyze(&svc, &ctx, COMMIT_A);
+    analyze(&svc, &ctx, COMMIT_B);
+    let in_b = svc
+        .get_curated_context(
+            &ctx,
+            &CuratedContextQuery {
+                repository_id: REPO.to_string(),
+                revision: COMMIT_B.to_string(),
+                query: "sub".to_string(),
+                max_results: 5,
+            },
+        )
+        .expect("search in B must succeed");
+    assert!(
+        in_b.matches.iter().any(|m| m.name == "sub"),
+        "`sub` is found in the B revision"
+    );
+    let in_a = svc
+        .get_curated_context(&ctx, &curated("sub", 5))
+        .expect("search in A must succeed");
+    assert!(
+        !in_a.matches.iter().any(|m| m.name == "sub"),
+        "`sub` is absent from the A revision"
+    );
+}
+
+/// Authorization: a caller without `code:read` is rejected.
+#[test]
+fn curated_requires_the_read_scope() {
+    let svc = body_word_service(SearchPolicy::default());
+    let ctx = base_ctx("tenant-1", &[]);
+    let error = svc
+        .get_curated_context(&ctx, &curated("process", 5))
+        .expect_err("a read-less caller must be rejected");
+    assert_eq!(error.code(), "FORBIDDEN");
+}
+
+/// Failure: an unknown revision is a not-found; an out-of-range `max_results`
+/// is an invalid argument.
+#[test]
+fn curated_failure_paths() {
+    let svc = body_word_service(SearchPolicy::default());
+    let ctx = full_ctx();
+    let missing = svc
+        .get_curated_context(
+            &ctx,
+            &CuratedContextQuery {
+                repository_id: REPO.to_string(),
+                revision: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef".to_string(),
+                query: "process".to_string(),
+                max_results: 5,
+            },
+        )
+        .unwrap_err();
+    assert_eq!(missing.code(), "NOT_FOUND");
+
+    let bad = svc
+        .get_curated_context(&ctx, &curated("process", 0))
+        .expect_err("max_results 0 is invalid");
+    assert_eq!(bad.code(), "INVALID_ARGUMENT");
+}
+
+// ---------------------------------------------------------------------------
+// code.get_curated_context — embedding backend (model selection) matrix
+// ---------------------------------------------------------------------------
+
+/// Build a service bound to the body-word source, with an embedding port,
+/// selected profile and the effective mode after the RAM gate.
+fn embedding_service(
+    embedder: Option<(std::sync::Arc<dyn embedding_engine::EmbeddingPort>, String)>,
+    mode: BackendMode,
+) -> CodeIntelligenceService {
+    CodeIntelligenceService::new(Arc::new(RustParser::new()), Arc::new(body_word_sources()))
+        .with_search_policy(SearchPolicy {
+            full_body: true,
+            ..SearchPolicy::default()
+        })
+        .with_embedding_backend(embedder, mode)
+}
+
+/// Positive: `static` is provisioned by default, so the selected profile is
+/// available and the semantic channel is active.
+#[test]
+fn embedding_static_profile_is_available_and_search_succeeds() {
+    let embedder: std::sync::Arc<dyn embedding_engine::EmbeddingPort> =
+        Arc::new(OnnxEmbedder::new());
+    let svc = embedding_service(
+        Some((Arc::clone(&embedder), "static-256".to_string())),
+        BackendMode::WithModel,
+    );
+    assert!(
+        svc.embedding_available(),
+        "static is provisioned by default"
+    );
+    let ctx = full_ctx();
+    analyze(&svc, &ctx, COMMIT_A);
+    let result = svc
+        .get_curated_context(&ctx, &curated("quantumflux", 5))
+        .expect("static-backed search must succeed");
+    assert!(
+        result.matches.iter().any(|m| m.name == "process"),
+        "the body-only word matches through the available static profile"
+    );
+}
+
+/// Negative: an ONNX model is not provisioned by default, so the selected
+/// profile is unavailable and the semantic channel degrades to the static
+/// fallback (the query still succeeds, but `embedding_available` is false).
+#[test]
+fn embedding_onnx_profile_is_unavailable_and_degrades() {
+    let embedder: std::sync::Arc<dyn embedding_engine::EmbeddingPort> =
+        Arc::new(OnnxEmbedder::new());
+    let svc = embedding_service(
+        Some((Arc::clone(&embedder), "bge-small-384".to_string())),
+        BackendMode::WithModel,
+    );
+    assert!(
+        !svc.embedding_available(),
+        "the ONNX profile is unavailable without the runtime / weights"
+    );
+    let ctx = full_ctx();
+    analyze(&svc, &ctx, COMMIT_A);
+    // Degrades to the static channel: the query still resolves.
+    let result = svc
+        .get_curated_context(&ctx, &curated("process", 5))
+        .expect("the degraded search must still succeed");
+    assert!(
+        result.matches.iter().any(|m| m.name == "process"),
+        "the name-based query resolves via the degraded channel"
+    );
+}
+
+/// Authorization: a caller without `code:read` is rejected even with an
+/// embedding backend wired.
+#[test]
+fn embedding_backend_requires_the_read_scope() {
+    let embedder: std::sync::Arc<dyn embedding_engine::EmbeddingPort> =
+        Arc::new(OnnxEmbedder::new());
+    let svc = embedding_service(
+        Some((Arc::clone(&embedder), "static-256".to_string())),
+        BackendMode::WithModel,
+    );
+    let ctx = base_ctx("tenant-1", &[]);
+    let error = svc
+        .get_curated_context(&ctx, &curated("process", 5))
+        .expect_err("a read-less caller must be rejected");
+    assert_eq!(error.code(), "FORBIDDEN");
+}
+
+/// Version (profile identity): the selected profile id is a stable,
+/// versioned identity bound to the model's dimension.
+#[test]
+fn embedding_profile_id_is_a_stable_identity() {
+    let embedder: std::sync::Arc<dyn embedding_engine::EmbeddingPort> =
+        Arc::new(OnnxEmbedder::new());
+    let svc = embedding_service(
+        Some((Arc::clone(&embedder), "jina-code-v2-768".to_string())),
+        BackendMode::WithModel,
+    );
+    assert_eq!(
+        svc.embedding_profile_id(),
+        Some("jina-code-v2-768"),
+        "the profile id is the stable, versioned identity"
+    );
+    // A different model selects a different profile id.
+    let svc2 = embedding_service(
+        Some((Arc::clone(&embedder), "granite-97m-384".to_string())),
+        BackendMode::WithModel,
+    );
+    assert_eq!(svc2.embedding_profile_id(), Some("granite-97m-384"));
+}
+
+/// Failure (RAM-gate degradation): `GraphOnly` mode skips the semantic
+/// channel, so a body-only word (with the body excluded from the corpus, so
+/// there is no keyword overlap) matches nothing.
+#[test]
+fn embedding_graph_only_mode_degrades_to_the_keyword_channel() {
+    let embedder: std::sync::Arc<dyn embedding_engine::EmbeddingPort> =
+        Arc::new(OnnxEmbedder::new());
+    let svc =
+        CodeIntelligenceService::new(Arc::new(RustParser::new()), Arc::new(body_word_sources()))
+            .with_search_policy(SearchPolicy {
+                full_body: false,
+                ..SearchPolicy::default()
+            })
+            .with_embedding_backend(
+                Some((Arc::clone(&embedder), "static-256".to_string())),
+                BackendMode::GraphOnly,
+            );
+    assert!(
+        !svc.embedding_available(),
+        "GraphOnly mode is not usable for embeddings"
+    );
+    let ctx = full_ctx();
+    analyze(&svc, &ctx, COMMIT_A);
+    let result = svc
+        .get_curated_context(&ctx, &curated("quantumflux", 5))
+        .expect("graph-only search must succeed");
+    assert!(
+        result.matches.is_empty(),
+        "the body-only word must not match under GraphOnly (keyword channel only)"
+    );
 }

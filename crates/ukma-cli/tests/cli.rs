@@ -1,9 +1,9 @@
-//! CLI contract tests (§13, §39.2, P8-WP4).
+﻿//! CLI contract tests (禮13, 禮39.2, P8-WP4).
 //!
 //! Every command is run against the real in-memory gateway, so a broken registry
 //! projection or a missing handler is caught here rather than by a user.
 
-use ukma_cli::{exit_code, run, CliError};
+use ukma_cli::{exit_code, run, CliError, Parsed};
 use ukma_contracts::generated::OPERATIONS;
 use ukma_mcp::default_gateway;
 
@@ -11,9 +11,13 @@ fn args(line: &str) -> Vec<String> {
     line.split_whitespace().map(str::to_string).collect()
 }
 
+fn parse(line: &str) -> Parsed {
+    ukma_cli::parse(&args(line)).expect("the command line parses")
+}
+
 fn output(line: &str) -> String {
     let gateway = default_gateway();
-    run(&gateway, &args(line)).expect("command succeeds")
+    run(&gateway, &parse(line), None).expect("command succeeds")
 }
 
 #[test]
@@ -23,7 +27,7 @@ fn health_and_capabilities_are_reported() {
     assert!(health.contains(&format!("\"operations\":{}", OPERATIONS.len())));
 
     let capabilities = output("capabilities");
-    assert!(capabilities.contains("\"domain_operations\": 65"));
+    assert!(capabilities.contains("\"domain_operations\": 108"));
     assert!(capabilities.contains("\"system_operations\": 4"));
 }
 
@@ -31,10 +35,11 @@ fn health_and_capabilities_are_reported() {
 fn tools_list_every_tool_and_can_be_filtered() {
     let all = output("tools");
     let total_line = all.lines().last().expect("total line");
-    assert!(total_line.starts_with("total=69"), "{total_line}");
-    assert!(total_line.contains("code=13"));
-    assert!(total_line.contains("document=14"));
+    assert!(total_line.starts_with("total=112"), "{total_line}");
+    assert!(total_line.contains("code=27"));
+    assert!(total_line.contains("document=16"));
     assert!(total_line.contains("memory=25"));
+    assert!(total_line.contains("pro=27"));
     assert!(total_line.contains("traceability=13"));
     assert!(total_line.contains("system=4"));
     for spec in OPERATIONS {
@@ -68,7 +73,7 @@ fn describe_reads_one_operation_from_the_registry() {
     assert!(described.contains("memory:write"));
 
     let gateway = default_gateway();
-    let error = run(&gateway, &args("describe nope.nope")).unwrap_err();
+    let error = run(&gateway, &parse("describe nope.nope"), None).unwrap_err();
     assert_eq!(error, CliError::UnknownOperation("nope.nope".into()));
     assert_eq!(exit_code(&error), 2);
 }
@@ -80,7 +85,7 @@ fn call_dispatches_and_reports_api_errors() {
     assert!(created.contains("mem:tenant-dev:project-dev:"));
 
     let gateway = default_gateway();
-    let error = run(&gateway, &args("call memory.retrieve {\"memory\":{\"id\":\"nope\",\"kind\":\"episodic\",\"revision\":\"r\"},\"detail\":\"full\",\"max_tokens\":8}"))
+    let error = run(&gateway, &parse("call memory.retrieve {\"memory\":{\"id\":\"nope\",\"kind\":\"episodic\",\"revision\":\"r\"},\"detail\":\"full\",\"max_tokens\":8}"), None)
         .unwrap_err();
     match error {
         CliError::Api { code, .. } => assert_eq!(code, "NOT_FOUND"),
@@ -91,7 +96,7 @@ fn call_dispatches_and_reports_api_errors() {
 #[test]
 fn a_malformed_body_is_a_usage_error() {
     let gateway = default_gateway();
-    let error = run(&gateway, &args("call memory.search not-json")).unwrap_err();
+    let error = run(&gateway, &parse("call memory.search not-json"), None).unwrap_err();
     assert!(matches!(error, CliError::BadJson(_)));
     assert_eq!(exit_code(&error), 2);
 }
@@ -100,19 +105,19 @@ fn a_malformed_body_is_a_usage_error() {
 fn unknown_commands_and_missing_arguments_are_usage_errors() {
     let gateway = default_gateway();
     assert!(matches!(
-        run(&gateway, &args("nope")).unwrap_err(),
+        run(&gateway, &parse("nope"), None).unwrap_err(),
         CliError::Usage(_)
     ));
     assert!(matches!(
-        run(&gateway, &args("call")).unwrap_err(),
+        run(&gateway, &parse("call"), None).unwrap_err(),
         CliError::Usage(_)
     ));
+    // A flag without a value is a parse-time usage error.
+    let missing_value = ukma_cli::parse(&args("tools --domain")).unwrap_err();
+    assert!(matches!(missing_value, CliError::Usage(_)));
+    assert_eq!(exit_code(&missing_value), 2);
     assert!(matches!(
-        run(&gateway, &args("tools --domain")).unwrap_err(),
-        CliError::Usage(_)
-    ));
-    assert!(matches!(
-        run(&gateway, &args("call nope.nope {}")).unwrap_err(),
+        run(&gateway, &parse("call nope.nope {}"), None).unwrap_err(),
         CliError::UnknownOperation(_)
     ));
 }

@@ -1,0 +1,24 @@
+{
+  "api_version": "2",
+  "operation": "ukma.code.search_by_pattern.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "page": {
+      "limit": 0
+    },
+    "pattern": "x",
+    "repository_id": "x",
+    "revision": "x",
+    "scope": "name"
+  }
+}

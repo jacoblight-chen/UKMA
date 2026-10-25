@@ -69,7 +69,7 @@
       "type": "object"
     },
     "wire.DirtyPolicy": {
-      "description": "Dirty-worktree handling (\u00a732.1 `dirty_policy`).",
+      "description": "Dirty-worktree handling (§32.1 `dirty_policy`).",
       "oneOf": [
         {
           "description": "Refuse to analyze a dirty worktree.",
@@ -88,7 +88,7 @@
       ]
     },
     "wire.RepoRevision": {
-      "description": "Which revision of a repository a request is bound to (`\u00a732.1 RepoRevision`).",
+      "description": "Which revision of a repository a request is bound to (`§32.1 RepoRevision`).",
       "properties": {
         "commit_sha": {
           "description": "Full commit SHA the request is bound to.",

@@ -1,0 +1,29 @@
+<idea-plugin>
+    <id>com.ukma.plugin</id>
+    <name>UKMA Code Intelligence</name>
+    <description>
+        Thin IDE shell over the UKMA server (CodeGraph-style). The plugin is a
+        client: it calls the UKMA server over REST (system.capabilities, the
+        ukma_* tools) and renders results. No analysis, indexing, or model
+        logic lives in the plugin.
+    </description>
+    <version>0.1.0</version>
+    <vendor>UKMA</vendor>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Startup: open the shared server handle once per project. -->
+        <postStartupActivity implementation="com.ukma.plugin.UkmaPlugin"/>
+        <!-- Entry point action (Tool menu). -->
+        <toolWindow id="UKMA" anchor="right" factoryClass="com.ukma.plugin.UkmaToolWindowFactory"/>
+        <notificationGroup id="UKMA" displayType="BALLOON"/>
+    </extensions>
+
+    <actions>
+        <action id="Ukma.ShowTools" class="com.ukma.plugin.action.UkmaToolsAction"
+                text="UKMA: Show Tools" description="List and call UKMA tools from the IDE">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
+</idea-plugin>

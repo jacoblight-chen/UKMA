@@ -1,13 +1,13 @@
 //! UKMA v1.2.3 contract-closure validator (P0-WP5).
 //!
 //! Enforces the machine-checkable gates the specification requires:
-//! - **DOC-01** 65 domain operations + 4 system operations, ids unique (§43)
+//! - **DOC-01** 81 domain operations + 4 system operations, ids unique (§43)
 //! - **DOC-02** every error code / scope / event is a member of a closed set
 //! - **DOC-03** a single registry declares each operation once, with the 15
 //!   fields §41.1 requires (§31.1, ADR-034)
 //! - **DOC-04** job responses expose orthogonal execution/commit/projection
 //!   phases (ADR-037, §40.4)
-//! - **SCHEMA-01** all 69 request+response schemas exist, are closed, and their
+//! - **SCHEMA-01** all 85 request+response schemas exist, are closed, and their
 //!   `$ref`s resolve (§41.2)
 //! - **SCHEMA-02** every event carries the 11 registry fields and a closed
 //!   payload schema (§40.6)
@@ -66,14 +66,16 @@ const REQUIRED_EVENT_FIELDS: [&str; 11] = [
     "retention_policy",
 ];
 
-/// Expected operation count per domain (§36.1).
+/// Expected operation count per domain (§36.1; parity operations close the
+/// CodeGraph gap in v1.2.3).
 fn expected_counts() -> BTreeMap<&'static str, usize> {
     BTreeMap::from([
-        ("code", 13),
-        ("document", 14),
+        ("code", 27),
+        ("document", 16),
         ("memory", 25),
         ("traceability", 13),
         ("system", 4),
+        ("pro", 27),
     ])
 }
 
@@ -391,9 +393,11 @@ fn main() -> ExitCode {
         .unwrap_or_default();
 
     // ---------- DOC-01 / DOC-03: operation catalog ----------
-    report.check("DOC-01", operations.len() == 69, || {
+    let expected_total: usize = expected_counts().values().sum();
+    let expected_domain = expected_total - 4; // the four system operations
+    report.check("DOC-01", operations.len() == expected_total, || {
         format!(
-            "expected 69 operations (65 domain + 4 system), found {}",
+            "expected {expected_total} operations ({expected_domain} domain + 4 system), found {}",
             operations.len()
         )
     });

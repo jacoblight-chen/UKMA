@@ -53,7 +53,7 @@
       "type": "object"
     },
     "wire.MemoryPageRequest": {
-      "description": "Cursor page request (\u00a731.4).",
+      "description": "Cursor page request (§31.4).",
       "properties": {
         "cursor": {
           "description": "Opaque cursor.",

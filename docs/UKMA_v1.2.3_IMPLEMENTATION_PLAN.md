@@ -101,6 +101,9 @@
 | §17.1 29 類強制測試、§29.4 40 項 | 僅 S1 graph 部分 | test-coverage.json 全分類：69/69 covered（0 partial、0 gap）；`coverage_matrix.rs` 拒絕未分類 ID 或缺 evidence、`claim_level.rs` 由證據推導階級 | 無（已閉合） | 各階段 + P9, ADR-055/056 |
 | §43 release gates | G0 部分、G1 已達、G2 部分 | G0..G7 全 passed；DOC-01..04、SCHEMA-01/02/03、TEST-01、DB-01、FM-006、MIG-01、SECURITY-01 全 passed（YAML gates 段） | 誠實保留（gate 仍記 passed）：G3 = 8 個 grammar 偏差語言 parity 對 golden fixture 而非上游（ADR-063 永久決策）；G7 = Profile C 三方 parity 依 ADR-062 checked-in 證據（本機無 Docker/psql/Qdrant/Neo4j，未重跑） | P0..P10 |
 | §4.3 migration ledger 每 slice | S0/S1 有 | 40 份 ledger slice（s0, s1, 38×s2）；上游 SHA 鎖定（`590c2ca7…`）；每 slice 含 golden + contract tests、approved_differences、license audit；ADR-063 閉合 MIG-01 | 無（已閉合） | 各階段, ADR-063 |
+| §36.5 CodeGraph Pro 27 operations（相容、非移植） | 無 | Pro 27 operations（10 code + 17 security）註冊於 registry/matrix/schema/fixtures，PRO-01..27 綠；manifest 112 tools、capability `pro: 27`、projection 零 drift；啟發式偵測**模式覆蓋較廣**（控制流/資料流/注入/弱加密/誤配置/高熵＋已知金鑰前綴/未檢查回傳/資源洩漏/輸入驗證/錯誤洩露/搜尋路徑/IaC/授權）＋ `--online`（feature `osv`）OSV 遠端審計（失敗 degrade manifest-only） | 誠實保留：安全分析為**啟發式偵測**（標記候選、不證明漏洞），不取代 SAST/DAST/依賴掃瞄；OSV 遠端查詢屬網路操作（離線預設）；UKMA 不實作 CodeGraph Pro 商業訂閱能力 | 本次（CodeGraph parity） |
+| §36.6 `--embedding-model` / ONNX / `CODEGRAPH_SKIP_MEMORY_CHECK` | 無 | 模型註冊表（`static-256`、`bge-small` 384d、`jina-code-v2` 768d、`granite-97m` 384d）＋`--embedding-model` 選擇＋~1.5GB memory gate＋不可用時 degrade 至 static/GraphOnly；ONNX **真實 runtime**（feature `onnx`，`ort` `load-dynamic` 運行時載入）；5 路徑測試綠 | 誠實保留：ONNX 為**真實 runtime**，UKMA 不自帶 ONNX Runtime 庫與模型權重（部署側提供）；不可用時 degrade 至 static/GraphOnly | 本次（CodeGraph parity） |
+| JetBrains plugin | 無 | 提供**完整、可建置結構**（startup activity、tool window、action、薄 REST client，皆註冊於 `plugin.xml`） | 誠實保留：Gradle/IntelliJ build 未在本倉庫驗收 gate 執行（需 IntelliJ SDK），不得宣稱可分發 .zip 已完成 | 本次（CodeGraph parity） |
 
 ---
 

@@ -26,7 +26,7 @@
   },
   "$defs": {
     "wire.CodePageRequest": {
-      "description": "A page request (\u00a731.4). `limit` is bounded; `cursor` is opaque.",
+      "description": "A page request (§31.4). `limit` is bounded; `cursor` is opaque.",
       "properties": {
         "cursor": {
           "description": "Opaque cursor from a previous page.",
@@ -48,7 +48,7 @@
       "type": "object"
     },
     "wire.SymbolKind": {
-      "description": "Symbol kind (\u00a732.1 `Symbol.symbol_kind`).",
+      "description": "Symbol kind (§32.1 `Symbol.symbol_kind`).",
       "oneOf": [
         {
           "description": "Module or package.",

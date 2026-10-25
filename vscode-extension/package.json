@@ -1,0 +1,54 @@
+{
+  "name": "ukma",
+  "displayName": "UKMA Code Intelligence",
+  "description": "Exposes UKMA code-intelligence tools (69 operations across code, docs, memory, trace, and system domains) to Copilot in VS Code, CodeGraph-style.",
+  "version": "1.2.3",
+  "publisher": "ukma",
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "main": "./out/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      {
+        "command": "ukma.indexWorkspace",
+        "title": "UKMA: Re-index Workspace"
+      },
+      {
+        "command": "ukma.showStatus",
+        "title": "UKMA: Show Status"
+      }
+    ],
+    "configuration": {
+      "title": "UKMA",
+      "properties": {
+        "ukma.serverPath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the ukma binary. When empty, the binary is resolved from PATH."
+        },
+        "ukma.autoStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Start the UKMA MCP server (and auto-index the workspace) when the extension activates."
+        }
+      }
+    },
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "ukma"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.99.0",
+    "typescript": "^5.5.0"
+  }
+}

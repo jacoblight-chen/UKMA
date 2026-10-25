@@ -20,18 +20,89 @@ GEN_DIR = Path("crates/ukma-contracts/src/generated")
 TS_DIR = Path("sdk/typescript")
 
 SHARED = json.loads((SCHEMA_DIR / "shared.schema.json").read_text(encoding="utf-8"))
+WIRE = json.loads((SCHEMA_DIR / "wire.schema.json").read_text(encoding="utf-8"))
+
+
+def _qualify_envelope_refs(value):
+    """Point wire./shared. file-qualified refs at the namespaced defs."""
+    if isinstance(value, dict):
+        ref = value.get("$ref")
+        if isinstance(ref, str):
+            if ref.startswith("wire.schema.json#/$defs/"):
+                value["$ref"] = "#/$defs/wire." + ref.rsplit("#/$defs/", 1)[1]
+            elif ref.startswith("shared.schema.json#/$defs/"):
+                value["$ref"] = "#/$defs/shared." + ref.rsplit("#/$defs/", 1)[1]
+        for child in value.values():
+            _qualify_envelope_refs(child)
+    elif isinstance(value, list):
+        for item in value:
+            _qualify_envelope_refs(item)
+
+
+def _namespace_refs(value, prefix: str):
+    if isinstance(value, dict):
+        ref = value.get("$ref")
+        if isinstance(ref, str) and "#/$defs/" in ref:
+            value["$ref"] = "#/$defs/" + prefix + "." + ref.rsplit("#/$defs/", 1)[1]
+        for child in value.values():
+            _namespace_refs(child, prefix)
+    elif isinstance(value, list):
+        for item in value:
+            _namespace_refs(item, prefix)
+
+
+def _namespace_defs(defs: dict, prefix: str) -> dict:
+    out = {}
+    for name, schema in defs.items():
+        import copy
+        cloned = copy.deepcopy(schema)
+        _namespace_refs(cloned, prefix)
+        out[f"{prefix}.{name}"] = cloned
+    return out
+
+
+def _referenced_names(value, out: set):
+    if isinstance(value, dict):
+        ref = value.get("$ref")
+        if isinstance(ref, str) and ref.startswith("#/$defs/"):
+            out.add(ref[len("#/$defs/"):])
+        for child in value.values():
+            _referenced_names(child, out)
+    elif isinstance(value, list):
+        for item in value:
+            _referenced_names(item, out)
+
+
+def _prune_defs(doc: dict, defs: dict) -> dict:
+    reachable = set()
+    _referenced_names(doc, reachable)
+    while True:
+        added = False
+        for name in sorted(reachable):
+            schema = defs.get(name)
+            if schema is None:
+                continue
+            found = set()
+            _referenced_names(schema, found)
+            for ref in found:
+                if ref not in reachable:
+                    reachable.add(ref)
+                    added = True
+        if not added:
+            break
+    return {name: defs[name] for name in defs if name in reachable}
 
 
 def compose(schema: dict) -> dict:
-    """Inline shared $defs so the schema is self-contained (no file refs)."""
-    text = json.dumps(schema)
-    text = text.replace("shared.schema.json#/$defs/", "#/$defs/")
-    text = text.replace("../schema/v1/shared.schema.json#/$defs/", "#/$defs/")
-    out = json.loads(text)
-    defs = out.setdefault("$defs", {})
-    for name, value in SHARED["$defs"].items():
-        defs.setdefault(name, value)
-    return out
+    """Mirror the contract-check compose exactly: inline + namespace + prune the
+    wire and shared $defs so the tool schema is self-contained."""
+    import copy
+    doc = copy.deepcopy(schema)
+    _qualify_envelope_refs(doc)
+    defs = _namespace_defs(WIRE.get("$defs", {}), "wire")
+    defs.update(_namespace_defs(SHARED.get("$defs", {}), "shared"))
+    doc["$defs"] = _prune_defs(doc, defs)
+    return doc
 
 
 def pascal(op_id: str) -> str:
@@ -218,7 +289,7 @@ def generate_rust(ops):
 
 def main() -> None:
     ops = REG["operations"]
-    assert len(ops) == 69, len(ops)
+    assert len(ops) == 112, len(ops)
 
     GEN_DIR.mkdir(parents=True, exist_ok=True)
     (GEN_DIR / "operations.rs").write_text(generate_rust(ops), encoding="utf-8")

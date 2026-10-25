@@ -214,6 +214,110 @@
         }
       ]
     },
+    "AiContextQuery": {
+      "description": "Request: intent-aware context assembly (`get_ai_context` parity).",
+      "properties": {
+        "intent": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ContextIntent"
+            }
+          ],
+          "description": "Caller intent."
+        },
+        "max_tokens": {
+          "description": "Hard token budget.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "repository_id": {
+          "description": "Repository the request is bound to.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Revision (commit SHA or a registered alias such as `@cwd`).",
+          "type": "string"
+        },
+        "target_refs": {
+          "description": "Symbols to build the context around.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "intent",
+        "max_tokens",
+        "repository_id",
+        "revision",
+        "target_refs"
+      ],
+      "type": "object"
+    },
+    "AiContextResult": {
+      "description": "Result of `get_ai_context`.",
+      "properties": {
+        "intent": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ContextIntent"
+            }
+          ],
+          "description": "The intent the sections were selected for."
+        },
+        "sections": {
+          "description": "Sections in assembly order, within the token budget.",
+          "items": {
+            "$ref": "#/$defs/AiContextSection"
+          },
+          "type": "array"
+        },
+        "token_total": {
+          "description": "Total estimated tokens across sections.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "truncated": {
+          "description": "Whether the budget cut the context short.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "intent",
+        "sections",
+        "token_total",
+        "truncated"
+      ],
+      "type": "object"
+    },
+    "AiContextSection": {
+      "description": "One section of an [`AiContextResult`].",
+      "properties": {
+        "content": {
+          "description": "Rendered content.",
+          "type": "string"
+        },
+        "section": {
+          "description": "Section name (`definition`, `callers`, `callees`, `imports`, `tests`, `debug_hints`).",
+          "type": "string"
+        },
+        "token_count": {
+          "description": "Estimated tokens of the content.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "content",
+        "section",
+        "token_count"
+      ],
+      "type": "object"
+    },
     "AnalyzeRepository": {
       "description": "Request: start (or join) a repository analysis (`CAPI-01`).",
       "properties": {
@@ -256,6 +360,44 @@
         "revision"
       ],
       "type": "object"
+    },
+    "ArchitectureDoc": {
+      "description": "The rendered architecture document.",
+      "properties": {
+        "markdown": {
+          "description": "The rendered markdown.",
+          "type": "string"
+        },
+        "sections": {
+          "description": "Section titles in order.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "source": {
+          "description": "Where the facts came from (`code_graph`).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "markdown",
+        "sections",
+        "source"
+      ],
+      "type": "object"
+    },
+    "Array_of_ComplexityReport": {
+      "items": {
+        "$ref": "#/$defs/ComplexityReport"
+      },
+      "type": "array"
+    },
+    "Array_of_HotPath": {
+      "items": {
+        "$ref": "#/$defs/HotPath"
+      },
+      "type": "array"
     },
     "BeginReconsolidation": {
       "description": "`memory.begin_reconsolidation` (MAPI-16).",
@@ -395,6 +537,65 @@
           "type": "string"
         }
       ]
+    },
+    "CircularDependency": {
+      "description": "One detected cycle, at module (file) granularity.",
+      "properties": {
+        "edge_kinds": {
+          "description": "The edge kinds the cycle is built from.",
+          "items": {
+            "$ref": "#/$defs/CodeEdgeKind"
+          },
+          "type": "array"
+        },
+        "files": {
+          "description": "Files in the cycle; the lexicographically smallest first, no repeat of the first element at the end.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "edge_kinds",
+        "files"
+      ],
+      "type": "object"
+    },
+    "CircularDepsQuery": {
+      "description": "Request: circular import/dependency detection (`find_circular_deps` parity).",
+      "properties": {
+        "edge_kinds": {
+          "description": "Edge kinds to build the module graph from (empty means `imports` + `depends_on`).",
+          "items": {
+            "$ref": "#/$defs/CodeEdgeKind"
+          },
+          "type": "array"
+        },
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CodePageRequest"
+            }
+          ],
+          "description": "Page."
+        },
+        "repository_id": {
+          "description": "Repository the request is bound to.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Revision (commit SHA or a registered alias).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "edge_kinds",
+        "page",
+        "repository_id",
+        "revision"
+      ],
+      "type": "object"
     },
     "CloseAgentScope": {
       "description": "`memory.close_agent_scope` (MAPI-02).",
@@ -960,6 +1161,104 @@
         }
       ]
     },
+    "ComplexityQuery": {
+      "description": "Request: cyclomatic complexity with breakdown (`analyze_complexity` parity).",
+      "properties": {
+        "max_results": {
+          "description": "Maximum reports when `symbol_ids` is empty (1..=100).",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "repository_id": {
+          "description": "Repository the request is bound to.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Revision (commit SHA or a registered alias).",
+          "type": "string"
+        },
+        "symbol_ids": {
+          "description": "Symbols to measure; empty means every function-like symbol.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "max_results",
+        "repository_id",
+        "revision",
+        "symbol_ids"
+      ],
+      "type": "object"
+    },
+    "ComplexityReport": {
+      "description": "One measured function (`analyze_complexity` parity).",
+      "properties": {
+        "branches": {
+          "description": "Branching constructs (if/else, conditional operators).",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "cyclomatic": {
+          "description": "Cyclomatic number: 1 + decision points.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "early_returns": {
+          "description": "Early returns.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "exceptions": {
+          "description": "Exception handling constructs (try/catch/except/panic recovery).",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "loops": {
+          "description": "Loop constructs (for/while/do, match arms counted as branches).",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "name": {
+          "description": "Simple name.",
+          "type": "string"
+        },
+        "nesting": {
+          "description": "Maximum nesting depth of control structures.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "symbol_id": {
+          "description": "Measured symbol.",
+          "type": "string"
+        },
+        "verdict": {
+          "description": "`low` (<=10), `moderate` (11..=20) or `high` (>20).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "branches",
+        "cyclomatic",
+        "early_returns",
+        "exceptions",
+        "loops",
+        "name",
+        "nesting",
+        "symbol_id",
+        "verdict"
+      ],
+      "type": "object"
+    },
     "Conclusion": {
       "description": "Conclusion of an evidence report (§35.1).",
       "oneOf": [
@@ -1200,6 +1499,39 @@
       ],
       "type": "object"
     },
+    "ContextIntent": {
+      "description": "Caller intent for context assembly (`get_ai_context` parity).",
+      "oneOf": [
+        {
+          "description": "Why the code is written: definitions, docs, related symbols.",
+          "enum": [
+            "explain"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "What a modification touches: source, callers, dependants, tests.",
+          "enum": [
+            "modify"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "What to inspect when it misbehaves: callers, error handling, hints.",
+          "enum": [
+            "debug"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "How the code is exercised: tests, references, coverage candidates.",
+          "enum": [
+            "test"
+          ],
+          "type": "string"
+        }
+      ]
+    },
     "CoverageQuery": {
       "description": "`traceability.query_coverage` (TAPI-07, §35.1 `CoverageQuery`).",
       "properties": {
@@ -1323,6 +1655,108 @@
       ],
       "type": "object"
     },
+    "CuratedContext": {
+      "description": "Result of `get_curated_context`.",
+      "properties": {
+        "matches": {
+          "description": "Top matches by hybrid score.",
+          "items": {
+            "$ref": "#/$defs/CuratedMatch"
+          },
+          "type": "array"
+        },
+        "query": {
+          "description": "The query that was answered.",
+          "type": "string"
+        },
+        "sections": {
+          "description": "Rendered context sections, one per match.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "matches",
+        "query",
+        "sections"
+      ],
+      "type": "object"
+    },
+    "CuratedContextQuery": {
+      "description": "Request: curated cross-codebase context for a natural-language query (`get_curated_context` parity).",
+      "properties": {
+        "max_results": {
+          "description": "Maximum matched symbols to include (1..=25).",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "query": {
+          "description": "Natural-language query.",
+          "type": "string"
+        },
+        "repository_id": {
+          "description": "Repository the request is bound to.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Revision (commit SHA or a registered alias).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "max_results",
+        "query",
+        "repository_id",
+        "revision"
+      ],
+      "type": "object"
+    },
+    "CuratedMatch": {
+      "description": "One scored match of a curated context query.",
+      "properties": {
+        "kind": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/SymbolKind"
+            }
+          ],
+          "description": "Symbol kind."
+        },
+        "language": {
+          "description": "Language.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Simple name.",
+          "type": "string"
+        },
+        "score": {
+          "description": "Normalised hybrid score (0..=1, keyword + semantic).",
+          "format": "double",
+          "type": "number"
+        },
+        "snippet": {
+          "description": "A short signature or docstring snippet.",
+          "type": "string"
+        },
+        "symbol_id": {
+          "description": "Matched symbol.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "language",
+        "name",
+        "score",
+        "snippet",
+        "symbol_id"
+      ],
+      "type": "object"
+    },
     "CurrentApplicability": {
       "description": "Whether the link still applies to the current heads (§40.3).",
       "oneOf": [
@@ -1355,6 +1789,56 @@
           "type": "string"
         }
       ]
+    },
+    "DeadImport": {
+      "description": "One import with no observable use in the bound revision.",
+      "properties": {
+        "edge_id": {
+          "description": "Identity of the import edge.",
+          "type": "string"
+        },
+        "importer_file": {
+          "description": "Importing file.",
+          "type": "string"
+        },
+        "target": {
+          "description": "Imported module or symbol (as recorded on the edge).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "edge_id",
+        "importer_file",
+        "target"
+      ],
+      "type": "object"
+    },
+    "DeadImportsQuery": {
+      "description": "Request: unused import detection (`find_dead_imports` parity).",
+      "properties": {
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CodePageRequest"
+            }
+          ],
+          "description": "Page."
+        },
+        "repository_id": {
+          "description": "Repository the request is bound to.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Revision (commit SHA or a registered alias).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "page",
+        "repository_id",
+        "revision"
+      ],
+      "type": "object"
     },
     "DeletionReceipt": {
       "description": "Receipt of a deletion (forget or working-block removal) (§34.1).",
@@ -1612,6 +2096,58 @@
         "completeness",
         "from",
         "to"
+      ],
+      "type": "object"
+    },
+    "DocSourceSummary": {
+      "description": "One ingested document source.",
+      "properties": {
+        "block_count": {
+          "description": "Blocks in the index.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "document_id": {
+          "description": "Document id.",
+          "type": "string"
+        },
+        "language_hint": {
+          "description": "Language hint, when one was given.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "media_type": {
+          "description": "Media type.",
+          "type": "string"
+        },
+        "parser_id": {
+          "description": "Parser that produced the blocks.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Caller-provided revision label.",
+          "type": "string"
+        },
+        "source_uri": {
+          "description": "Original URI (informational).",
+          "type": "string"
+        },
+        "stale": {
+          "description": "Whether the revision is stale.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "block_count",
+        "document_id",
+        "media_type",
+        "parser_id",
+        "revision",
+        "source_uri",
+        "stale"
       ],
       "type": "object"
     },
@@ -2150,6 +2686,61 @@
       ],
       "type": "object"
     },
+    "EntryPoint": {
+      "description": "One detected entry point.",
+      "properties": {
+        "kind": {
+          "description": "`main`, `test` or `root_callable`.",
+          "type": "string"
+        },
+        "language": {
+          "description": "Language.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Simple name.",
+          "type": "string"
+        },
+        "symbol_id": {
+          "description": "Entry point symbol.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "language",
+        "name",
+        "symbol_id"
+      ],
+      "type": "object"
+    },
+    "EntryPointsQuery": {
+      "description": "Request: entry point detection (`find_entry_points` parity).",
+      "properties": {
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CodePageRequest"
+            }
+          ],
+          "description": "Page."
+        },
+        "repository_id": {
+          "description": "Repository the request is bound to.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Revision (commit SHA or a registered alias).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "page",
+        "repository_id",
+        "revision"
+      ],
+      "type": "object"
+    },
     "EpisodeInput": {
       "description": "Input of `memory.store_episode` (§34.1).",
       "properties": {
@@ -2298,6 +2889,71 @@
           "type": "string"
         }
       ]
+    },
+    "ErrorMatch": {
+      "description": "One error-handling hit.",
+      "properties": {
+        "line": {
+          "description": "1-based line.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "matched": {
+          "description": "The matched error type or keyword.",
+          "type": "string"
+        },
+        "role": {
+          "description": "`throws`, `catches` or `handles`.",
+          "type": "string"
+        },
+        "symbol_id": {
+          "description": "Symbol the site belongs to.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "line",
+        "matched",
+        "role",
+        "symbol_id"
+      ],
+      "type": "object"
+    },
+    "ErrorSearchQuery": {
+      "description": "Request: error-handling search (`search_by_error` parity).",
+      "properties": {
+        "error_types": {
+          "description": "Error type names to look for; empty means every error-handling site.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CodePageRequest"
+            }
+          ],
+          "description": "Page."
+        },
+        "repository_id": {
+          "description": "Repository the request is bound to.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Revision (commit SHA or a registered alias).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "error_types",
+        "page",
+        "repository_id",
+        "revision"
+      ],
+      "type": "object"
     },
     "EvaluateEviction": {
       "description": "`memory.evaluate_eviction` (MAPI-24).",
@@ -2862,6 +3518,31 @@
       ],
       "type": "object"
     },
+    "GenerateArchitectureDoc": {
+      "description": "`document.generate_architecture_doc`: render an architecture document from code facts supplied through the [`ArchitectureFactsPort`].",
+      "properties": {
+        "repository_id": {
+          "description": "Repository the document is generated from.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Revision (commit SHA or a registered alias such as `@cwd`).",
+          "type": "string"
+        },
+        "title": {
+          "description": "Optional document title (defaults to `Architecture: <repo>`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "repository_id",
+        "revision"
+      ],
+      "type": "object"
+    },
     "GetDocument": {
       "description": "`document.get_document` (DAPI-04).",
       "properties": {
@@ -3018,6 +3699,63 @@
         }
       ]
     },
+    "HotPath": {
+      "description": "One ranked hot path.",
+      "properties": {
+        "direct_caller_count": {
+          "description": "Number of direct callers.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "name": {
+          "description": "Simple name.",
+          "type": "string"
+        },
+        "symbol_id": {
+          "description": "Ranked symbol.",
+          "type": "string"
+        },
+        "transitive_caller_count": {
+          "description": "Number of distinct transitive callers.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "direct_caller_count",
+        "name",
+        "symbol_id",
+        "transitive_caller_count"
+      ],
+      "type": "object"
+    },
+    "HotPathsQuery": {
+      "description": "Request: most-called functions (`find_hot_paths` parity).",
+      "properties": {
+        "max_results": {
+          "description": "Maximum ranked functions (1..=100).",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "repository_id": {
+          "description": "Repository the request is bound to.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Revision (commit SHA or a registered alias).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "max_results",
+        "repository_id",
+        "revision"
+      ],
+      "type": "object"
+    },
     "ImpactQuery": {
       "description": "Request: impact analysis (`CAPI-10`).",
       "properties": {
@@ -3121,6 +3859,55 @@
       ],
       "type": "object"
     },
+    "IndexFile": {
+      "description": "One file for partial indexing (`index_files` parity).",
+      "properties": {
+        "content": {
+          "description": "Full file content.",
+          "type": "string"
+        },
+        "path": {
+          "description": "Repo-relative path, `/` separators.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "content",
+        "path"
+      ],
+      "type": "object"
+    },
+    "IndexFiles": {
+      "description": "Request: add/update specific files without a full re-index (`index_files` parity).",
+      "properties": {
+        "base_revision": {
+          "description": "Base revision to extend (commit SHA or a registered alias).",
+          "type": "string"
+        },
+        "files": {
+          "description": "Files to add or replace (by path).",
+          "items": {
+            "$ref": "#/$defs/IndexFile"
+          },
+          "type": "array"
+        },
+        "parser_profile": {
+          "description": "Parser profile.",
+          "type": "string"
+        },
+        "repository_id": {
+          "description": "Repository the files are added to.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "base_revision",
+        "files",
+        "parser_profile",
+        "repository_id"
+      ],
+      "type": "object"
+    },
     "IndexFreshness": {
       "description": "Freshness of the index backing the link (§40.3).",
       "oneOf": [
@@ -3160,6 +3947,43 @@
           "type": "string"
         }
       ]
+    },
+    "IndexedRevision": {
+      "description": "The revision produced by `index_files`.",
+      "properties": {
+        "base_revision": {
+          "description": "The base revision it extends.",
+          "type": "string"
+        },
+        "dirty": {
+          "description": "Always true: the base revision is never a clean commit boundary here.",
+          "type": "boolean"
+        },
+        "indexed_files": {
+          "description": "Files in the request that were indexed.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "revision": {
+          "description": "New content-addressed revision id (40-char hex).",
+          "type": "string"
+        },
+        "total_files": {
+          "description": "Total files in the new revision.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "base_revision",
+        "dirty",
+        "indexed_files",
+        "revision",
+        "total_files"
+      ],
+      "type": "object"
     },
     "InvalidateCodeRevision": {
       "description": "Request: invalidate a revision (`CAPI-13`).",
@@ -3209,6 +4033,43 @@
         "document_id",
         "expected_etag",
         "reason"
+      ],
+      "type": "object"
+    },
+    "LanguageCount": {
+      "description": "One language count inside a [`ModuleSummary`].",
+      "properties": {
+        "count": {
+          "description": "Symbols in that language.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "language": {
+          "description": "Language identifier.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "count",
+        "language"
+      ],
+      "type": "object"
+    },
+    "ListDocSources": {
+      "description": "`document.list_doc_sources`: list every ingested document source.",
+      "properties": {
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/DocumentPageRequest"
+            }
+          ],
+          "description": "Page."
+        }
+      },
+      "required": [
+        "page"
       ],
       "type": "object"
     },
@@ -3767,6 +4628,90 @@
       ],
       "type": "object"
     },
+    "ModuleSummary": {
+      "description": "One directory summary.",
+      "properties": {
+        "file_count": {
+          "description": "Files in the directory.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "function_count": {
+          "description": "Function-like symbols.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "languages": {
+          "description": "Language breakdown.",
+          "items": {
+            "$ref": "#/$defs/LanguageCount"
+          },
+          "type": "array"
+        },
+        "module": {
+          "description": "Directory path (the module identity).",
+          "type": "string"
+        },
+        "symbol_count": {
+          "description": "Symbols defined in the directory.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "top_complex_functions": {
+          "description": "The five most complex functions of the directory.",
+          "items": {
+            "$ref": "#/$defs/ComplexityReport"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "file_count",
+        "function_count",
+        "languages",
+        "module",
+        "symbol_count",
+        "top_complex_functions"
+      ],
+      "type": "object"
+    },
+    "ModuleSummaryQuery": {
+      "description": "Request: per-directory summary (`get_module_summary` parity).",
+      "properties": {
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CodePageRequest"
+            }
+          ],
+          "description": "Page."
+        },
+        "path_prefix": {
+          "description": "Only modules under this path prefix (empty means the root grouping).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "repository_id": {
+          "description": "Repository the request is bound to.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Revision (commit SHA or a registered alias).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "page",
+        "repository_id",
+        "revision"
+      ],
+      "type": "object"
+    },
     "NormativeStrength": {
       "description": "How strongly a statement is expressed (`§33.1 normative_strength`).",
       "oneOf": [
@@ -3887,6 +4832,29 @@
       ],
       "type": "object"
     },
+    "Page_for_CircularDependency": {
+      "description": "One page of results.",
+      "properties": {
+        "items": {
+          "description": "Items in this page.",
+          "items": {
+            "$ref": "#/$defs/CircularDependency"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "description": "Cursor for the next page, when more items exist.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "type": "object"
+    },
     "Page_for_CodeChange": {
       "description": "One page of results.",
       "properties": {
@@ -3956,6 +4924,52 @@
       ],
       "type": "object"
     },
+    "Page_for_DeadImport": {
+      "description": "One page of results.",
+      "properties": {
+        "items": {
+          "description": "Items in this page.",
+          "items": {
+            "$ref": "#/$defs/DeadImport"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "description": "Cursor for the next page, when more items exist.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "type": "object"
+    },
+    "Page_for_DocSourceSummary": {
+      "description": "One page of results.",
+      "properties": {
+        "items": {
+          "description": "Items.",
+          "items": {
+            "$ref": "#/$defs/DocSourceSummary"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "description": "Cursor for the next page.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "type": "object"
+    },
     "Page_for_DocumentBlock": {
       "description": "One page of results.",
       "properties": {
@@ -3968,6 +4982,52 @@
         },
         "next_cursor": {
           "description": "Cursor for the next page.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "type": "object"
+    },
+    "Page_for_EntryPoint": {
+      "description": "One page of results.",
+      "properties": {
+        "items": {
+          "description": "Items in this page.",
+          "items": {
+            "$ref": "#/$defs/EntryPoint"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "description": "Cursor for the next page, when more items exist.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "type": "object"
+    },
+    "Page_for_ErrorMatch": {
+      "description": "One page of results.",
+      "properties": {
+        "items": {
+          "description": "Items in this page.",
+          "items": {
+            "$ref": "#/$defs/ErrorMatch"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "description": "Cursor for the next page, when more items exist.",
           "type": [
             "string",
             "null"
@@ -4025,6 +5085,52 @@
       ],
       "type": "object"
     },
+    "Page_for_ModuleSummary": {
+      "description": "One page of results.",
+      "properties": {
+        "items": {
+          "description": "Items in this page.",
+          "items": {
+            "$ref": "#/$defs/ModuleSummary"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "description": "Cursor for the next page, when more items exist.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "type": "object"
+    },
+    "Page_for_PatternMatch": {
+      "description": "One page of results.",
+      "properties": {
+        "items": {
+          "description": "Items in this page.",
+          "items": {
+            "$ref": "#/$defs/PatternMatch"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "description": "Cursor for the next page, when more items exist.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "type": "object"
+    },
     "Page_for_ReferenceLocation": {
       "description": "One page of results.",
       "properties": {
@@ -4032,6 +5138,29 @@
           "description": "Items in this page.",
           "items": {
             "$ref": "#/$defs/ReferenceLocation"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "description": "Cursor for the next page, when more items exist.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "type": "object"
+    },
+    "Page_for_RelatedTest": {
+      "description": "One page of results.",
+      "properties": {
+        "items": {
+          "description": "Items in this page.",
+          "items": {
+            "$ref": "#/$defs/RelatedTest"
           },
           "type": "array"
         },
@@ -4332,6 +5461,322 @@
         "parser_id",
         "parser_version",
         "source"
+      ],
+      "type": "object"
+    },
+    "PatternMatch": {
+      "description": "One pattern hit.",
+      "properties": {
+        "line": {
+          "description": "1-based line of the match (0 for name matches).",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "matched_field": {
+          "description": "Which field matched (`name`, `signature`, `body`, `doc`).",
+          "type": "string"
+        },
+        "name": {
+          "description": "Simple name.",
+          "type": "string"
+        },
+        "snippet": {
+          "description": "Short snippet around the match.",
+          "type": "string"
+        },
+        "symbol_id": {
+          "description": "Symbol the hit belongs to.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "line",
+        "matched_field",
+        "name",
+        "snippet",
+        "symbol_id"
+      ],
+      "type": "object"
+    },
+    "PatternScope": {
+      "description": "Where a pattern may match (`search_by_pattern` parity).",
+      "oneOf": [
+        {
+          "description": "Symbol names only.",
+          "enum": [
+            "name"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Signatures only.",
+          "enum": [
+            "signature"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Function bodies only.",
+          "enum": [
+            "body"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Doc comments only.",
+          "enum": [
+            "doc"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Every field (default).",
+          "enum": [
+            "all"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "PatternSearchQuery": {
+      "description": "Request: regex search over code (`search_by_pattern` parity).",
+      "properties": {
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CodePageRequest"
+            }
+          ],
+          "description": "Page."
+        },
+        "pattern": {
+          "description": "Rust regex pattern.",
+          "type": "string"
+        },
+        "repository_id": {
+          "description": "Repository the request is bound to.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Revision (commit SHA or a registered alias).",
+          "type": "string"
+        },
+        "scope": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/PatternScope"
+            }
+          ],
+          "description": "Which fields to search."
+        }
+      },
+      "required": [
+        "page",
+        "pattern",
+        "repository_id",
+        "revision",
+        "scope"
+      ],
+      "type": "object"
+    },
+    "PrContextFormat": {
+      "description": "Output format of `pr_context`.",
+      "oneOf": [
+        {
+          "description": "Ready-to-post markdown (GitHub Action parity).",
+          "enum": [
+            "markdown"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Structured data only.",
+          "enum": [
+            "json"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "PrContextQuery": {
+      "description": "Request: one-call PR/change review (`pr_context` parity).",
+      "properties": {
+        "base_revision": {
+          "description": "Revision the change is measured against.",
+          "type": "string"
+        },
+        "format": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/PrContextFormat"
+            }
+          ],
+          "description": "Output format."
+        },
+        "head_revision": {
+          "description": "Revision containing the change (usually the `@cwd` worktree).",
+          "type": "string"
+        },
+        "max_depth": {
+          "description": "Impact traversal depth (1..=5).",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "max_nodes": {
+          "description": "Impact traversal node cap (1..=1000).",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "repository_id": {
+          "description": "Repository the review is bound to.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "base_revision",
+        "format",
+        "head_revision",
+        "max_depth",
+        "max_nodes",
+        "repository_id"
+      ],
+      "type": "object"
+    },
+    "PrContextReport": {
+      "description": "Result of `pr_context`.",
+      "properties": {
+        "body_changes": {
+          "description": "Changed symbols whose body changed (signature unchanged).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "changed": {
+          "description": "Changed symbol ids (signature or body change).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "complexity": {
+          "description": "Complexity of the changed functions.",
+          "items": {
+            "$ref": "#/$defs/ComplexityReport"
+          },
+          "type": "array"
+        },
+        "impacted": {
+          "description": "Symbols impacted by the change (blast radius), ordered by distance.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "signature_changes": {
+          "description": "Changed symbols whose signature changed.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "summary": {
+          "description": "Ready-to-post markdown when `format` is `markdown` (empty for `json`).",
+          "type": "string"
+        },
+        "test_gaps": {
+          "description": "Changed symbols with no related test candidate.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "body_changes",
+        "changed",
+        "complexity",
+        "impacted",
+        "signature_changes",
+        "summary",
+        "test_gaps"
+      ],
+      "type": "object"
+    },
+    "ProCompareSymbolsRequest": {
+      "description": "Key for `pro.compare_symbols`.",
+      "properties": {
+        "a": {
+          "description": "The first symbol name.",
+          "type": "string"
+        },
+        "b": {
+          "description": "The second symbol name.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "The indexed revision the symbols resolve against.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "a",
+        "b",
+        "revision"
+      ],
+      "type": "object"
+    },
+    "ProFileRequest": {
+      "description": "Key for `pro.mine_git_history_for_file`.",
+      "properties": {
+        "file": {
+          "description": "The repository-relative file path.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file"
+      ],
+      "type": "object"
+    },
+    "ProQueryRequest": {
+      "description": "Key for `pro.cross_project_search` / `pro.search_git_history`.",
+      "properties": {
+        "query": {
+          "description": "The search term.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "type": "object"
+    },
+    "ProReport": {
+      "description": "A Pro analyzer report. The body is a free-form JSON object (the detector's output), wrapped so the payload stays typed while remaining honest about its free-form nature.",
+      "properties": {
+        "report": {
+          "description": "The analyzer's report payload (free-form JSON object)."
+        }
+      },
+      "required": [
+        "report"
+      ],
+      "type": "object"
+    },
+    "ProRevisionRequest": {
+      "description": "Key for the revision-scoped Pro operations.",
+      "properties": {
+        "revision": {
+          "description": "The indexed revision to analyze.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "revision"
       ],
       "type": "object"
     },
@@ -4776,6 +6221,64 @@
       },
       "required": [
         "draft"
+      ],
+      "type": "object"
+    },
+    "RelatedTest": {
+      "description": "One test that exercises a symbol.",
+      "properties": {
+        "evidence": {
+          "description": "How the relationship was established (edge ids / name match).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "name": {
+          "description": "Simple name.",
+          "type": "string"
+        },
+        "symbol_id": {
+          "description": "Test symbol.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "evidence",
+        "name",
+        "symbol_id"
+      ],
+      "type": "object"
+    },
+    "RelatedTestsQuery": {
+      "description": "Request: related test detection (`find_related_tests` parity).",
+      "properties": {
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CodePageRequest"
+            }
+          ],
+          "description": "Page."
+        },
+        "repository_id": {
+          "description": "Repository the request is bound to.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Revision (commit SHA or a registered alias).",
+          "type": "string"
+        },
+        "symbol_id": {
+          "description": "Symbol whose tests are wanted.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "page",
+        "repository_id",
+        "revision",
+        "symbol_id"
       ],
       "type": "object"
     },
@@ -5396,6 +6899,57 @@
           "type": "string"
         }
       ]
+    },
+    "SignatureQuery": {
+      "description": "Request: search by signature shape (`find_by_signature` parity).",
+      "properties": {
+        "modifiers": {
+          "description": "Required modifier keywords (`pub`, `static`, `async`, `const`, `private`, ...).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CodePageRequest"
+            }
+          ],
+          "description": "Page."
+        },
+        "param_count": {
+          "description": "Exact parameter count (top-level commas).",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "repository_id": {
+          "description": "Repository the request is bound to.",
+          "type": "string"
+        },
+        "return_type": {
+          "description": "Return type substring (`-> T`, `: T` tails).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revision": {
+          "description": "Revision (commit SHA or a registered alias).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "modifiers",
+        "page",
+        "repository_id",
+        "revision"
+      ],
+      "type": "object"
     },
     "SourceSpanView": {
       "description": "Result of `document.get_source_span`.",
@@ -6542,6 +8096,10 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "UKMA v1 wire payload types",
   "x-operations": {
+    "code.analyze_complexity": {
+      "request": "ComplexityQuery",
+      "response": "Array_of_ComplexityReport"
+    },
     "code.analyze_impact": {
       "request": "ImpactQuery",
       "response": "ImpactReport"
@@ -6558,29 +8116,73 @@
       "request": "CodeRevisionDiff",
       "response": "Page_for_CodeChange"
     },
+    "code.find_by_signature": {
+      "request": "SignatureQuery",
+      "response": "Page_for_CodeSymbol"
+    },
+    "code.find_circular_deps": {
+      "request": "CircularDepsQuery",
+      "response": "Page_for_CircularDependency"
+    },
+    "code.find_dead_imports": {
+      "request": "DeadImportsQuery",
+      "response": "Page_for_DeadImport"
+    },
+    "code.find_entry_points": {
+      "request": "EntryPointsQuery",
+      "response": "Page_for_EntryPoint"
+    },
+    "code.find_hot_paths": {
+      "request": "HotPathsQuery",
+      "response": "Array_of_HotPath"
+    },
     "code.find_references": {
       "request": "ReferenceQuery",
       "response": "Page_for_ReferenceLocation"
+    },
+    "code.find_related_tests": {
+      "request": "RelatedTestsQuery",
+      "response": "Page_for_RelatedTest"
     },
     "code.find_symbols": {
       "request": "SymbolQuery",
       "response": "Page_for_CodeSymbol"
     },
+    "code.get_ai_context": {
+      "request": "AiContextQuery",
+      "response": "AiContextResult"
+    },
     "code.get_analysis_job": {
       "request": "CodeGetJob",
       "response": "CodeJobView"
+    },
+    "code.get_curated_context": {
+      "request": "CuratedContextQuery",
+      "response": "CuratedContext"
     },
     "code.get_edit_context": {
       "request": "EditContextQuery",
       "response": "EditContextResult"
     },
+    "code.get_module_summary": {
+      "request": "ModuleSummaryQuery",
+      "response": "Page_for_ModuleSummary"
+    },
     "code.get_symbol": {
       "request": "GetSymbol",
       "response": "CodeSymbol"
     },
+    "code.index_files": {
+      "request": "IndexFiles",
+      "response": "IndexedRevision"
+    },
     "code.invalidate_revision": {
       "request": "InvalidateCodeRevision",
       "response": "CodeChangeReceipt"
+    },
+    "code.pr_context": {
+      "request": "PrContextQuery",
+      "response": "PrContextReport"
     },
     "code.query_callees": {
       "request": "TraversalQuery",
@@ -6593,6 +8195,14 @@
     "code.query_dependencies": {
       "request": "TraversalQuery",
       "response": "Page_for_CodeEdge"
+    },
+    "code.search_by_error": {
+      "request": "ErrorSearchQuery",
+      "response": "Page_for_ErrorMatch"
+    },
+    "code.search_by_pattern": {
+      "request": "PatternSearchQuery",
+      "response": "Page_for_PatternMatch"
     },
     "document.cancel_ingest_job": {
       "request": "DocumentCancelJob",
@@ -6609,6 +8219,10 @@
     "document.extract_requirements": {
       "request": "ExtractRequirements",
       "response": "Page_for_RequirementCandidate"
+    },
+    "document.generate_architecture_doc": {
+      "request": "GenerateArchitectureDoc",
+      "response": "ArchitectureDoc"
     },
     "document.get_document": {
       "request": "GetDocument",
@@ -6629,6 +8243,10 @@
     "document.invalidate_revision": {
       "request": "InvalidateDocumentRevision",
       "response": "DocumentChangeReceipt"
+    },
+    "document.list_doc_sources": {
+      "request": "ListDocSources",
+      "response": "Page_for_DocSourceSummary"
     },
     "document.list_requirements": {
       "request": "ListRequirements",
@@ -6749,6 +8367,114 @@
     "memory.verify_fact": {
       "request": "VerifyFact",
       "response": "MemoryChangeReceipt"
+    },
+    "pro.analyze_coupling": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.cluster_symbols": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.compare_symbols": {
+      "request": "ProCompareSymbolsRequest",
+      "response": "ProReport"
+    },
+    "pro.cross_project_search": {
+      "request": "ProQueryRequest",
+      "response": "ProReport"
+    },
+    "pro.find_duplicates": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.find_similar": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.find_unused_code": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.mine_git_history": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.mine_git_history_for_file": {
+      "request": "ProFileRequest",
+      "response": "ProReport"
+    },
+    "pro.scan_security": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.search_git_history": {
+      "request": "ProQueryRequest",
+      "response": "ProReport"
+    },
+    "pro.security_audit_deps": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.security_check_crypto": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.security_check_error_exposure": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.security_check_input_validation": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.security_check_licenses": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.security_check_misconfig": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.security_check_resource_leaks": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.security_check_search_path": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.security_check_secrets_entropy": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.security_check_unchecked_returns": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.security_control_flow": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.security_detect_injection": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.security_export_sarif": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.security_generate_sbom": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.security_scan_iac": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.security_trace_data_flow": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
     },
     "traceability.accept_link": {
       "request": "AcceptLink",

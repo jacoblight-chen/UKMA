@@ -26,7 +26,7 @@
   },
   "$defs": {
     "wire.DocumentPageRequest": {
-      "description": "Page request (\u00a731.4). Kept local so the crate has no wire dependency.",
+      "description": "Page request (§31.4). Kept local so the crate has no wire dependency.",
       "properties": {
         "cursor": {
           "description": "Opaque cursor.",
@@ -78,7 +78,7 @@
       "type": "object"
     },
     "wire.RequirementStatus": {
-      "description": "Lifecycle of a requirement candidate (`\u00a733.1 status`).",
+      "description": "Lifecycle of a requirement candidate (`§33.1 status`).",
       "oneOf": [
         {
           "description": "Proposed by an extractor; never authoritative.",

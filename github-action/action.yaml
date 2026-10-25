@@ -1,0 +1,46 @@
+name: UKMA Code Intelligence
+description: >
+  Run a UKMA code-intelligence tool against the PR checkout (CodeGraph-style):
+  indexes the working tree as the @cwd revision, runs one tool by name, and
+  posts the result as a review comment.
+inputs:
+  tool:
+    description: 'UKMA tool name or operation id (e.g. `code.find_symbols`).'
+    required: true
+  tool-args:
+    description: >
+      JSON object of tool arguments. For code operations, address the worktree
+      with the `@cwd` alias, e.g.
+      `{"revision": {"commit_sha": "@cwd", "dirty_policy": "snapshot"}}`.
+    required: false
+    default: '{}'
+  post-comment:
+    description: 'Post the result to the pull request when available.'
+    required: false
+    default: 'true'
+  binary:
+    description: 'Path to a prebuilt `ukma` binary. When empty, the release binary is built.'
+    required: false
+    default: ''
+outputs:
+  output:
+    description: 'The tool output (rendered envelope).'
+    value: ${{ steps.run.outputs.output }}
+runs:
+  using: composite
+  steps:
+    - name: Build the ukma binary
+      if: ${{ inputs.binary == '' }}
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: cargo build -p ukma-cli --release
+    - name: Index the checkout and run the tool
+      id: run
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      env:
+        UKMA_TOOL: ${{ inputs.tool }}
+        UKMA_TOOL_ARGS: ${{ inputs.tool-args }}
+        UKMA_POST: ${{ inputs.post-comment }}
+        UKMA_BINARY: ${{ inputs.binary }}
+      run: bash "${{ github.action_path }}/run.sh"

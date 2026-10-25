@@ -26,7 +26,7 @@
   },
   "$defs": {
     "wire.AcceptDecision": {
-      "description": "Decision of `traceability.accept_link` (\u00a735.2).",
+      "description": "Decision of `traceability.accept_link` (§35.2).",
       "oneOf": [
         {
           "description": "Accept the link.",

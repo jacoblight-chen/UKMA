@@ -1,0 +1,20 @@
+{
+  "api_version": "2",
+  "operation": "ukma.pro.compare_symbols.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "revision": "x",
+    "a": "alpha",
+    "b": "beta"
+  }
+}

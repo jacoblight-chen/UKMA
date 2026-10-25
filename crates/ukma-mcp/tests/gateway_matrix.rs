@@ -142,7 +142,10 @@ fn the_manifest_is_projected_from_the_registry_without_drift() {
     let manifest: Value = serde_json::from_str(&manifest_json()).expect("manifest is JSON");
     let tools = manifest["tools"].as_array().expect("tools array");
     assert_eq!(tools.len(), OPERATIONS.len());
-    assert_eq!(manifest["domain_operations"], 65);
+    assert_eq!(
+        manifest["domain_operations"],
+        ukma_mcp::manifest::DOMAIN_OPERATION_COUNT as u64
+    );
     assert_eq!(manifest["system_operations"], 4);
 
     for spec in OPERATIONS {
@@ -397,12 +400,13 @@ fn the_system_operations_describe_the_registry() {
     let gateway = default_gateway();
     let capabilities = data_of(&gateway, "system.capabilities", json!({}));
     assert_eq!(capabilities["spec_version"], "1.2.3");
-    assert_eq!(capabilities["domain_operations"], 65);
+    assert_eq!(capabilities["domain_operations"], 108);
     assert_eq!(capabilities["system_operations"], 4);
-    assert_eq!(capabilities["domains"]["code"], 13);
-    assert_eq!(capabilities["domains"]["document"], 14);
+    assert_eq!(capabilities["domains"]["code"], 27);
+    assert_eq!(capabilities["domains"]["document"], 16);
     assert_eq!(capabilities["domains"]["memory"], 25);
     assert_eq!(capabilities["domains"]["traceability"], 13);
+    assert_eq!(capabilities["domains"]["pro"], 27);
 
     let described = data_of(
         &gateway,
@@ -565,7 +569,10 @@ fn the_health_projection_reports_the_manifest() {
     let health: Value = serde_json::from_str(&rest::health_json()).expect("health is JSON");
     assert_eq!(health["spec_version"], "1.2.3");
     assert_eq!(health["status"], "ok");
-    assert_eq!(health["operations"], 69);
+    assert_eq!(
+        health["operations"],
+        ukma_contracts::generated::OPERATIONS.len() as u64
+    );
 }
 
 // ---------------------------------------------------------------------------

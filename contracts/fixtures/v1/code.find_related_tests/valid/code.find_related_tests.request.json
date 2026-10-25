@@ -1,0 +1,23 @@
+{
+  "api_version": "1",
+  "operation": "ukma.code.find_related_tests.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "page": {
+      "limit": 0
+    },
+    "repository_id": "x",
+    "revision": "x",
+    "symbol_id": "x"
+  }
+}

@@ -26,10 +26,10 @@
   },
   "$defs": {
     "wire.Consolidate": {
-      "description": "`memory.consolidate` (MAPI-18 \u2014 implemented in P6).",
+      "description": "`memory.consolidate` (MAPI-18 — implemented in P6).",
       "properties": {
         "asynchronous": {
-          "description": "Must be `true`: consolidation is asynchronous (\u00a734.2).",
+          "description": "Must be `true`: consolidation is asynchronous (§34.2).",
           "type": "boolean"
         },
         "episode_refs": {
@@ -52,7 +52,7 @@
       "type": "object"
     },
     "wire.MemoryKind": {
-      "description": "Which memory store an item lives in (\u00a734.1).",
+      "description": "Which memory store an item lives in (§34.1).",
       "oneOf": [
         {
           "description": "Working memory: session/agent scoped and budgeted.",

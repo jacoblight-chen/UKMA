@@ -26,7 +26,7 @@
   },
   "$defs": {
     "wire.TraceImpactQuery": {
-      "description": "`traceability.analyze_change_impact` (TAPI-08, \u00a735.1 `TraceImpactQuery`).",
+      "description": "`traceability.analyze_change_impact` (TAPI-08, §35.1 `TraceImpactQuery`).",
       "properties": {
         "changed": {
           "description": "Changed endpoints.",
@@ -66,7 +66,7 @@
       "type": "object"
     },
     "wire.TraceKind": {
-      "description": "Relation kind of a link (\u00a735.1).",
+      "description": "Relation kind of a link (§35.1).",
       "oneOf": [
         {
           "description": "Requirement specifies an artefact.",
@@ -113,7 +113,7 @@
       ]
     },
     "wire.TraceabilityPageRequest": {
-      "description": "Cursor page request (\u00a731.4).",
+      "description": "Cursor page request (§31.4).",
       "properties": {
         "cursor": {
           "description": "Opaque cursor.",

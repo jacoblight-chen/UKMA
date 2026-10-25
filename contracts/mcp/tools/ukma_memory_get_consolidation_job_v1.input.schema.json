@@ -26,7 +26,7 @@
   },
   "$defs": {
     "wire.GetMemoryJob": {
-      "description": "`memory.get_consolidation_job` (MAPI-19 \u2014 implemented in P6).",
+      "description": "`memory.get_consolidation_job` (MAPI-19 — implemented in P6).",
       "properties": {
         "job_id": {
           "description": "Job id.",

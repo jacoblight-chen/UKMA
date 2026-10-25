@@ -1,0 +1,21 @@
+{
+  "api_version": "1",
+  "operation": "ukma.code.get_ai_context.v1",
+  "context": {
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "intent": "explain",
+    "max_tokens": 0,
+    "repository_id": "x",
+    "revision": "x",
+    "target_refs": []
+  }
+}

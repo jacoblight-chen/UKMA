@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/code.find_entry_points.request.schema.json",
+  "title": "code.find_entry_points Request (Phase 4 typed candidate)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "operation",
+    "context",
+    "input"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "1"
+    },
+    "operation": {
+      "const": "ukma.code.find_entry_points.v1"
+    },
+    "context": {
+      "$ref": "#/$defs/shared.RequestContext"
+    },
+    "input": {
+      "$ref": "#/$defs/wire.EntryPointsQuery"
+    }
+  },
+  "$defs": {
+    "wire.CodePageRequest": {
+      "description": "A page request (§31.4). `limit` is bounded; `cursor` is opaque.",
+      "properties": {
+        "cursor": {
+          "description": "Opaque cursor from a previous page.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limit": {
+          "description": "Maximum items to return (1..=200).",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "limit"
+      ],
+      "type": "object"
+    },
+    "wire.EntryPointsQuery": {
+      "description": "Request: entry point detection (`find_entry_points` parity).",
+      "properties": {
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/wire.CodePageRequest"
+            }
+          ],
+          "description": "Page."
+        },
+        "repository_id": {
+          "description": "Repository the request is bound to.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Revision (commit SHA or a registered alias).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "page",
+        "repository_id",
+        "revision"
+      ],
+      "type": "object"
+    },
+    "shared.ID": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "shared.ISODate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "shared.Consistency": {
+      "enum": [
+        "eventual",
+        "read_your_writes",
+        "snapshot",
+        "strict_generation"
+      ]
+    },
+    "shared.ScopeRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "project_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "repo_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "workspace_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "agent_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "session_id": {
+          "$ref": "#/$defs/shared.ID"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "project_id"
+      ]
+    },
+    "shared.RequestContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "trace_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "scope": {
+          "$ref": "#/$defs/shared.ScopeRef"
+        },
+        "principal_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "deadline_at": {
+          "$ref": "#/$defs/shared.ISODate"
+        },
+        "consistency": {
+          "$ref": "#/$defs/shared.Consistency"
+        },
+        "required_generation": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "snapshot_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "idempotency_key": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "expected_etag": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "delegation_token": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "request_id",
+        "trace_id",
+        "scope",
+        "principal_id",
+        "scopes",
+        "consistency"
+      ]
+    }
+  }
+}

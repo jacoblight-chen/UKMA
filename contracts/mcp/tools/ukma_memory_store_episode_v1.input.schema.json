@@ -26,7 +26,7 @@
   },
   "$defs": {
     "wire.EpisodeInput": {
-      "description": "Input of `memory.store_episode` (\u00a734.1).",
+      "description": "Input of `memory.store_episode` (§34.1).",
       "properties": {
         "agent_depth": {
           "description": "Delegation depth of the writing agent.",
@@ -116,7 +116,7 @@
       "type": "object"
     },
     "wire.EpisodeOutcome": {
-      "description": "Outcome of the work an episode records (\u00a721.3).",
+      "description": "Outcome of the work an episode records (§21.3).",
       "oneOf": [
         {
           "description": "Finished successfully.",
@@ -142,7 +142,7 @@
       ]
     },
     "wire.EpisodeType": {
-      "description": "Episode type (\u00a721.3).",
+      "description": "Episode type (§21.3).",
       "oneOf": [
         {
           "description": "One conversation turn.",
@@ -175,7 +175,7 @@
       ]
     },
     "wire.MemoryEvidence": {
-      "description": "Evidence supporting a claim (\u00a721.1 `provenance_refs`, \u00a734.1).",
+      "description": "Evidence supporting a claim (§21.1 `provenance_refs`, §34.1).",
       "properties": {
         "confidence": {
           "description": "Confidence the extractor assigned to this piece of evidence.",
@@ -187,7 +187,7 @@
           "type": "string"
         },
         "source_group": {
-          "description": "Independent source group used for promotion counting (\u00a727.1).",
+          "description": "Independent source group used for promotion counting (§27.1).",
           "type": "string"
         },
         "source_ref": {

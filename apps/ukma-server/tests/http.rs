@@ -62,7 +62,7 @@ fn a_domain_operation_is_posted_with_an_envelope() {
     assert_eq!(response.status, 200);
     let body = body_of(&response);
     assert_eq!(body["status"], "ok");
-    assert_eq!(body["data"]["domain_operations"], 65);
+    assert_eq!(body["data"]["domain_operations"], 108);
 }
 
 #[test]
@@ -177,4 +177,86 @@ fn every_operation_is_reachable_over_http() {
             response.status
         );
     }
+}
+
+#[test]
+fn a_cwd_indexed_server_serves_the_worktree_through_the_alias() {
+    // Tier 2 over HTTP: the server built on `gateway_with_indexed_cwd`
+    // answers code operations for the `@cwd` revision.
+    use std::fs;
+    use ukma_mcp::gateway_with_indexed_cwd;
+
+    let root = std::env::temp_dir().join(format!("ukma-server-cwd-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(&root).unwrap();
+    fs::write(
+        root.join("main.py"),
+        "def greet(name):\n    return 'hello ' + name\n",
+    )
+    .unwrap();
+
+    let (gateway, index) = gateway_with_indexed_cwd(&root).expect("the tree indexes");
+    assert!(index.files >= 1);
+    let server = Server::new(gateway);
+
+    let input = json!({
+        "revision": {
+            "repository_id": "ukma-cli-cwd-test",
+            "vcs": "git",
+            "commit_sha": "@cwd",
+            "tree_sha": null,
+            "dirty_policy": "snapshot"
+        },
+        "parser_profile": "default",
+        "include_globs": [],
+        "exclude_globs": [],
+        "asynchronous": true
+    });
+    let body = json!({
+        "api_version": "1.2.3",
+        "operation": "code.analyze_repository",
+        "context": {
+            "request_id": "req-cwd",
+            "trace_id": "trace-cwd",
+            "scope": {
+                "tenant_id": "tenant-a",
+                "project_id": "project-b",
+                "repo_id": null,
+                "workspace_id": null,
+                "agent_id": null,
+                "session_id": null
+            },
+            "principal_id": "principal",
+            "scopes": ["code:index"],
+            "deadline_at": null,
+            "consistency": "eventual",
+            "required_generation": null,
+            "snapshot_id": null,
+            "idempotency_key": "test-analyze-cwd",
+            "expected_etag": null,
+            "delegation_token": null
+        },
+        "input": input
+    });
+    // Negative: the job submit requires an idempotency key.
+    let missing_key = serde_json::from_str::<serde_json::Value>(&body.to_string()).expect("json");
+    let mut no_key = missing_key;
+    no_key["context"]["idempotency_key"] = serde_json::Value::Null;
+    let denied = server.handle(HttpRequest::new(
+        "POST",
+        "/api/v1/code/analyze_repository",
+        &no_key.to_string(),
+    ));
+    assert_eq!(
+        denied.status, 400,
+        "idempotency is required for job submits"
+    );
+
+    let response = server.handle(HttpRequest::new(
+        "POST",
+        "/api/v1/code/analyze_repository",
+        &body.to_string(),
+    ));
+    assert_eq!(response.status, 200, "the @cwd alias serves over HTTP");
+    assert_eq!(body_of(&response)["status"], "ok");
 }

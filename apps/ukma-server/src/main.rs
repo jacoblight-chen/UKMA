@@ -21,6 +21,7 @@ fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let mut mode = "serve".to_string();
     let mut addr = DEFAULT_ADDR.to_string();
+    let mut cwd: Option<String> = None;
     let mut index = 0;
     while index < args.len() {
         match args[index].as_str() {
@@ -38,6 +39,16 @@ fn main() {
                     }
                 }
             }
+            "--index-cwd" => {
+                index += 1;
+                match args.get(index) {
+                    Some(value) => cwd = Some(value.clone()),
+                    None => {
+                        eprintln!("ukma-server: --index-cwd needs a value");
+                        std::process::exit(2);
+                    }
+                }
+            }
             "--help" | "-h" => mode = "help".into(),
             unknown => {
                 eprintln!("ukma-server: unknown argument `{unknown}`; try --help");
@@ -47,7 +58,24 @@ fn main() {
         index += 1;
     }
 
-    let server = Server::in_memory();
+    let server = match cwd {
+        Some(path) => match ukma_mcp::gateway_with_indexed_cwd(std::path::Path::new(&path)) {
+            Ok((gateway, index)) => {
+                // Diagnostics go to stderr so they never mix into the HTTP
+                // response stream.
+                eprintln!(
+                    "ukma-server: indexed {} files at revision {}",
+                    index.files, index.commit_sha
+                );
+                ukma_server::Server::new(gateway)
+            }
+            Err(error) => {
+                eprintln!("ukma-server: {error}");
+                std::process::exit(2);
+            }
+        },
+        None => Server::in_memory(),
+    };
     match mode.as_str() {
         "manifest" => println!("{}", server.manifest()),
         "health" => println!("{}", ukma_mcp::rest::health_json()),
@@ -65,6 +93,7 @@ fn usage() {
     println!("ukma-server — UKMA HTTP surface (spec 1.2.3)");
     println!();
     println!("  ukma-server [serve] [--addr 127.0.0.1:8080]  serve the API");
+    println!("  ukma-server [serve] --index-cwd <path>     index the working directory");
     println!("  ukma-server --manifest                       print tool-manifest.json");
     println!("  ukma-server --health                         print the health payload");
     println!("  ukma-server --operations                     print operation ids");

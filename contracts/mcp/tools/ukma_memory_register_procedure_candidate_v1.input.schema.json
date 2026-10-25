@@ -26,7 +26,7 @@
   },
   "$defs": {
     "wire.MemoryEvidence": {
-      "description": "Evidence supporting a claim (\u00a721.1 `provenance_refs`, \u00a734.1).",
+      "description": "Evidence supporting a claim (§21.1 `provenance_refs`, §34.1).",
       "properties": {
         "confidence": {
           "description": "Confidence the extractor assigned to this piece of evidence.",
@@ -38,7 +38,7 @@
           "type": "string"
         },
         "source_group": {
-          "description": "Independent source group used for promotion counting (\u00a727.1).",
+          "description": "Independent source group used for promotion counting (§27.1).",
           "type": "string"
         },
         "source_ref": {
@@ -55,7 +55,7 @@
       "type": "object"
     },
     "wire.MemoryKind": {
-      "description": "Which memory store an item lives in (\u00a734.1).",
+      "description": "Which memory store an item lives in (§34.1).",
       "oneOf": [
         {
           "description": "Working memory: session/agent scoped and budgeted.",
@@ -115,7 +115,7 @@
       "type": "object"
     },
     "wire.ProcedureDraft": {
-      "description": "Draft of a procedure (\u00a734.1, MAPI-20 \u2014 implemented in P6).",
+      "description": "Draft of a procedure (§34.1, MAPI-20 — implemented in P6).",
       "properties": {
         "evidence": {
           "description": "Evidence.",
@@ -173,7 +173,7 @@
       "type": "object"
     },
     "wire.RegisterProcedure": {
-      "description": "`memory.register_procedure_candidate` (MAPI-20 \u2014 implemented in P6).",
+      "description": "`memory.register_procedure_candidate` (MAPI-20 — implemented in P6).",
       "properties": {
         "draft": {
           "allOf": [

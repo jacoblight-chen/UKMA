@@ -26,7 +26,7 @@
   },
   "$defs": {
     "wire.CoverageQuery": {
-      "description": "`traceability.query_coverage` (TAPI-07, \u00a735.1 `CoverageQuery`).",
+      "description": "`traceability.query_coverage` (TAPI-07, §35.1 `CoverageQuery`).",
       "properties": {
         "accepted_only": {
           "description": "Only count accepted links.",
@@ -96,7 +96,7 @@
       "type": "object"
     },
     "wire.TraceKind": {
-      "description": "Relation kind of a link (\u00a735.1).",
+      "description": "Relation kind of a link (§35.1).",
       "oneOf": [
         {
           "description": "Requirement specifies an artefact.",
@@ -143,7 +143,7 @@
       ]
     },
     "wire.TraceabilityPageRequest": {
-      "description": "Cursor page request (\u00a731.4).",
+      "description": "Cursor page request (§31.4).",
       "properties": {
         "cursor": {
           "description": "Opaque cursor.",

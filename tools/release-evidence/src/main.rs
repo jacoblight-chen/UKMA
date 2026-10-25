@@ -1,9 +1,11 @@
 //! Derives the release evidence and signs the SBOM digest (ADR-059).
 //!
-//! `cargo metadata --locked` is the only source of truth for the dependency
-//! tree, so the inventory and the SBOM are *derived* files: this tool rewrites
-//! them, `--check` proves the checked-in copies still match, and `sign`/`verify`
-//! handle the SBOM digest with an Ed25519 key held outside the repository.
+//! `cargo metadata --locked --all-features` is the only source of truth for the
+//! dependency tree (all features, so optional-feature deps in Cargo.lock are
+//! covered), so the inventory and the SBOM are *derived* files: this tool
+//! rewrites them, `--check` proves the checked-in copies still match, and
+//! `sign`/`verify` handle the SBOM digest with an Ed25519 key held outside the
+//! repository.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -111,7 +113,13 @@ fn decide(licence: &str) -> (&'static str, String) {
 
 fn run_cargo_metadata() -> Result<Metadata, String> {
     let output = Command::new("cargo")
-        .args(["metadata", "--locked", "--format-version", "1"])
+        .args([
+            "metadata",
+            "--locked",
+            "--all-features",
+            "--format-version",
+            "1",
+        ])
         .output()
         .map_err(|error| format!("cannot run cargo metadata: {error}"))?;
     if !output.status.success() {
@@ -187,7 +195,7 @@ fn inventory(metadata: &Metadata) -> Value {
     json!({
         "spec_version": SPEC_VERSION,
         "audit": "P10-WP5 third-party licence inventory (REP-003)",
-        "command": "cargo metadata --locked --format-version 1",
+        "command": "cargo metadata --locked --all-features --format-version 1",
         "spec_ref": "docs/UKMA_v1.2.3_Full_Spec.md 17.1 REP-003",
         "policy": {
             "allowed": ALLOWED,
@@ -248,7 +256,7 @@ fn sbom(inventory: &Value) -> Value {
             "tools": [{"name": "ukma-release-evidence", "version": "1.0.0"}],
             "properties": [
                 {"name": "ukma:spec_version", "value": SPEC_VERSION},
-                {"name": "ukma:generated_from", "value": "cargo metadata --locked --format-version 1"},
+                {"name": "ukma:generated_from", "value": "cargo metadata --locked --all-features --format-version 1"},
             ],
         },
         "components": components,

@@ -26,7 +26,7 @@
   },
   "$defs": {
     "wire.MemoryKind": {
-      "description": "Which memory store an item lives in (\u00a734.1).",
+      "description": "Which memory store an item lives in (§34.1).",
       "oneOf": [
         {
           "description": "Working memory: session/agent scoped and budgeted.",
@@ -86,7 +86,7 @@
       "type": "object"
     },
     "wire.ProcedureDecision": {
-      "description": "Review decision of `memory.review_procedure` (\u00a734.2).",
+      "description": "Review decision of `memory.review_procedure` (§34.2).",
       "oneOf": [
         {
           "description": "Activate the procedure.",
@@ -112,7 +112,7 @@
       ]
     },
     "wire.ReviewProcedure": {
-      "description": "`memory.review_procedure` (MAPI-21 \u2014 implemented in P6).",
+      "description": "`memory.review_procedure` (MAPI-21 — implemented in P6).",
       "properties": {
         "decision": {
           "allOf": [

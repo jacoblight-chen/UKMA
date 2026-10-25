@@ -1,6 +1,6 @@
 //! P10-WP5: licence audit and release evidence (REP-003, R8).
 //!
-//! The inventory is derived data (`cargo metadata --locked --format-version 1`), so
+//! The inventory is derived data (`cargo metadata --locked --all-features --format-version 1`), so
 //! the gate only trusts it when it matches the dependency tree and re-derives every
 //! decision. Adding a dependency therefore breaks the build until the audit is
 //! refreshed, and adding a copyleft-only dependency breaks it for good.

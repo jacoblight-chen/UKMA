@@ -58,7 +58,7 @@
       "type": "object"
     },
     "wire.DocumentSource": {
-      "description": "Where a document came from (`\u00a733.1 DocumentSource`).",
+      "description": "Where a document came from (`§33.1 DocumentSource`).",
       "properties": {
         "artifact_ref": {
           "description": "Artifact reference.",

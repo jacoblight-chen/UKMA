@@ -6,6 +6,16 @@ license = "Apache-2.0"
 publish = false
 description = "Embedding/reranker ports and model profile registry (§7.4, §25.2)"
 
+[features]
+# Real ONNX inference. Off by default so the workspace builds with no native
+# ONNX Runtime dependency (self-contained). When enabled, `ort` loads the
+# ONNX Runtime at *runtime* (`load-dynamic`), so the build still needs no
+# native library; the runtime + model files are provisioned by the deployment.
+onnx = ["dep:ort"]
+
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 storage-ports = { path = "../storage-ports" }
+# Optional, feature-gated. `load-dynamic` defers ONNX Runtime loading to
+# runtime (no build-time native library, no build-time download).
+ort = { version = "2.0.0-rc.15", optional = true, default-features = false, features = ["std", "load-dynamic", "api-31"] }

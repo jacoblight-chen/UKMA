@@ -21,6 +21,7 @@ use ukma_mcp::{build, Gateway, JobIndex, Services};
 
 use code_intelligence::domain::SourceFile;
 use code_intelligence::parsers::engine::UnifiedParser;
+use code_intelligence::pro::ProService;
 use code_intelligence::service::{CodeIntelligenceService, InMemorySources};
 use document_intelligence::parsers::DocumentParsers;
 use document_intelligence::service::{DocumentService, InMemoryDocuments};
@@ -83,6 +84,7 @@ fn services_with(code: CodeIntelligenceService, document: DocumentService) -> Se
         memory: Arc::new(MemoryService::new()),
         trace: Arc::new(TraceabilityService::new()),
         jobs: JobIndex::new(),
+        pro: Arc::new(ProService::new()),
     }
 }
 
@@ -155,6 +157,7 @@ pub fn env_with_clock_and_sources(
         memory: Arc::new(memory),
         trace: Arc::new(TraceabilityService::new()),
         jobs: JobIndex::new(),
+        pro: Arc::new(ProService::new()),
     };
     (env_of(services), hashes)
 }

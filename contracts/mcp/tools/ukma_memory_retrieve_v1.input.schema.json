@@ -26,7 +26,7 @@
   },
   "$defs": {
     "wire.DetailLevel": {
-      "description": "Requested response detail (\u00a734.1 `MemoryQuery.detail`).",
+      "description": "Requested response detail (§34.1 `MemoryQuery.detail`).",
       "oneOf": [
         {
           "description": "Identification only.",
@@ -59,7 +59,7 @@
       ]
     },
     "wire.MemoryKind": {
-      "description": "Which memory store an item lives in (\u00a734.1).",
+      "description": "Which memory store an item lives in (§34.1).",
       "oneOf": [
         {
           "description": "Working memory: session/agent scoped and budgeted.",

@@ -26,7 +26,7 @@
   },
   "$defs": {
     "wire.MemoryBlockKind": {
-      "description": "Kind of working memory block (\u00a721.2).",
+      "description": "Kind of working memory block (§21.2).",
       "oneOf": [
         {
           "description": "What the task currently is.",
@@ -88,7 +88,7 @@
       "type": "object"
     },
     "wire.WorkingBlockInput": {
-      "description": "Input of `memory.put_working_block` (\u00a734.1).",
+      "description": "Input of `memory.put_working_block` (§34.1).",
       "properties": {
         "agent_id": {
           "description": "Agent the block belongs to.",
@@ -125,7 +125,7 @@
           "type": "number"
         },
         "protected": {
-          "description": "Whether the block is pinned by the user (\u00a722.2 R6).",
+          "description": "Whether the block is pinned by the user (§22.2 R6).",
           "type": "boolean"
         },
         "session_id": {

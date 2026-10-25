@@ -1,0 +1,18 @@
+{
+  "api_version": "1",
+  "request_id": "x",
+  "trace_id": "x",
+  "status": "ok",
+  "data": {
+    "body_changes": [],
+    "changed": [],
+    "complexity": [],
+    "impacted": [],
+    "signature_changes": [],
+    "summary": "x",
+    "test_gaps": []
+  },
+  "warnings": [],
+  "partial_reasons": [],
+  "freshness": "current"
+}

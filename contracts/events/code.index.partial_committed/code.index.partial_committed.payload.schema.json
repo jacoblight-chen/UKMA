@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/events/code.index.partial_committed.payload.schema.json",
+  "title": "code.index.partial_committed payload (closed; no raw source content)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "operation_id",
+    "index_generation"
+  ],
+  "properties": {
+    "operation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "index_generation": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "commit_sha": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "committed_paths": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "maxItems": 4096
+    },
+    "failed_paths": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "maxItems": 4096
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "maxProperties": 16
+    }
+  }
+}

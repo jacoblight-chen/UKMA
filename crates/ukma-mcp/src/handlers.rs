@@ -1,4 +1,4 @@
-//! Handlers for the 65 domain operations and the 4 system operations.
+//! Handlers for the 108 domain operations and the 4 system operations.
 //!
 //! Each handler is a thin adapter: decode the input into the canonical request
 //! type, call the domain service with the trusted context, encode the response.
@@ -9,6 +9,8 @@ use std::sync::{Arc, Mutex};
 
 use serde_json::Value;
 use ukma_contracts::RequestContext;
+
+use embedding_engine::{BackendMode, EmbeddingPort};
 
 use code_intelligence::parsers::engine::UnifiedParser;
 use code_intelligence::service::{CodeIntelligenceService, InMemorySources};
@@ -241,6 +243,8 @@ pub struct Services {
     pub trace: Arc<TraceabilityService>,
     /// Job index shared with the system operations.
     pub jobs: JobIndex,
+    /// CodeGraph Pro (27 analysis/security operations).
+    pub pro: Arc<code_intelligence::pro::ProService>,
 }
 
 impl Services {
@@ -258,7 +262,249 @@ impl Services {
             memory: Arc::new(MemoryService::new()),
             trace: Arc::new(TraceabilityService::new()),
             jobs: JobIndex::new(),
+            pro: Arc::new(code_intelligence::pro::ProService::new()),
         }
+    }
+
+    /// Bind the Pro service (e.g. populated from the indexed working tree).
+    pub fn with_pro(mut self, pro: Arc<code_intelligence::pro::ProService>) -> Self {
+        self.pro = pro;
+        self
+    }
+
+    /// Populate the Pro corpus from a source snapshot's files for `revision`.
+    /// The reference deployment indexes the corpus with the file contents; the
+    /// 17 security analyzers are purely line-based, so they operate fully.
+    /// Symbol-based code analyzers run over whatever symbols are in the corpus.
+    /// `vuln` is the optional OSV online source (`--online`); `None` keeps the
+    /// offline default.
+    pub fn with_pro_from(
+        mut self,
+        sources: Arc<dyn code_intelligence::service::SourceSnapshotPort>,
+        revision: &str,
+        vuln: Option<Arc<dyn code_intelligence::pro::VulnerabilitySource>>,
+    ) -> Self {
+        let files = sources.files_for(revision).unwrap_or_default();
+        let mut pro = code_intelligence::pro::ProService::new();
+        if let Some(source) = vuln {
+            pro = pro.with_vulnerability_source(source);
+        }
+        let pro = Arc::new(pro);
+        pro.index(revision, files, Vec::new())
+            .expect("pro corpus indexing cannot fail for an empty symbol set");
+        self.pro = pro;
+        self
+    }
+
+    /// Like `in_memory`, but the code domain is bound to the given source
+    /// snapshots (e.g. an indexed working directory). The document domain is
+    /// wired with the code architecture facts port, so
+    /// `document.generate_architecture_doc` renders from the same index.
+    pub fn with_code_sources(
+        sources: Arc<dyn code_intelligence::service::SourceSnapshotPort>,
+    ) -> Self {
+        let mut services = Self::in_memory();
+        let code = Arc::new(CodeIntelligenceService::new(
+            Arc::new(UnifiedParser::new()),
+            sources,
+        ));
+        services.code = Arc::clone(&code);
+        services.document = Arc::new(
+            DocumentService::new(
+                Arc::new(DocumentParsers::new()),
+                Arc::new(InMemoryDocuments::new()),
+            )
+            .with_architecture_port(Arc::new(ArchitectureFactsAdapter { code })),
+        );
+        services
+    }
+
+    /// Like `with_code_sources`, but the code domain is built with an
+    /// explicit search / embedding policy (CodeGraph `--split-identifiers`,
+    /// `--full-body-embedding`, `--graph-only`).
+    pub fn with_code_sources_policy(
+        sources: Arc<dyn code_intelligence::service::SourceSnapshotPort>,
+        policy: code_intelligence::search::SearchPolicy,
+    ) -> Self {
+        let code = Arc::new(
+            CodeIntelligenceService::new(Arc::new(UnifiedParser::new()), sources)
+                .with_search_policy(policy),
+        );
+        let mut services = Self::in_memory();
+        services.code = Arc::clone(&code);
+        services.document = Arc::new(
+            DocumentService::new(
+                Arc::new(DocumentParsers::new()),
+                Arc::new(InMemoryDocuments::new()),
+            )
+            .with_architecture_port(Arc::new(ArchitectureFactsAdapter { code })),
+        );
+        services
+    }
+
+    /// Like `with_code_sources_policy`, but the code domain is also bound to
+    /// an embedding port + selected profile and the effective mode after the
+    /// RAM gate (CodeGraph `--embedding-model` +
+    /// `CODEGRAPH_SKIP_MEMORY_CHECK` parity).
+    pub fn with_embedding_backend(
+        sources: Arc<dyn code_intelligence::service::SourceSnapshotPort>,
+        policy: code_intelligence::search::SearchPolicy,
+        embedder: Option<(Arc<dyn EmbeddingPort>, String)>,
+        backend_mode: BackendMode,
+    ) -> Self {
+        let code = Arc::new(
+            CodeIntelligenceService::new(Arc::new(UnifiedParser::new()), sources)
+                .with_search_policy(policy)
+                .with_embedding_backend(embedder, backend_mode),
+        );
+        let mut services = Self::in_memory();
+        services.code = Arc::clone(&code);
+        services.document = Arc::new(
+            DocumentService::new(
+                Arc::new(DocumentParsers::new()),
+                Arc::new(InMemoryDocuments::new()),
+            )
+            .with_architecture_port(Arc::new(ArchitectureFactsAdapter { code })),
+        );
+        services
+    }
+}
+
+/// Adapter: fetch architecture facts from the code service.
+struct ArchitectureFactsAdapter {
+    code: Arc<CodeIntelligenceService>,
+}
+
+impl document_intelligence::service::ArchitectureFactsPort for ArchitectureFactsAdapter {
+    fn facts(
+        &self,
+        repository_id: &str,
+        revision: &str,
+    ) -> document_intelligence::domain::Result<document_intelligence::service::ArchitectureFacts>
+    {
+        use code_intelligence::domain::{EntryPointsQuery, HotPathsQuery, ModuleSummaryQuery};
+        // Build the facts by calling the code service with a neutral context.
+        // The document service checks its own scope; the adapter only renders.
+        let ctx_code = ukma_contracts::RequestContext {
+            request_id: "architecture-facts".to_string(),
+            trace_id: "architecture-facts".to_string(),
+            scope: ukma_contracts::ScopeRef {
+                tenant_id: "default".to_string(),
+                project_id: "default".to_string(),
+                repo_id: None,
+                workspace_id: None,
+                agent_id: None,
+                session_id: None,
+            },
+            principal_id: "architecture-facts".to_string(),
+            scopes: vec!["code:read".to_string()],
+            deadline_at: None,
+            consistency: ukma_contracts::Consistency::ReadYourWrites,
+            required_generation: None,
+            snapshot_id: None,
+            idempotency_key: None,
+            expected_etag: None,
+            delegation_token: None,
+        };
+        let modules = self
+            .code
+            .get_module_summary(
+                &ctx_code,
+                &ModuleSummaryQuery {
+                    repository_id: repository_id.to_string(),
+                    revision: revision.to_string(),
+                    path_prefix: None,
+                    page: code_intelligence::domain::PageRequest::default(),
+                },
+            )
+            .map_err(
+                |error| document_intelligence::domain::DocumentError::ModelUnavailable {
+                    profile: error.to_string(),
+                },
+            )?;
+        let entry_points = self
+            .code
+            .find_entry_points(
+                &ctx_code,
+                &EntryPointsQuery {
+                    repository_id: repository_id.to_string(),
+                    revision: revision.to_string(),
+                    page: code_intelligence::domain::PageRequest::default(),
+                },
+            )
+            .map_err(
+                |error| document_intelligence::domain::DocumentError::ModelUnavailable {
+                    profile: error.to_string(),
+                },
+            )?;
+        let hot_paths = self
+            .code
+            .find_hot_paths(
+                &ctx_code,
+                &HotPathsQuery {
+                    repository_id: repository_id.to_string(),
+                    revision: revision.to_string(),
+                    max_results: 10,
+                },
+            )
+            .map_err(
+                |error| document_intelligence::domain::DocumentError::ModelUnavailable {
+                    profile: error.to_string(),
+                },
+            )?;
+
+        let mut section_titles = Vec::new();
+        let mut sections = Vec::new();
+
+        // Module summaries.
+        let mut module_md = String::new();
+        for module in modules.items.iter().take(20) {
+            module_md.push_str(&format!(
+                "- `{}`: {} files, {} symbols, {} functions\n",
+                module.module, module.file_count, module.symbol_count, module.function_count
+            ));
+            for language in module.languages.iter().take(5) {
+                module_md.push_str(&format!("  - {}: {}\n", language.language, language.count));
+            }
+        }
+        if module_md.is_empty() {
+            module_md = "No module summaries available.\n".to_string();
+        }
+        section_titles.push("Modules".to_string());
+        sections.push(module_md);
+
+        // Entry points.
+        let mut ep_md = String::new();
+        for entry in entry_points.items.iter().take(20) {
+            ep_md.push_str(&format!(
+                "- `{}` ({}) — {}\n",
+                entry.name, entry.kind, entry.language
+            ));
+        }
+        if ep_md.is_empty() {
+            ep_md = "No entry points detected.\n".to_string();
+        }
+        section_titles.push("Entry points".to_string());
+        sections.push(ep_md);
+
+        // Hot paths.
+        let mut hp_md = String::new();
+        for hot in hot_paths.iter().take(10) {
+            hp_md.push_str(&format!(
+                "- `{}`: {} transitive callers ({} direct)\n",
+                hot.name, hot.transitive_caller_count, hot.direct_caller_count
+            ));
+        }
+        if hp_md.is_empty() {
+            hp_md = "No hot paths detected.\n".to_string();
+        }
+        section_titles.push("Hot paths".to_string());
+        sections.push(hp_md);
+
+        Ok(document_intelligence::service::ArchitectureFacts {
+            section_titles,
+            sections,
+        })
     }
 }
 
@@ -270,6 +516,7 @@ pub fn build(services: &Services) -> Result<Gateway, String> {
     register_memory(&mut gateway, &services.memory, &services.jobs)?;
     register_trace(&mut gateway, &services.trace, &services.jobs)?;
     register_system(&mut gateway, &services.jobs)?;
+    register_pro(&mut gateway, &services.pro)?;
     Ok(gateway)
 }
 
@@ -289,6 +536,31 @@ macro_rules! bind {
                         .$method(request_context, &request)
                         .map_err(from_domain)
                 })
+            }),
+        )?;
+    }};
+}
+
+/// Bind a Pro operation. Each Pro method takes `(&RequestContext, &str)` for
+/// the operation key (`revision`, `file`, or `query`) and returns a JSON
+/// payload. The key field is read from the request input.
+macro_rules! bind_pro {
+    ($gateway:expr, $op:literal, $service:expr, $method:ident, $field:literal) => {{
+        let service = Arc::clone($service);
+        $gateway.register(
+            $op,
+            Arc::new(move |ctx: &OpContext, input: &Value| {
+                let request_context = ctx.to_request_context();
+                let key = input
+                    .get($field)
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| {
+                        GatewayError::invalid_schema(concat!($field, " is required"))
+                    })?;
+                service
+                    .$method(&request_context, key)
+                    .map_err(from_domain)
+                    .map(|payload| GatewayOutcome::data(serde_json::json!({ "report": payload })))
             }),
         )?;
     }};
@@ -329,8 +601,11 @@ fn register_code(
     jobs: &JobIndex,
 ) -> Result<(), String> {
     use code_intelligence::domain::{
-        AnalyzeRepository, CancelJob, CodeRevisionDiff, EditContextQuery, GetJob, GetSymbol,
-        ImpactQuery, InvalidateCodeRevision, ReferenceQuery, SymbolQuery, TraversalQuery,
+        AiContextQuery, AnalyzeRepository, CancelJob, CircularDepsQuery, CodeRevisionDiff,
+        ComplexityQuery, CuratedContextQuery, DeadImportsQuery, EditContextQuery, EntryPointsQuery,
+        ErrorSearchQuery, GetJob, GetSymbol, HotPathsQuery, ImpactQuery, IndexFiles,
+        InvalidateCodeRevision, ModuleSummaryQuery, PatternSearchQuery, PrContextQuery,
+        ReferenceQuery, RelatedTestsQuery, SignatureQuery, SymbolQuery, TraversalQuery,
     };
 
     {
@@ -428,6 +703,105 @@ fn register_code(
         invalidate_revision,
         InvalidateCodeRevision
     );
+    // Parity operations (CodeGraph gap closure).
+    bind!(
+        gateway,
+        "code.get_ai_context",
+        service,
+        get_ai_context,
+        AiContextQuery
+    );
+    bind!(
+        gateway,
+        "code.get_curated_context",
+        service,
+        get_curated_context,
+        CuratedContextQuery
+    );
+    bind!(
+        gateway,
+        "code.analyze_complexity",
+        service,
+        analyze_complexity,
+        ComplexityQuery
+    );
+    bind!(
+        gateway,
+        "code.find_circular_deps",
+        service,
+        find_circular_deps,
+        CircularDepsQuery
+    );
+    bind!(
+        gateway,
+        "code.find_hot_paths",
+        service,
+        find_hot_paths,
+        HotPathsQuery
+    );
+    bind!(
+        gateway,
+        "code.find_dead_imports",
+        service,
+        find_dead_imports,
+        DeadImportsQuery
+    );
+    bind!(
+        gateway,
+        "code.get_module_summary",
+        service,
+        get_module_summary,
+        ModuleSummaryQuery
+    );
+    bind!(
+        gateway,
+        "code.search_by_pattern",
+        service,
+        search_by_pattern,
+        PatternSearchQuery
+    );
+    bind!(
+        gateway,
+        "code.search_by_error",
+        service,
+        search_by_error,
+        ErrorSearchQuery
+    );
+    bind!(
+        gateway,
+        "code.find_by_signature",
+        service,
+        find_by_signature,
+        SignatureQuery
+    );
+    bind!(
+        gateway,
+        "code.find_entry_points",
+        service,
+        find_entry_points,
+        EntryPointsQuery
+    );
+    bind!(
+        gateway,
+        "code.find_related_tests",
+        service,
+        find_related_tests,
+        RelatedTestsQuery
+    );
+    bind!(
+        gateway,
+        "code.index_files",
+        service,
+        index_files,
+        IndexFiles
+    );
+    bind!(
+        gateway,
+        "code.pr_context",
+        service,
+        pr_context,
+        PrContextQuery
+    );
     Ok(())
 }
 
@@ -440,8 +814,9 @@ fn register_document(
 ) -> Result<(), String> {
     use document_intelligence::domain::{
         CancelJob, DocumentIngest, DocumentRevisionDiff, ExtractRelations, ExtractRequirements,
-        GetDocument, GetJob, GetSourceSpan, InvalidateDocumentRevision, ListRequirements,
-        ParsePreview, ReviewRequirement, SearchDocument, VerifyConsistency,
+        GenerateArchitectureDoc, GetDocument, GetJob, GetSourceSpan, InvalidateDocumentRevision,
+        ListDocSources, ListRequirements, ParsePreview, ReviewRequirement, SearchDocument,
+        VerifyConsistency,
     };
 
     {
@@ -545,6 +920,21 @@ fn register_document(
         service,
         get_source_span,
         GetSourceSpan
+    );
+    // Parity operations (CodeGraph gap closure).
+    bind!(
+        gateway,
+        "document.list_doc_sources",
+        service,
+        list_doc_sources,
+        ListDocSources
+    );
+    bind!(
+        gateway,
+        "document.generate_architecture_doc",
+        service,
+        generate_architecture_doc,
+        GenerateArchitectureDoc
     );
     Ok(())
 }
@@ -860,6 +1250,7 @@ fn register_system(gateway: &mut Gateway, jobs: &JobIndex) -> Result<(), String>
                     "document": tools.iter().filter(|tool| tool.domain == "document").count(),
                     "memory": tools.iter().filter(|tool| tool.domain == "memory").count(),
                     "traceability": tools.iter().filter(|tool| tool.domain == "traceability").count(),
+                    "pro": tools.iter().filter(|tool| tool.domain == "pro").count(),
                 },
                 "domain_operations": domain_tools,
                 "system_operations": system_tools,
@@ -928,6 +1319,228 @@ fn register_system(gateway: &mut Gateway, jobs: &JobIndex) -> Result<(), String>
             }),
         )?;
     }
+    Ok(())
+}
+
+// -- pro --------------------------------------------------------------------
+
+/// Register the 27 CodeGraph Pro operations (10 code analysis + 17 security).
+/// Each operation reads its key from the request input (`revision`, `file`, or
+/// `query`) and returns the detector's JSON payload.
+fn register_pro(
+    gateway: &mut Gateway,
+    service: &Arc<code_intelligence::pro::ProService>,
+) -> Result<(), String> {
+    // 10 code analysis operations.
+    bind_pro!(
+        gateway,
+        "pro.analyze_coupling",
+        service,
+        analyze_coupling,
+        "revision"
+    );
+    bind_pro!(
+        gateway,
+        "pro.find_unused_code",
+        service,
+        find_unused_code,
+        "revision"
+    );
+    bind_pro!(
+        gateway,
+        "pro.find_duplicates",
+        service,
+        find_duplicates,
+        "revision"
+    );
+    bind_pro!(
+        gateway,
+        "pro.find_similar",
+        service,
+        find_similar,
+        "revision"
+    );
+    bind_pro!(
+        gateway,
+        "pro.cluster_symbols",
+        service,
+        cluster_symbols,
+        "revision"
+    );
+    {
+        let service = Arc::clone(service);
+        gateway.register(
+            "pro.compare_symbols",
+            Arc::new(move |ctx: &OpContext, input: &Value| {
+                let request_context = ctx.to_request_context();
+                let revision = input
+                    .get("revision")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| GatewayError::invalid_schema("revision is required"))?;
+                let a = input
+                    .get("a")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| GatewayError::invalid_schema("a is required"))?;
+                let b = input
+                    .get("b")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| GatewayError::invalid_schema("b is required"))?;
+                service
+                    .compare_symbols(&request_context, revision, a, b)
+                    .map_err(from_domain)
+                    .map(|payload| GatewayOutcome::data(serde_json::json!({ "report": payload })))
+            }),
+        )?;
+    }
+    bind_pro!(
+        gateway,
+        "pro.cross_project_search",
+        service,
+        cross_project_search,
+        "query"
+    );
+    bind_pro!(
+        gateway,
+        "pro.mine_git_history",
+        service,
+        mine_git_history,
+        "revision"
+    );
+    bind_pro!(
+        gateway,
+        "pro.mine_git_history_for_file",
+        service,
+        mine_git_history_for_file,
+        "file"
+    );
+    bind_pro!(
+        gateway,
+        "pro.search_git_history",
+        service,
+        search_git_history,
+        "query"
+    );
+
+    // 17 security operations.
+    bind_pro!(
+        gateway,
+        "pro.scan_security",
+        service,
+        scan_security,
+        "revision"
+    );
+    bind_pro!(
+        gateway,
+        "pro.security_control_flow",
+        service,
+        security_control_flow,
+        "revision"
+    );
+    bind_pro!(
+        gateway,
+        "pro.security_trace_data_flow",
+        service,
+        security_trace_data_flow,
+        "revision"
+    );
+    bind_pro!(
+        gateway,
+        "pro.security_generate_sbom",
+        service,
+        security_generate_sbom,
+        "revision"
+    );
+    bind_pro!(
+        gateway,
+        "pro.security_audit_deps",
+        service,
+        security_audit_deps,
+        "revision"
+    );
+    bind_pro!(
+        gateway,
+        "pro.security_check_unchecked_returns",
+        service,
+        security_check_unchecked_returns,
+        "revision"
+    );
+    bind_pro!(
+        gateway,
+        "pro.security_check_resource_leaks",
+        service,
+        security_check_resource_leaks,
+        "revision"
+    );
+    bind_pro!(
+        gateway,
+        "pro.security_check_misconfig",
+        service,
+        security_check_misconfig,
+        "revision"
+    );
+    bind_pro!(
+        gateway,
+        "pro.security_check_input_validation",
+        service,
+        security_check_input_validation,
+        "revision"
+    );
+    bind_pro!(
+        gateway,
+        "pro.security_check_error_exposure",
+        service,
+        security_check_error_exposure,
+        "revision"
+    );
+    bind_pro!(
+        gateway,
+        "pro.security_scan_iac",
+        service,
+        security_scan_iac,
+        "revision"
+    );
+    bind_pro!(
+        gateway,
+        "pro.security_check_licenses",
+        service,
+        security_check_licenses,
+        "revision"
+    );
+    bind_pro!(
+        gateway,
+        "pro.security_check_secrets_entropy",
+        service,
+        security_check_secrets_entropy,
+        "revision"
+    );
+    bind_pro!(
+        gateway,
+        "pro.security_detect_injection",
+        service,
+        security_detect_injection,
+        "revision"
+    );
+    bind_pro!(
+        gateway,
+        "pro.security_check_search_path",
+        service,
+        security_check_search_path,
+        "revision"
+    );
+    bind_pro!(
+        gateway,
+        "pro.security_check_crypto",
+        service,
+        security_check_crypto,
+        "revision"
+    );
+    bind_pro!(
+        gateway,
+        "pro.security_export_sarif",
+        service,
+        security_export_sarif,
+        "revision"
+    );
     Ok(())
 }
 

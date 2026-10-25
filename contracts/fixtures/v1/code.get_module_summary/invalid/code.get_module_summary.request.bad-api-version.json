@@ -1,0 +1,22 @@
+{
+  "api_version": "2",
+  "operation": "ukma.code.get_module_summary.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "page": {
+      "limit": 0
+    },
+    "repository_id": "x",
+    "revision": "x"
+  }
+}

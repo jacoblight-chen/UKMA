@@ -29,7 +29,7 @@
       "description": "`traceability.revalidate_stale` (TAPI-12).",
       "properties": {
         "asynchronous": {
-          "description": "Must be `true`: revalidation is asynchronous (\u00a735.2).",
+          "description": "Must be `true`: revalidation is asynchronous (§35.2).",
           "type": "boolean"
         },
         "link_refs": {

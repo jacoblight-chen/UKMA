@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/pro.find_unused_code.request.schema.json",
+  "title": "pro.find_unused_code Request (CodeGraph Pro typed candidate)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "operation",
+    "context",
+    "input"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "1"
+    },
+    "operation": {
+      "const": "ukma.pro.find_unused_code.v1"
+    },
+    "context": {
+      "$ref": "#/$defs/shared.RequestContext"
+    },
+    "input": {
+      "$ref": "#/$defs/wire.ProRevisionRequest"
+    }
+  },
+  "$defs": {
+    "wire.ProRevisionRequest": {
+      "description": "Key for the revision-scoped Pro operations.",
+      "properties": {
+        "revision": {
+          "description": "The indexed revision to analyze.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "revision"
+      ],
+      "type": "object"
+    },
+    "shared.ID": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "shared.ISODate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "shared.Consistency": {
+      "enum": [
+        "eventual",
+        "read_your_writes",
+        "snapshot",
+        "strict_generation"
+      ]
+    },
+    "shared.ScopeRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "project_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "repo_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "workspace_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "agent_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "session_id": {
+          "$ref": "#/$defs/shared.ID"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "project_id"
+      ]
+    },
+    "shared.RequestContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "trace_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "scope": {
+          "$ref": "#/$defs/shared.ScopeRef"
+        },
+        "principal_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "deadline_at": {
+          "$ref": "#/$defs/shared.ISODate"
+        },
+        "consistency": {
+          "$ref": "#/$defs/shared.Consistency"
+        },
+        "required_generation": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "snapshot_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "idempotency_key": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "expected_etag": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "delegation_token": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "request_id",
+        "trace_id",
+        "scope",
+        "principal_id",
+        "scopes",
+        "consistency"
+      ]
+    }
+  }
+}

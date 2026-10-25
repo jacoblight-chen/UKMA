@@ -19,15 +19,23 @@
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex, MutexGuard};
 
+use embedding_engine::{BackendMode, EmbeddingPort};
 use indexing_engine::{GenerationPointer, JobError, JobManager, Stage};
 use sha2::{Digest, Sha256};
 use ukma_contracts::{RequestContext, ScopeRef};
 
 use crate::domain::{
-    AnalyzeRepository, CancelJob, ChangeKind, ChangeReceipt, CodeChange, CodeRevisionDiff,
-    ContextBlock, Direction, DirtyPolicy, EditContextQuery, EditContextResult, GetJob, GetSymbol,
-    ImpactQuery, ImpactReport, InvalidateCodeRevision, JobHandle, JobView, Page, ReferenceLocation,
-    ReferenceQuery, RepoRevision, SourceFile, SourceSnapshot, SymbolQuery, TraversalQuery,
+    AiContextQuery, AiContextResult, AiContextSection, AnalyzeRepository, CancelJob, ChangeKind,
+    ChangeReceipt, CircularDependency, CircularDepsQuery, CodeChange, CodeRevisionDiff,
+    ComplexityQuery, ComplexityReport, ContextBlock, ContextIntent, CuratedContext,
+    CuratedContextQuery, CuratedMatch, DeadImport, DeadImportsQuery, Direction, DirtyPolicy,
+    EditContextQuery, EditContextResult, EntryPoint, EntryPointsQuery, ErrorMatch,
+    ErrorSearchQuery, GetJob, GetSymbol, HotPath, HotPathsQuery, ImpactQuery, ImpactReport,
+    IndexFile, IndexFiles, IndexedRevision, InvalidateCodeRevision, JobHandle, JobView,
+    ModuleSummary, ModuleSummaryQuery, Page, PatternMatch, PatternScope, PatternSearchQuery,
+    PrContextFormat, PrContextQuery, PrContextReport, ReferenceLocation, ReferenceQuery,
+    RelatedTest, RelatedTestsQuery, RepoRevision, SignatureQuery, SourceFile, SourceSnapshot,
+    SymbolQuery, TraversalQuery,
 };
 use crate::{
     CodeAnalysisManifest, CodeDiagnostic, CodeEdge, CodeEdgeKind, CodeError, CodeLocation,
@@ -57,6 +65,20 @@ pub const SCOPE_INDEX_ADMIN: &str = "code:index_admin";
 pub trait SourceSnapshotPort: Send + Sync {
     /// Resolve `revision` to its files.
     fn snapshot(&self, revision: &RepoRevision) -> CodeResult<SourceSnapshot>;
+
+    /// Resolve a registered alias (for example `@cwd`) to the real revision
+    /// id. The default is the identity, so sources without aliases are
+    /// unaffected.
+    fn resolve(&self, commit_sha: &str) -> String {
+        commit_sha.to_string()
+    }
+
+    /// The files (path -> content) for a revision, when the source can expose
+    /// them (used to populate the Pro corpus). The default is empty, so
+    /// sources that do not expose file contents are unaffected.
+    fn files_for(&self, _commit_sha: &str) -> Option<BTreeMap<String, String>> {
+        None
+    }
 }
 
 /// In-memory source snapshots. Development/test only: it makes no durability or
@@ -64,6 +86,7 @@ pub trait SourceSnapshotPort: Send + Sync {
 #[derive(Debug, Default)]
 pub struct InMemorySources {
     snapshots: BTreeMap<String, SourceSnapshot>,
+    aliases: BTreeMap<String, String>,
 }
 
 impl InMemorySources {
@@ -96,17 +119,94 @@ impl InMemorySources {
     pub fn insert(&mut self, snapshot: SourceSnapshot) {
         self.snapshots.insert(snapshot.commit_sha.clone(), snapshot);
     }
+
+    /// Register `alias` (for example `@cwd`) as standing for the real
+    /// `commit_sha`. An alias is inert unless registered, so the default
+    /// behavior for every existing source is unchanged.
+    pub fn with_alias(mut self, alias: &str, commit_sha: &str) -> Self {
+        self.aliases
+            .insert(alias.to_string(), commit_sha.to_string());
+        self
+    }
 }
 
 impl SourceSnapshotPort for InMemorySources {
     fn snapshot(&self, revision: &RepoRevision) -> CodeResult<SourceSnapshot> {
-        revision.validate()?;
+        let sha = self.resolve(&revision.commit_sha);
+        let resolved = RepoRevision {
+            commit_sha: sha,
+            ..revision.clone()
+        };
+        resolved.validate()?;
         self.snapshots
-            .get(&revision.commit_sha)
+            .get(&resolved.commit_sha)
             .cloned()
             .ok_or_else(|| CodeError::SourceUnavailable {
-                revision: revision.commit_sha.clone(),
+                revision: resolved.commit_sha.clone(),
             })
+    }
+
+    fn resolve(&self, commit_sha: &str) -> String {
+        self.aliases
+            .get(commit_sha)
+            .cloned()
+            .unwrap_or_else(|| commit_sha.to_string())
+    }
+
+    fn files_for(&self, commit_sha: &str) -> Option<BTreeMap<String, String>> {
+        self.snapshots.get(commit_sha).map(|snapshot| {
+            snapshot
+                .files
+                .iter()
+                .map(|file| (file.path.clone(), file.content.clone()))
+                .collect()
+        })
+    }
+}
+
+/// A [`SourceSnapshotPort`] whose snapshot set can be atomically replaced at
+/// runtime (CodeGraph `--watch` hot-swap). The code domain reads the snapshot
+/// on every call, so a `replace` is immediately visible to in-flight and future
+/// tool calls without rebuilding the gateway.
+pub struct SwappableSources {
+    inner: std::sync::RwLock<InMemorySources>,
+}
+
+impl SwappableSources {
+    /// Wrap an initial source set.
+    pub fn new(initial: InMemorySources) -> Self {
+        Self {
+            inner: std::sync::RwLock::new(initial),
+        }
+    }
+
+    /// Atomically replace the whole snapshot set (including `@cwd` alias).
+    pub fn replace(&self, new: InMemorySources) {
+        let mut guard = self.inner.write().expect("source lock poisoned");
+        *guard = new;
+    }
+}
+
+impl SourceSnapshotPort for SwappableSources {
+    fn snapshot(&self, revision: &RepoRevision) -> CodeResult<SourceSnapshot> {
+        self.inner
+            .read()
+            .expect("source lock poisoned")
+            .snapshot(revision)
+    }
+
+    fn resolve(&self, commit_sha: &str) -> String {
+        self.inner
+            .read()
+            .expect("source lock poisoned")
+            .resolve(commit_sha)
+    }
+
+    fn files_for(&self, commit_sha: &str) -> Option<BTreeMap<String, String>> {
+        self.inner
+            .read()
+            .expect("source lock poisoned")
+            .files_for(commit_sha)
     }
 }
 
@@ -281,6 +381,12 @@ pub struct CodeIntelligenceService {
     sources: Arc<dyn SourceSnapshotPort>,
     authorizer: Arc<dyn CodeAuthorizer>,
     state: Mutex<ServiceState>,
+    search_policy: crate::search::SearchPolicy,
+    /// Optional embedding port + selected profile (CodeGraph
+    /// `--embedding-model` parity). `None` keeps the static embedder.
+    embedder: Option<(Arc<dyn EmbeddingPort>, String)>,
+    /// Effective mode after the RAM gate (`WithModel` or `GraphOnly`).
+    backend_mode: BackendMode,
 }
 
 impl std::fmt::Debug for CodeIntelligenceService {
@@ -297,6 +403,9 @@ impl CodeIntelligenceService {
             sources,
             authorizer: Arc::new(ScopeAuthorizer),
             state: Mutex::new(ServiceState::default()),
+            search_policy: crate::search::SearchPolicy::default(),
+            embedder: None,
+            backend_mode: BackendMode::WithModel,
         }
     }
 
@@ -306,8 +415,66 @@ impl CodeIntelligenceService {
         self
     }
 
+    /// Set the search / embedding policy (CodeGraph `--split-identifiers`,
+    /// `--full-body-embedding`, `--graph-only` parity).
+    pub fn with_search_policy(mut self, policy: crate::search::SearchPolicy) -> Self {
+        self.search_policy = policy;
+        self
+    }
+
+    /// Set the embedding port + selected profile and the effective mode after
+    /// the RAM gate (CodeGraph `--embedding-model` + `CODEGRAPH_SKIP_MEMORY_CHECK`
+    /// parity). A `None` embedder keeps the static channel; an unavailable
+    /// profile degrades the semantic channel to the static fallback.
+    pub fn with_embedding_backend(
+        mut self,
+        embedder: Option<(Arc<dyn EmbeddingPort>, String)>,
+        backend_mode: BackendMode,
+    ) -> Self {
+        self.embedder = embedder;
+        self.backend_mode = backend_mode;
+        self
+    }
+
+    /// The selected embedding profile id, if an embedder is wired.
+    pub fn embedding_profile_id(&self) -> Option<&str> {
+        self.embedder.as_ref().map(|(_, id)| id.as_str())
+    }
+
+    /// The effective mode after the RAM gate.
+    pub fn backend_mode(&self) -> BackendMode {
+        self.backend_mode
+    }
+
+    /// Whether the selected profile is usable (mode `WithModel` + the port
+    /// reports the profile available).
+    pub fn embedding_available(&self) -> bool {
+        if self.backend_mode != BackendMode::WithModel {
+            return false;
+        }
+        match &self.embedder {
+            Some((port, id)) => port.model_available(id),
+            None => true,
+        }
+    }
+
     fn lock(&self) -> MutexGuard<'_, ServiceState> {
         self.state.lock().expect("code service state poisoned")
+    }
+
+    /// The revision to process: a source-registered alias (for example
+    /// `@cwd`) is resolved to its concrete revision id; anything else
+    /// passes through unchanged.
+    fn resolve_revision(&self, revision: &RepoRevision) -> RepoRevision {
+        let sha = self.sources.resolve(&revision.commit_sha);
+        if sha == revision.commit_sha {
+            revision.clone()
+        } else {
+            RepoRevision {
+                commit_sha: sha,
+                ..revision.clone()
+            }
+        }
     }
 
     // -- CAPI-01 -------------------------------------------------------------
@@ -342,6 +509,13 @@ impl CodeIntelligenceService {
         request: &AnalyzeRepository,
     ) -> CodeResult<JobHandle> {
         self.authorizer.require_scope(ctx, SCOPE_INDEX)?;
+        // An alias registered on the source port (for example `@cwd`) is
+        // resolved to its concrete revision before validation, so every
+        // transport can use the alias.
+        let request = AnalyzeRepository {
+            revision: self.resolve_revision(&request.revision),
+            ..request.clone()
+        };
         request.revision.validate()?;
         if !request.asynchronous {
             return Err(CodeError::InvalidArgument {
@@ -362,7 +536,7 @@ impl CodeIntelligenceService {
                 revision: request.revision.commit_sha.clone(),
             });
         }
-        self.require_parseable(&snapshot, request)?;
+        self.require_parseable(&snapshot, &request)?;
 
         let dedup_key = format!(
             "{}|{}|{}|{}|{}|{}",
@@ -1353,7 +1527,10 @@ impl CodeIntelligenceService {
         repository_id: &str,
         revision: &str,
     ) -> CodeResult<&'a RevisionIndex> {
-        let key = RevisionKey::new(&ctx.scope, repository_id, revision).label();
+        // Aliases (e.g. `@cwd`) resolve at the service layer so every
+        // transport (HTTP, CLI, MCP) resolves them identically.
+        let resolved = self.sources.resolve(revision);
+        let key = RevisionKey::new(&ctx.scope, repository_id, &resolved).label();
         let index = state
             .revisions
             .get(&key)
@@ -1386,6 +1563,1211 @@ impl CodeIntelligenceService {
         })?;
         check_fresh(ctx, index)?;
         Ok(index)
+    }
+
+    // -- Parity operations (CodeGraph gap closure) ---------------------------
+
+    /// `code.get_ai_context`: intent-aware context assembly.
+    pub fn get_ai_context(
+        &self,
+        ctx: &RequestContext,
+        request: &AiContextQuery,
+    ) -> CodeResult<AiContextResult> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        if request.max_tokens == 0 {
+            return Err(CodeError::ContextBudgetExceeded {
+                required: 1,
+                budget: 0,
+            });
+        }
+        if request.target_refs.is_empty() {
+            return Err(CodeError::InvalidArgument {
+                field: "target_refs",
+                reason: "must name at least one symbol".into(),
+            });
+        }
+        let state = self.lock();
+        let index = self.index_for(ctx, &state, &request.repository_id, &request.revision)?;
+
+        let mut sections: Vec<AiContextSection> = Vec::new();
+        let mut total = 0u32;
+        let mut truncated = false;
+
+        for symbol_id in &request.target_refs {
+            let symbol = index
+                .symbols
+                .get(symbol_id)
+                .ok_or_else(|| CodeError::NotFound {
+                    resource: format!("symbol {symbol_id}"),
+                })?;
+            self.authorizer.check_symbol(ctx, symbol)?;
+            self.authorizer
+                .check_path(ctx, path_of(&symbol.definition))?;
+            let body = slice_lines(
+                index
+                    .sources
+                    .get(path_of(&symbol.definition))
+                    .map(String::as_str)
+                    .unwrap_or_default(),
+                symbol.definition.line_start,
+                symbol.definition.line_end,
+            );
+
+            let parts: Vec<(String, String)> = match request.intent {
+                ContextIntent::Explain => vec![(
+                    "definition".to_string(),
+                    format!(
+                        "{}{}\n{body}",
+                        symbol.name,
+                        symbol.signature.clone().unwrap_or_default()
+                    ),
+                )],
+                ContextIntent::Modify => {
+                    let callers = incoming_names(index, &symbol.id, CodeEdgeKind::Calls, 3);
+                    let refs = incoming_names(index, &symbol.id, CodeEdgeKind::References, 3);
+                    vec![
+                        (
+                            "definition".to_string(),
+                            format!(
+                                "{}{}\n{body}",
+                                symbol.name,
+                                symbol.signature.clone().unwrap_or_default()
+                            ),
+                        ),
+                        ("callers".to_string(), join_or("none", &callers)),
+                        ("references".to_string(), join_or("none", &refs)),
+                    ]
+                }
+                ContextIntent::Debug => {
+                    let callers = incoming_names(index, &symbol.id, CodeEdgeKind::Calls, 3);
+                    vec![
+                        (
+                            "definition".to_string(),
+                            format!(
+                                "{}{}\n{body}",
+                                symbol.name,
+                                symbol.signature.clone().unwrap_or_default()
+                            ),
+                        ),
+                        ("callers".to_string(), join_or("none", &callers)),
+                        (
+                            "debug_hints".to_string(),
+                            error_hints_of(&body)
+                                .into_iter()
+                                .take(5)
+                                .collect::<Vec<_>>()
+                                .join("; "),
+                        ),
+                    ]
+                }
+                ContextIntent::Test => {
+                    let tests = related_test_names(index, &symbol.id, 5);
+                    let refs = incoming_names(index, &symbol.id, CodeEdgeKind::References, 3);
+                    vec![
+                        ("tests".to_string(), join_or("no related tests", &tests)),
+                        ("references".to_string(), join_or("none", &refs)),
+                    ]
+                }
+            };
+
+            for (section, content) in parts {
+                let token_count = estimate_tokens(&content);
+                if token_count > request.max_tokens {
+                    if sections.is_empty() {
+                        return Err(CodeError::ContextBudgetExceeded {
+                            required: token_count,
+                            budget: request.max_tokens,
+                        });
+                    }
+                    truncated = true;
+                    continue;
+                }
+                if total.saturating_add(token_count) > request.max_tokens {
+                    truncated = true;
+                    continue;
+                }
+                total += token_count;
+                sections.push(AiContextSection {
+                    section,
+                    content,
+                    token_count,
+                });
+            }
+        }
+
+        Ok(AiContextResult {
+            intent: request.intent,
+            sections,
+            token_total: total,
+            truncated,
+        })
+    }
+
+    /// `code.get_curated_context`: hybrid (keyword + static-semantic) search
+    /// over the symbol corpus for a natural-language query.
+    pub fn get_curated_context(
+        &self,
+        ctx: &RequestContext,
+        request: &CuratedContextQuery,
+    ) -> CodeResult<CuratedContext> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        if request.max_results == 0 || request.max_results > 25 {
+            return Err(CodeError::InvalidArgument {
+                field: "max_results",
+                reason: "must be in 1..=25".into(),
+            });
+        }
+        if request.query.trim().is_empty() {
+            return Err(CodeError::InvalidArgument {
+                field: "query",
+                reason: "must be non-empty".into(),
+            });
+        }
+        let state = self.lock();
+        let index = self.index_for(ctx, &state, &request.repository_id, &request.revision)?;
+
+        let policy = self.search_policy;
+        let mut corpus: Vec<Vec<String>> = Vec::new();
+        let mut order: Vec<String> = Vec::new();
+        for symbol in index.symbols_in_path_order() {
+            if self.authorizer.check_symbol(ctx, symbol).is_err() {
+                continue;
+            }
+            let mut text = format!(
+                "{} {} {}",
+                symbol.name,
+                symbol.qualified_name,
+                symbol.signature.clone().unwrap_or_default()
+            );
+            if policy.full_body {
+                // Pull the body from the indexed source via the definition
+                // span (CodeGraph `--full-body-embedding`).
+                let body = slice_lines(
+                    index
+                        .sources
+                        .get(path_of(&symbol.definition))
+                        .map(String::as_str)
+                        .unwrap_or_default(),
+                    symbol.definition.line_start,
+                    symbol.definition.line_end,
+                );
+                if !body.is_empty() {
+                    text.push(' ');
+                    text.push_str(&body);
+                }
+            }
+            corpus.push(crate::search::tokenize_with(&text, policy));
+            order.push(symbol.id.clone());
+        }
+        let hybrid = crate::search::HybridIndex::build_with_embedder(
+            &corpus,
+            policy,
+            self.embedder.clone(),
+            self.backend_mode,
+        );
+        let ranked = hybrid.rank_with(&request.query, policy);
+
+        let mut matches: Vec<CuratedMatch> = Vec::new();
+        let mut sections: Vec<String> = Vec::new();
+        for (doc_index, score) in ranked.into_iter().take(request.max_results as usize) {
+            let symbol = index
+                .symbols
+                .get(&order[doc_index])
+                .expect("corpus order is consistent with the symbol list");
+            let snippet = symbol
+                .signature
+                .clone()
+                .unwrap_or_else(|| symbol.qualified_name.clone());
+            sections.push(format!(
+                "### {} ({})\n{}\n{score:.2}",
+                symbol.qualified_name, symbol.language, snippet
+            ));
+            matches.push(CuratedMatch {
+                symbol_id: symbol.id.clone(),
+                name: symbol.name.clone(),
+                kind: symbol.kind,
+                language: symbol.language.clone(),
+                score,
+                snippet,
+            });
+        }
+        Ok(CuratedContext {
+            query: request.query.clone(),
+            matches,
+            sections,
+        })
+    }
+
+    /// `code.analyze_complexity`: deterministic keyword-based cyclomatic
+    /// complexity with a breakdown. The heuristics are registered in ADR-058:
+    /// `if/else/match/switch/when/case` count as branches, loop keywords as
+    /// loops, and exception keywords as exception handling; nesting is the
+    /// maximum brace depth.
+    pub fn analyze_complexity(
+        &self,
+        ctx: &RequestContext,
+        request: &ComplexityQuery,
+    ) -> CodeResult<Vec<ComplexityReport>> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        if request.max_results == 0 || request.max_results > 100 {
+            return Err(CodeError::InvalidArgument {
+                field: "max_results",
+                reason: "must be in 1..=100".into(),
+            });
+        }
+        let state = self.lock();
+        let index = self.index_for(ctx, &state, &request.repository_id, &request.revision)?;
+
+        let mut candidates: Vec<&Symbol> = index
+            .symbols
+            .values()
+            .filter(|s| matches!(s.kind, SymbolKind::Function | SymbolKind::Method))
+            .collect();
+        if !request.symbol_ids.is_empty() {
+            candidates.retain(|s| request.symbol_ids.contains(&s.id));
+        }
+        candidates.sort_by(|left, right| left.id.cmp(&right.id));
+        if request.symbol_ids.is_empty() {
+            candidates.truncate(request.max_results as usize);
+        }
+
+        let mut items: Vec<ComplexityReport> = Vec::new();
+        for symbol in candidates {
+            self.authorizer.check_symbol(ctx, symbol)?;
+            let body = slice_lines(
+                index
+                    .sources
+                    .get(path_of(&symbol.definition))
+                    .map(String::as_str)
+                    .unwrap_or_default(),
+                symbol.definition.line_start,
+                symbol.definition.line_end,
+            );
+            items.push(complexity_report(symbol, &body));
+        }
+        Ok(items)
+    }
+
+    /// `code.find_circular_deps`: DFS cycle detection over the module
+    /// (file) graph built from `imports` / `depends_on` edges.
+    pub fn find_circular_deps(
+        &self,
+        ctx: &RequestContext,
+        request: &CircularDepsQuery,
+    ) -> CodeResult<Page<CircularDependency>> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        request.page.validate()?;
+        let state = self.lock();
+        let index = self.index_for(ctx, &state, &request.repository_id, &request.revision)?;
+
+        let kinds: Vec<CodeEdgeKind> = if request.edge_kinds.is_empty() {
+            vec![CodeEdgeKind::Imports, CodeEdgeKind::DependsOn]
+        } else {
+            request.edge_kinds.clone()
+        };
+
+        let path_of_symbol = |id: &str| {
+            index
+                .symbols
+                .get(id)
+                .map(|s| path_of(&s.definition).to_string())
+        };
+
+        let mut files: Vec<String> = index
+            .symbols
+            .values()
+            .map(|s| path_of(&s.definition).to_string())
+            .collect();
+        files.sort();
+        files.dedup();
+
+        let mut graph: std::collections::BTreeMap<String, Vec<String>> = BTreeMap::new();
+        for edge in &index.edges {
+            if !kinds.contains(&edge.kind) {
+                continue;
+            }
+            let Some(target) = &edge.target else {
+                continue;
+            };
+            let (Some(source_path), Some(target_path)) =
+                (path_of_symbol(&edge.source), path_of_symbol(target))
+            else {
+                continue;
+            };
+            if source_path != target_path {
+                graph.entry(source_path).or_default().push(target_path);
+            }
+        }
+        for neighbours in graph.values_mut() {
+            neighbours.sort();
+            neighbours.dedup();
+        }
+
+        let mut cycles: Vec<CircularDependency> = Vec::new();
+        for root in &files {
+            let mut stack: Vec<String> = Vec::new();
+            let mut visited: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+            let mut found = Vec::new();
+            visit_cycles(root, &graph, &mut stack, &mut visited, &mut found);
+            for cycle in found {
+                cycles.push(CircularDependency {
+                    files: cycle,
+                    edge_kinds: kinds.to_vec(),
+                });
+            }
+        }
+        cycles.sort_by(|left, right| left.files.cmp(&right.files));
+        cycles.dedup();
+        Page::of(cycles, &request.page)
+    }
+
+    /// `code.find_hot_paths`: functions ranked by distinct transitive caller
+    /// count (reverse breadth-first search over `calls` edges).
+    pub fn find_hot_paths(
+        &self,
+        ctx: &RequestContext,
+        request: &HotPathsQuery,
+    ) -> CodeResult<Vec<HotPath>> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        if request.max_results == 0 || request.max_results > 100 {
+            return Err(CodeError::InvalidArgument {
+                field: "max_results",
+                reason: "must be in 1..=100".into(),
+            });
+        }
+        let state = self.lock();
+        let index = self.index_for(ctx, &state, &request.repository_id, &request.revision)?;
+
+        let mut items: Vec<HotPath> = Vec::new();
+        for symbol in index
+            .symbols
+            .values()
+            .filter(|s| matches!(s.kind, SymbolKind::Function | SymbolKind::Method))
+        {
+            let direct = index
+                .incoming
+                .get(&symbol.id)
+                .map(|positions| {
+                    positions
+                        .iter()
+                        .filter(|p| index.edges[**p].kind == CodeEdgeKind::Calls)
+                        .count() as u32
+                })
+                .unwrap_or(0);
+            let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+            let mut frontier: Vec<String> = Vec::new();
+            if let Some(positions) = index.incoming.get(&symbol.id) {
+                for position in positions {
+                    if index.edges[*position].kind == CodeEdgeKind::Calls {
+                        frontier.push(index.edges[*position].source.clone());
+                    }
+                }
+            }
+            while let Some(current) = frontier.pop() {
+                if !seen.insert(current.clone()) {
+                    continue;
+                }
+                if let Some(positions) = index.incoming.get(&current) {
+                    for position in positions {
+                        if index.edges[*position].kind == CodeEdgeKind::Calls {
+                            frontier.push(index.edges[*position].source.clone());
+                        }
+                    }
+                }
+            }
+            seen.remove(&symbol.id);
+            let transitive = seen.len() as u32;
+            if (transitive > 0 || direct > 0) && self.authorizer.check_symbol(ctx, symbol).is_ok() {
+                items.push(HotPath {
+                    symbol_id: symbol.id.clone(),
+                    name: symbol.name.clone(),
+                    transitive_caller_count: transitive,
+                    direct_caller_count: direct,
+                });
+            }
+        }
+        items.sort_by(|left, right| {
+            right
+                .transitive_caller_count
+                .cmp(&left.transitive_caller_count)
+                .then(left.symbol_id.cmp(&right.symbol_id))
+        });
+        items.truncate(request.max_results as usize);
+        Ok(items)
+    }
+
+    /// `code.find_dead_imports`: an import is dead when no reference,
+    /// dependency or implementation edge from the importing file names a
+    /// symbol whose qualified name contains the imported module's last
+    /// segment (documented heuristic, ADR-058).
+    pub fn find_dead_imports(
+        &self,
+        ctx: &RequestContext,
+        request: &DeadImportsQuery,
+    ) -> CodeResult<Page<DeadImport>> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        request.page.validate()?;
+        let state = self.lock();
+        let index = self.index_for(ctx, &state, &request.repository_id, &request.revision)?;
+
+        let mut items: Vec<DeadImport> = Vec::new();
+        for (position, edge) in index.edges.iter().enumerate() {
+            if edge.kind != CodeEdgeKind::Imports {
+                continue;
+            }
+            let Some(target) = &edge.target else {
+                continue;
+            };
+            let segment = target.rsplit(['/', ':']).next().unwrap_or(target);
+            let Some(source_symbol) = index.symbols.get(&edge.source) else {
+                continue;
+            };
+            let source_path = path_of(&source_symbol.definition);
+            let mut used = false;
+            for (other_position, other) in index.edges.iter().enumerate() {
+                if other_position == position
+                    || !matches!(
+                        other.kind,
+                        CodeEdgeKind::References
+                            | CodeEdgeKind::DependsOn
+                            | CodeEdgeKind::Implements
+                    )
+                {
+                    continue;
+                }
+                let Some(other_source) = index.symbols.get(&other.source) else {
+                    continue;
+                };
+                if path_of(&other_source.definition) != source_path {
+                    continue;
+                }
+                if let Some(other_target) =
+                    other.target.as_ref().and_then(|id| index.symbols.get(id))
+                {
+                    let haystack = format!("{} {}", other_target.name, other_target.qualified_name)
+                        .to_ascii_lowercase();
+                    if haystack.contains(&segment.to_ascii_lowercase()) {
+                        used = true;
+                        break;
+                    }
+                }
+            }
+            if !used && self.authorizer.check_path(ctx, source_path).is_ok() {
+                items.push(DeadImport {
+                    importer_file: source_path.to_string(),
+                    target: target.clone(),
+                    edge_id: format!("edge-{position}"),
+                });
+            }
+        }
+        items.sort_by(|left, right| {
+            left.importer_file
+                .cmp(&right.importer_file)
+                .then(left.edge_id.cmp(&right.edge_id))
+        });
+        Page::of(items, &request.page)
+    }
+
+    /// `code.get_module_summary`: per-directory grouping of the symbol set.
+    pub fn get_module_summary(
+        &self,
+        ctx: &RequestContext,
+        request: &ModuleSummaryQuery,
+    ) -> CodeResult<Page<ModuleSummary>> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        request.page.validate()?;
+        let state = self.lock();
+        let index = self.index_for(ctx, &state, &request.repository_id, &request.revision)?;
+
+        let mut grouped: std::collections::BTreeMap<String, Vec<&Symbol>> = BTreeMap::new();
+        for symbol in index.symbols.values() {
+            let path = path_of(&symbol.definition);
+            let module = module_directory(path);
+            if let Some(prefix) = &request.path_prefix {
+                if !module.starts_with(prefix) && path != prefix {
+                    continue;
+                }
+            }
+            grouped.entry(module).or_default().push(symbol);
+        }
+
+        let mut items: Vec<ModuleSummary> = Vec::new();
+        for (module, symbols) in &grouped {
+            let mut files: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+            let mut languages: std::collections::BTreeMap<String, u32> = BTreeMap::new();
+            let mut function_count = 0u32;
+            let mut reports: Vec<ComplexityReport> = Vec::new();
+            for symbol in symbols.iter() {
+                files.insert(path_of(&symbol.definition).to_string());
+                *languages.entry(symbol.language.clone()).or_default() += 1;
+                if matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method) {
+                    function_count += 1;
+                    let body = slice_lines(
+                        index
+                            .sources
+                            .get(path_of(&symbol.definition))
+                            .map(String::as_str)
+                            .unwrap_or_default(),
+                        symbol.definition.line_start,
+                        symbol.definition.line_end,
+                    );
+                    reports.push(complexity_report(symbol, &body));
+                }
+            }
+            reports.sort_by_key(|report| std::cmp::Reverse(report.cyclomatic));
+            reports.truncate(5);
+            if self.authorizer.check_path(ctx, module).is_err() {
+                continue;
+            }
+            items.push(ModuleSummary {
+                module: module.clone(),
+                file_count: files.len() as u32,
+                symbol_count: symbols.len() as u32,
+                function_count,
+                languages: languages
+                    .into_iter()
+                    .map(|(language, count)| crate::domain::LanguageCount { language, count })
+                    .collect(),
+                top_complex_functions: reports,
+            });
+        }
+        Page::of(items, &request.page)
+    }
+
+    /// `code.search_by_pattern`: regex search over names, signatures, bodies
+    /// and doc comments (first hit per field, documented).
+    pub fn search_by_pattern(
+        &self,
+        ctx: &RequestContext,
+        request: &PatternSearchQuery,
+    ) -> CodeResult<Page<PatternMatch>> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        request.page.validate()?;
+        let regex =
+            regex::Regex::new(&request.pattern).map_err(|_| CodeError::InvalidArgument {
+                field: "pattern",
+                reason: "invalid regex".into(),
+            })?;
+        let state = self.lock();
+        let index = self.index_for(ctx, &state, &request.repository_id, &request.revision)?;
+
+        let want =
+            |scope: PatternScope, field: PatternScope| scope == PatternScope::All || scope == field;
+
+        let mut items: Vec<PatternMatch> = Vec::new();
+        for symbol in index.symbols_in_path_order() {
+            if self.authorizer.check_symbol(ctx, symbol).is_err() {
+                continue;
+            }
+            if want(request.scope, PatternScope::Name) && regex.is_match(&symbol.name) {
+                items.push(PatternMatch {
+                    symbol_id: symbol.id.clone(),
+                    name: symbol.name.clone(),
+                    matched_field: "name".to_string(),
+                    line: 0,
+                    snippet: symbol.name.clone(),
+                });
+            }
+            if want(request.scope, PatternScope::Signature) {
+                if let Some(signature) = &symbol.signature {
+                    if let Some(position) = regex.find(signature) {
+                        let line = symbol.definition.line_start
+                            + signature[..position.start()].lines().count() as u32;
+                        items.push(PatternMatch {
+                            symbol_id: symbol.id.clone(),
+                            name: symbol.name.clone(),
+                            matched_field: "signature".to_string(),
+                            line,
+                            snippet: signature
+                                .split_whitespace()
+                                .take(8)
+                                .collect::<Vec<_>>()
+                                .join(" "),
+                        });
+                    }
+                }
+            }
+            let body = slice_lines(
+                index
+                    .sources
+                    .get(path_of(&symbol.definition))
+                    .map(String::as_str)
+                    .unwrap_or_default(),
+                symbol.definition.line_start,
+                symbol.definition.line_end,
+            );
+            if want(request.scope, PatternScope::Body) {
+                for (offset, line) in body.lines().enumerate() {
+                    if regex.is_match(line) {
+                        items.push(PatternMatch {
+                            symbol_id: symbol.id.clone(),
+                            name: symbol.name.clone(),
+                            matched_field: "body".to_string(),
+                            line: symbol.definition.line_start + offset as u32,
+                            snippet: line.trim().chars().take(120).collect(),
+                        });
+                        break;
+                    }
+                }
+            }
+            if want(request.scope, PatternScope::Doc) {
+                for (offset, line) in body.lines().enumerate() {
+                    let trimmed = line.trim_start();
+                    let is_doc = trimmed.starts_with("///")
+                        || trimmed.starts_with("//!")
+                        || trimmed.starts_with("#")
+                        || trimmed.starts_with("*")
+                        || trimmed.starts_with("<!--");
+                    if is_doc && regex.is_match(trimmed) {
+                        items.push(PatternMatch {
+                            symbol_id: symbol.id.clone(),
+                            name: symbol.name.clone(),
+                            matched_field: "doc".to_string(),
+                            line: symbol.definition.line_start + offset as u32,
+                            snippet: trimmed.chars().take(120).collect(),
+                        });
+                        break;
+                    }
+                }
+            }
+        }
+        Page::of(items, &request.page)
+    }
+
+    /// `code.search_by_error`: keyword scan of function bodies for error
+    /// raising / catching / handling sites (documented heuristic, ADR-058).
+    pub fn search_by_error(
+        &self,
+        ctx: &RequestContext,
+        request: &ErrorSearchQuery,
+    ) -> CodeResult<Page<ErrorMatch>> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        request.page.validate()?;
+        let state = self.lock();
+        let index = self.index_for(ctx, &state, &request.repository_id, &request.revision)?;
+
+        let mut items: Vec<ErrorMatch> = Vec::new();
+        for symbol in index
+            .symbols
+            .values()
+            .filter(|s| matches!(s.kind, SymbolKind::Function | SymbolKind::Method))
+        {
+            let body = slice_lines(
+                index
+                    .sources
+                    .get(path_of(&symbol.definition))
+                    .map(String::as_str)
+                    .unwrap_or_default(),
+                symbol.definition.line_start,
+                symbol.definition.line_end,
+            );
+            for (offset, line) in body.lines().enumerate() {
+                let lower = line.to_ascii_lowercase();
+                let line_number = symbol.definition.line_start + offset as u32;
+                for (keyword, role) in [
+                    ("throw", "throws"),
+                    ("raise", "throws"),
+                    ("panic", "throws"),
+                ] {
+                    if let Some(position) = lower.find(keyword) {
+                        let rest = line[position + keyword.len()..]
+                            .trim_start()
+                            .chars()
+                            .take_while(|c| c.is_alphanumeric() || *c == '_' || *c == '.')
+                            .collect::<String>();
+                        if request.error_types.is_empty()
+                            || request
+                                .error_types
+                                .iter()
+                                .any(|t| lower.contains(&t.to_ascii_lowercase()))
+                        {
+                            items.push(ErrorMatch {
+                                symbol_id: symbol.id.clone(),
+                                role: role.to_string(),
+                                matched: if rest.is_empty() {
+                                    keyword.to_string()
+                                } else {
+                                    rest
+                                },
+                                line: line_number,
+                            });
+                        }
+                        break;
+                    }
+                }
+                for (keyword, role) in [
+                    ("catch", "catches"),
+                    ("except", "catches"),
+                    ("rescue", "catches"),
+                ] {
+                    if lower.contains(keyword) {
+                        if request.error_types.is_empty()
+                            || request
+                                .error_types
+                                .iter()
+                                .any(|t| lower.contains(&t.to_ascii_lowercase()))
+                        {
+                            items.push(ErrorMatch {
+                                symbol_id: symbol.id.clone(),
+                                role: role.to_string(),
+                                matched: keyword.to_string(),
+                                line: line_number,
+                            });
+                        }
+                        break;
+                    }
+                }
+                if (lower.contains("recover") || lower.trim_start().starts_with('?'))
+                    && (request.error_types.is_empty()
+                        || request
+                            .error_types
+                            .iter()
+                            .any(|t| lower.contains(&t.to_ascii_lowercase())))
+                {
+                    items.push(ErrorMatch {
+                        symbol_id: symbol.id.clone(),
+                        role: "handles".to_string(),
+                        matched: "recover".to_string(),
+                        line: line_number,
+                    });
+                }
+            }
+        }
+        items.sort_by(|left, right| {
+            left.symbol_id
+                .cmp(&right.symbol_id)
+                .then(left.line.cmp(&right.line))
+                .then(left.matched.cmp(&right.matched))
+        });
+        Page::of(items, &request.page)
+    }
+
+    /// `code.find_by_signature`: signature-shape search (top-level parameter
+    /// count, return type substring, modifier keywords — documented
+    /// heuristic, ADR-058).
+    pub fn find_by_signature(
+        &self,
+        ctx: &RequestContext,
+        request: &SignatureQuery,
+    ) -> CodeResult<Page<Symbol>> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        request.page.validate()?;
+        let state = self.lock();
+        let index = self.index_for(ctx, &state, &request.repository_id, &request.revision)?;
+
+        let mut items: Vec<Symbol> = Vec::new();
+        for symbol in index.symbols_in_path_order() {
+            let Some(signature) = &symbol.signature else {
+                continue;
+            };
+            let (param_count, return_type) = signature_shape(signature);
+            if let Some(wanted) = request.param_count {
+                if param_count != wanted {
+                    continue;
+                }
+            }
+            if let Some(wanted) = &request.return_type {
+                if !return_type
+                    .to_ascii_lowercase()
+                    .contains(&wanted.to_ascii_lowercase())
+                {
+                    continue;
+                }
+            }
+            let lower = signature.to_ascii_lowercase();
+            if request.modifiers.iter().any(|modifier| {
+                !lower
+                    .split(|c: char| !c.is_alphanumeric())
+                    .any(|word| word == modifier.to_ascii_lowercase().as_str())
+            }) {
+                continue;
+            }
+            if self.authorizer.check_symbol(ctx, symbol).is_err() {
+                continue;
+            }
+            items.push(symbol.clone());
+        }
+        Page::of(items, &request.page)
+    }
+
+    /// `code.find_entry_points`: `main` functions, tests, and functions with
+    /// zero incoming `calls` edges (documented heuristic, ADR-058).
+    pub fn find_entry_points(
+        &self,
+        ctx: &RequestContext,
+        request: &EntryPointsQuery,
+    ) -> CodeResult<Page<EntryPoint>> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        request.page.validate()?;
+        let state = self.lock();
+        let index = self.index_for(ctx, &state, &request.repository_id, &request.revision)?;
+
+        let mut items: Vec<EntryPoint> = Vec::new();
+        for symbol in index
+            .symbols
+            .values()
+            .filter(|s| matches!(s.kind, SymbolKind::Function | SymbolKind::Method))
+        {
+            let kind = if is_main_function(symbol) {
+                "main"
+            } else if looks_like_test(symbol) {
+                "test"
+            } else {
+                let has_callers = index
+                    .incoming
+                    .get(&symbol.id)
+                    .map(|positions| {
+                        positions
+                            .iter()
+                            .any(|p| index.edges[*p].kind == CodeEdgeKind::Calls)
+                    })
+                    .unwrap_or(false);
+                if has_callers {
+                    continue;
+                }
+                "root_callable"
+            };
+            let _ = self.authorizer.check_symbol(ctx, symbol);
+            items.push(EntryPoint {
+                symbol_id: symbol.id.clone(),
+                name: symbol.name.clone(),
+                kind: kind.to_string(),
+                language: symbol.language.clone(),
+            });
+        }
+        items.sort_by(|left, right| left.symbol_id.cmp(&right.symbol_id));
+        Page::of(items, &request.page)
+    }
+
+    /// `code.find_related_tests`: tests that reference, import, or share a
+    /// name with the target symbol.
+    pub fn find_related_tests(
+        &self,
+        ctx: &RequestContext,
+        request: &RelatedTestsQuery,
+    ) -> CodeResult<Page<RelatedTest>> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        request.page.validate()?;
+        let state = self.lock();
+        let index = self.index_for(ctx, &state, &request.repository_id, &request.revision)?;
+
+        let target = index
+            .symbols
+            .get(&request.symbol_id)
+            .ok_or_else(|| CodeError::NotFound {
+                resource: format!("symbol {}", request.symbol_id),
+            })?;
+        self.authorizer.check_symbol(ctx, target)?;
+
+        let target_name = target.name.to_ascii_lowercase();
+        let mut items: Vec<RelatedTest> = Vec::new();
+        for test in index.symbols.values().filter(|s| looks_like_test(s)) {
+            let mut evidence: Vec<String> = Vec::new();
+            for (position, edge) in index.edges.iter().enumerate() {
+                if !matches!(
+                    edge.kind,
+                    CodeEdgeKind::References | CodeEdgeKind::DependsOn
+                ) || edge.target.as_deref() != Some(&request.symbol_id)
+                {
+                    continue;
+                }
+                let Some(source) = index.symbols.get(&edge.source) else {
+                    continue;
+                };
+                if looks_like_test(source) {
+                    evidence.push(format!(
+                        "edge-{position}: {} references target",
+                        source.name
+                    ));
+                }
+            }
+            if test.name.to_ascii_lowercase().contains(&target_name)
+                || test
+                    .qualified_name
+                    .to_ascii_lowercase()
+                    .contains(&target_name)
+            {
+                evidence.push("name match".to_string());
+            }
+            if path_of(&test.definition) == path_of(&target.definition) {
+                evidence.push("same file".to_string());
+            }
+            if evidence.is_empty() {
+                continue;
+            }
+            let _ = self.authorizer.check_symbol(ctx, test);
+            items.push(RelatedTest {
+                symbol_id: test.id.clone(),
+                name: test.name.clone(),
+                evidence,
+            });
+        }
+        items.sort_by(|left, right| left.symbol_id.cmp(&right.symbol_id));
+        Page::of(items, &request.page)
+    }
+
+    /// `code.index_files`: partial indexing — extend a base revision with a
+    /// small set of files, content-addressed into a new dirty revision
+    /// (synchronous; the in-memory adapter makes no durability claim).
+    pub fn index_files(
+        &self,
+        ctx: &RequestContext,
+        request: &IndexFiles,
+    ) -> CodeResult<IndexedRevision> {
+        self.authorizer.require_scope(ctx, SCOPE_INDEX)?;
+        if request.files.is_empty() {
+            return Err(CodeError::InvalidArgument {
+                field: "files",
+                reason: "must name at least one file".into(),
+            });
+        }
+        if request.parser_profile.trim().is_empty() {
+            return Err(CodeError::InvalidArgument {
+                field: "parser_profile",
+                reason: "must be non-empty".into(),
+            });
+        }
+        for file in &request.files {
+            validate_file_path(&file.path)?;
+        }
+        let base = {
+            let state = self.lock();
+            self.index_for(ctx, &state, &request.repository_id, &request.base_revision)?
+                .clone()
+        };
+
+        // Parse every file first: a failure must not leave a half-built index.
+        let mut parsed_files: Vec<(IndexFile, ParsedSource)> = Vec::new();
+        for file in &request.files {
+            let snapshot_file = SourceFile::new(&file.path, &file.content);
+            let language =
+                snapshot_file
+                    .language()
+                    .ok_or_else(|| CodeError::CapabilityUnavailable {
+                        language: format!(
+                            "unknown (no recognized source file {path})",
+                            path = file.path
+                        ),
+                    })?;
+            if self.parser.support(&language) != SupportLevel::Ported {
+                return Err(CodeError::CapabilityUnavailable { language });
+            }
+            let parsed = self.parser.parse(&file.path, &language, &file.content)?;
+            parsed_files.push((file.clone(), parsed));
+        }
+
+        // Content-addressed id: sha256(base id || path/content pairs), hex40.
+        let mut hasher = Sha256::new();
+        hasher.update(base.commit_sha.as_bytes());
+        for (file, _) in &parsed_files {
+            hasher.update(file.path.as_bytes());
+            hasher.update([0]);
+            hasher.update(file.content.as_bytes());
+            hasher.update([0]);
+        }
+        let new_id: String = hasher
+            .finalize()
+            .iter()
+            .take(20)
+            .map(|byte| format!("{byte:02x}"))
+            .collect();
+
+        let mut index = base;
+        index.commit_sha = new_id.clone();
+
+        // Replace the touched files: drop their old symbols and edges.
+        for (file, _) in &parsed_files {
+            index
+                .symbols
+                .retain(|_, symbol| path_of(&symbol.definition) != file.path);
+            index.edges.retain(|edge| {
+                let source_path = index
+                    .symbols
+                    .get(&edge.source)
+                    .map(|s| path_of(&s.definition));
+                let target_path = edge
+                    .target
+                    .as_ref()
+                    .and_then(|id| index.symbols.get(id).map(|s| path_of(&s.definition)));
+                source_path != Some(file.path.as_str()) && target_path != Some(file.path.as_str())
+            });
+        }
+
+        let repo_revision = RepoRevision {
+            repository_id: request.repository_id.clone(),
+            vcs: "git".to_string(),
+            commit_sha: new_id.clone(),
+            tree_sha: None,
+            dirty_policy: DirtyPolicy::Reject,
+        };
+        for (file, parsed) in &parsed_files {
+            index_parsed(&repo_revision, parsed, &mut index.symbols, &mut index.edges);
+            index
+                .sources
+                .insert(file.path.clone(), file.content.clone());
+        }
+        index.manifest = CodeAnalysisManifest {
+            repository_id: request.repository_id.clone(),
+            commit_sha: new_id.clone(),
+            parser_profile: request.parser_profile.clone(),
+            indexed_files: index.sources.len() as u64,
+            skipped_files: 0,
+            diagnostics: Vec::new(),
+            graph_generation: String::new(),
+        };
+        index.rebuild_adjacency();
+
+        let mut state = self.lock();
+        let key = RevisionKey::new(&ctx.scope, &request.repository_id, &new_id);
+        let generation = key.generation(state.next_sequence());
+        index.generation = generation.clone();
+        index.manifest.graph_generation = generation.clone();
+        state.revisions.insert(key.label(), index.clone());
+        state.latest.insert(
+            repository_latest_key(&ctx.scope, &request.repository_id),
+            new_id.clone(),
+        );
+        state.generation.publish(&generation);
+        Ok(IndexedRevision {
+            revision: new_id,
+            base_revision: request.base_revision.clone(),
+            indexed_files: request.files.len() as u32,
+            total_files: index.sources.len() as u32,
+            dirty: true,
+        })
+    }
+
+    /// `code.pr_context`: one-call review — diff + blast radius + test gaps
+    /// + complexity, in markdown or structured form.
+    pub fn pr_context(
+        &self,
+        ctx: &RequestContext,
+        request: &PrContextQuery,
+    ) -> CodeResult<PrContextReport> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        check_bounds(request.max_depth, request.max_nodes)?;
+        let state = self.lock();
+        let from = self.index_for(ctx, &state, &request.repository_id, &request.base_revision)?;
+        let to = self.index_for(ctx, &state, &request.repository_id, &request.head_revision)?;
+
+        let (changed, signature_changes, body_changes) = symbol_diff_ids(from, to);
+
+        // Blast radius: BFS over incoming edges per changed symbol.
+        let mut impacted: Vec<(u32, String)> = Vec::new();
+        for symbol_id in &changed {
+            if !to.symbols.contains_key(symbol_id) {
+                continue;
+            }
+            let mut depth = 1u32;
+            let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+            let mut frontier: Vec<String> = Vec::new();
+            if let Some(positions) = to.incoming.get(symbol_id) {
+                for position in positions {
+                    if matches!(
+                        to.edges[*position].kind,
+                        CodeEdgeKind::Calls
+                            | CodeEdgeKind::References
+                            | CodeEdgeKind::DependsOn
+                            | CodeEdgeKind::Implements
+                    ) {
+                        frontier.push(to.edges[*position].source.clone());
+                    }
+                }
+            }
+            while depth <= request.max_depth && !frontier.is_empty() {
+                let mut next: Vec<String> = Vec::new();
+                for current in &frontier {
+                    if seen.insert(current.clone()) && impacted.len() < request.max_nodes as usize {
+                        impacted.push((depth, current.clone()));
+                    }
+                    if let Some(positions) = to.incoming.get(current) {
+                        for position in positions {
+                            if matches!(
+                                to.edges[*position].kind,
+                                CodeEdgeKind::Calls
+                                    | CodeEdgeKind::References
+                                    | CodeEdgeKind::DependsOn
+                                    | CodeEdgeKind::Implements
+                            ) {
+                                next.push(to.edges[*position].source.clone());
+                            }
+                        }
+                    }
+                }
+                frontier = next;
+                depth += 1;
+            }
+        }
+        impacted.sort_by(|left, right| left.0.cmp(&right.0).then(left.1.cmp(&right.1)));
+        let impacted_ids: Vec<String> = impacted.iter().map(|(_, id)| id.clone()).collect();
+
+        // Test gaps: changed symbols without a related test candidate.
+        let mut test_gaps: Vec<String> = Vec::new();
+        for symbol_id in &changed {
+            let target = to.symbols.get(symbol_id).cloned();
+            let Some(target) = target else {
+                test_gaps.push(symbol_id.clone());
+                continue;
+            };
+            let target_name = target.name.to_ascii_lowercase();
+            let mut covered = false;
+            for test in to.symbols.values().filter(|s| looks_like_test(s)) {
+                if test.name.to_ascii_lowercase().contains(&target_name)
+                    || test
+                        .qualified_name
+                        .to_ascii_lowercase()
+                        .contains(&target_name)
+                    || path_of(&test.definition) == path_of(&target.definition)
+                {
+                    covered = true;
+                    break;
+                }
+            }
+            if !covered {
+                test_gaps.push(symbol_id.clone());
+            }
+        }
+
+        // Complexity of the changed functions (in the head revision).
+        let mut complexity: Vec<ComplexityReport> = Vec::new();
+        for symbol_id in &changed {
+            if let Some(symbol) = to.symbols.get(symbol_id) {
+                if matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method) {
+                    let body = slice_lines(
+                        to.sources
+                            .get(path_of(&symbol.definition))
+                            .map(String::as_str)
+                            .unwrap_or_default(),
+                        symbol.definition.line_start,
+                        symbol.definition.line_end,
+                    );
+                    complexity.push(complexity_report(symbol, &body));
+                }
+            }
+        }
+
+        let summary = if request.format == PrContextFormat::Markdown {
+            render_pr_markdown(
+                &request.base_revision,
+                &request.head_revision,
+                &changed,
+                &impacted_ids,
+                &test_gaps,
+                &signature_changes,
+            )
+        } else {
+            String::new()
+        };
+
+        Ok(PrContextReport {
+            summary,
+            changed: changed.clone(),
+            impacted: impacted_ids,
+            test_gaps,
+            complexity,
+            signature_changes,
+            body_changes,
+        })
     }
 }
 
@@ -1587,6 +2969,377 @@ fn looks_like_test(symbol: &Symbol) -> bool {
         || name.starts_with("test_")
         || name.starts_with("test")
         || symbol.qualified_name.contains("::tests::")
+}
+
+/// The directory (module) a file path belongs to; root files map to `""`.
+fn module_directory(path: &str) -> String {
+    path.rsplit_once('/')
+        .map(|(prefix, _)| prefix)
+        .filter(|prefix| !prefix.is_empty())
+        .unwrap_or("")
+        .to_string()
+}
+
+/// `main` entry point (documented heuristic, ADR-058).
+fn is_main_function(symbol: &Symbol) -> bool {
+    let name = symbol.name.to_ascii_lowercase();
+    let qualified = symbol.qualified_name.to_ascii_lowercase();
+    name == "main" || qualified.ends_with(".main") || qualified.ends_with("::main")
+}
+
+/// Max brace/paren depth of a source slice (nesting heuristic).
+fn max_brace_depth(text: &str) -> usize {
+    let mut max = 0usize;
+    let mut depth = 0usize;
+    for ch in text.chars() {
+        match ch {
+            '{' | '(' | '[' => depth += 1,
+            '}' | ')' | ']' => depth = depth.saturating_sub(1),
+            _ => {}
+        }
+        max = max.max(depth);
+    }
+    max
+}
+
+/// Keyword-based cyclomatic complexity with breakdown (registered heuristic,
+/// ADR-058).
+fn complexity_report(symbol: &Symbol, body: &str) -> ComplexityReport {
+    let lower = body.to_ascii_lowercase();
+    let words: Vec<&str> = lower
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|word| !word.is_empty())
+        .collect();
+    let count =
+        |word: &str| -> u32 { words.iter().filter(|candidate| **candidate == word).count() as u32 };
+    let branches = count("if")
+        + count("elif")
+        + count("else")
+        + count("match")
+        + count("switch")
+        + count("case")
+        + count("when");
+    let loops = count("for") + count("while") + count("do") + count("loop") + count("foreach");
+    let exceptions = count("try")
+        + count("catch")
+        + count("except")
+        + count("panic")
+        + count("raise")
+        + count("throw")
+        + count("recover");
+    let early_returns = count("return");
+    let nesting = max_brace_depth(body) as u32;
+    let cyclomatic = 1u32.saturating_add(branches).saturating_add(loops);
+    let verdict = if cyclomatic <= 10 {
+        "low"
+    } else if cyclomatic <= 20 {
+        "moderate"
+    } else {
+        "high"
+    };
+    ComplexityReport {
+        symbol_id: symbol.id.clone(),
+        name: symbol.name.clone(),
+        cyclomatic,
+        branches,
+        loops,
+        nesting,
+        exceptions,
+        early_returns,
+        verdict: verdict.to_string(),
+    }
+}
+
+/// Up to `max` names of the incoming edges of `kind`.
+fn incoming_names(
+    index: &RevisionIndex,
+    symbol_id: &str,
+    kind: CodeEdgeKind,
+    max: usize,
+) -> Vec<String> {
+    let mut names: Vec<String> = Vec::new();
+    if let Some(positions) = index.incoming.get(symbol_id) {
+        for position in positions {
+            if index.edges[*position].kind != kind {
+                continue;
+            }
+            if let Some(source) = index.symbols.get(&index.edges[*position].source) {
+                names.push(source.name.clone());
+                if names.len() >= max {
+                    break;
+                }
+            }
+        }
+    }
+    names
+}
+
+/// Join with ", " or a fallback for the empty list.
+fn join_or(fallback: &str, items: &[String]) -> String {
+    if items.is_empty() {
+        fallback.to_string()
+    } else {
+        items.join(", ")
+    }
+}
+
+/// Error-handling hints of a function body (documented heuristic).
+fn error_hints_of(body: &str) -> Vec<String> {
+    let mut hints: Vec<String> = Vec::new();
+    for line in body.lines() {
+        let lower = line.to_ascii_lowercase();
+        for keyword in ["panic", "throw", "raise", "except", "catch"] {
+            if let Some(position) = lower.find(keyword) {
+                let rest = line[position + keyword.len()..].trim_start();
+                let name: String = rest
+                    .chars()
+                    .take_while(|c| c.is_alphanumeric() || *c == '_')
+                    .collect();
+                hints.push(if name.is_empty() {
+                    format!("{keyword} site")
+                } else {
+                    format!("{keyword} {name}")
+                });
+                break;
+            }
+        }
+    }
+    hints.dedup();
+    hints
+}
+
+/// Up to `max` names of tests related to a symbol (name/file heuristic).
+fn related_test_names(index: &RevisionIndex, symbol_id: &str, max: usize) -> Vec<String> {
+    let mut names: Vec<String> = Vec::new();
+    if let Some(target) = index.symbols.get(symbol_id) {
+        let target_name = target.name.to_ascii_lowercase();
+        for test in index.symbols.values().filter(|s| looks_like_test(s)) {
+            if test.name.to_ascii_lowercase().contains(&target_name)
+                || test
+                    .qualified_name
+                    .to_ascii_lowercase()
+                    .contains(&target_name)
+                || path_of(&test.definition) == path_of(&target.definition)
+            {
+                names.push(test.name.clone());
+                if names.len() >= max {
+                    break;
+                }
+            }
+        }
+    }
+    names
+}
+
+/// `(top-level parameter count, return type text)` of a declaration
+/// signature (documented heuristic, ADR-058).
+fn signature_shape(signature: &str) -> (u32, String) {
+    let open = signature.find('(');
+    let close = signature.rfind(')');
+    match (open, close) {
+        (Some(open), Some(close)) if close > open => {
+            let inner = &signature[open + 1..close];
+            let mut params = 0u32;
+            let mut depth = 0usize;
+            let mut started = false;
+            for ch in inner.chars() {
+                match ch {
+                    '(' | '[' | '{' => depth += 1,
+                    ')' | ']' | '}' => depth = depth.saturating_sub(1),
+                    ',' if depth == 0 => {
+                        params += 1;
+                        started = false;
+                    }
+                    c if c.is_alphanumeric() => started = true,
+                    _ => {}
+                }
+            }
+            if started {
+                params += 1;
+            }
+            let rest = signature[close + 1..].trim();
+            let return_text = rest.strip_prefix("->").map(str::trim).unwrap_or(rest);
+            (params, return_text.to_string())
+        }
+        _ => (0, String::new()),
+    }
+}
+
+/// Symbol-id diff of two revision indexes: `(changed, signature_changes,
+/// body_changes)`, all sorted and deduplicated.
+fn symbol_diff_ids(
+    from: &RevisionIndex,
+    to: &RevisionIndex,
+) -> (Vec<String>, Vec<String>, Vec<String>) {
+    let key_of = |symbol: &Symbol| -> (String, String, String) {
+        (
+            path_of(&symbol.definition).to_string(),
+            symbol.qualified_name.clone(),
+            format!("{:?}", symbol.kind),
+        )
+    };
+    let from_map: BTreeMap<(String, String, String), &Symbol> =
+        from.symbols.values().map(|s| (key_of(s), s)).collect();
+    let to_map: BTreeMap<(String, String, String), &Symbol> =
+        to.symbols.values().map(|s| (key_of(s), s)).collect();
+    let mut changed: Vec<String> = Vec::new();
+    let mut signature_changes: Vec<String> = Vec::new();
+    let mut body_changes: Vec<String> = Vec::new();
+    for (key, old) in &from_map {
+        match to_map.get(key) {
+            None => changed.push(old.id.clone()),
+            Some(new) => {
+                if old.signature != new.signature || old.definition != new.definition {
+                    changed.push(new.id.clone());
+                    if old.signature != new.signature {
+                        signature_changes.push(new.id.clone());
+                    } else {
+                        body_changes.push(new.id.clone());
+                    }
+                }
+            }
+        }
+    }
+    for (key, new) in &to_map {
+        if !from_map.contains_key(key) {
+            changed.push(new.id.clone());
+        }
+    }
+    changed.sort();
+    changed.dedup();
+    signature_changes.sort();
+    signature_changes.dedup();
+    body_changes.sort();
+    body_changes.dedup();
+    (changed, signature_changes, body_changes)
+}
+
+/// Ready-to-post markdown for `pr_context`.
+fn render_pr_markdown(
+    base: &str,
+    head: &str,
+    changed: &[String],
+    impacted: &[String],
+    test_gaps: &[String],
+    signature_changes: &[String],
+) -> String {
+    let mut markdown = String::new();
+    markdown.push_str("# PR Context (UKMA)\n\n");
+    markdown.push_str(&format!("- Base: `{base}`\n"));
+    markdown.push_str(&format!("- Head: `{head}`\n"));
+    markdown.push_str(&format!("- Changed symbols: {}\n", changed.len()));
+    markdown.push_str(&format!("- Impacted symbols: {}\n\n", impacted.len()));
+    if !signature_changes.is_empty() {
+        markdown.push_str(&format!(
+            "## Signature changes\n\n{}\n\n",
+            signature_changes
+                .iter()
+                .map(|id| format!("- `{id}`"))
+                .collect::<Vec<_>>()
+                .join("\n")
+        ));
+    }
+    markdown.push_str("## Changed\n\n");
+    for id in changed.iter().take(25) {
+        markdown.push_str(&format!("- `{id}`\n"));
+    }
+    if changed.len() > 25 {
+        markdown.push_str(&format!("- … and {} more\n", changed.len() - 25));
+    }
+    markdown.push_str("\n## Impacted (blast radius)\n\n");
+    for id in impacted.iter().take(25) {
+        markdown.push_str(&format!("- `{id}`\n"));
+    }
+    if impacted.len() > 25 {
+        markdown.push_str(&format!("- … and {} more\n", impacted.len() - 25));
+    }
+    if test_gaps.is_empty() {
+        markdown
+            .push_str("\n## Test coverage\n\nAll changed symbols have a related test candidate.\n");
+    } else {
+        markdown.push_str("\n## Test gaps\n\n");
+        for id in test_gaps {
+            markdown.push_str(&format!("- `{id}`\n"));
+        }
+    }
+    markdown
+}
+
+/// Validate a repo-relative file path (no `..`, no leading `/`).
+fn validate_file_path(path: &str) -> CodeResult<()> {
+    if path.trim().is_empty() {
+        return Err(CodeError::InvalidArgument {
+            field: "files.path",
+            reason: "must be non-empty".into(),
+        });
+    }
+    if path.starts_with('/') {
+        return Err(CodeError::InvalidArgument {
+            field: "files.path",
+            reason: "must be repo-relative".into(),
+        });
+    }
+    if path.split('/').any(|segment| segment == "..") {
+        return Err(CodeError::InvalidArgument {
+            field: "files.path",
+            reason: "must not contain `..` segments".into(),
+        });
+    }
+    Ok(())
+}
+
+/// DFS cycle detection: every back edge found on the search stack is
+/// recorded as a canonicalised cycle (lexicographically smallest first).
+fn visit_cycles(
+    root: &str,
+    graph: &BTreeMap<String, Vec<String>>,
+    stack: &mut Vec<String>,
+    visited: &mut std::collections::BTreeSet<String>,
+    found: &mut Vec<Vec<String>>,
+) {
+    let mut on_stack: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    visited.insert(root.to_string());
+    on_stack.insert(root.to_string());
+    stack.push(root.to_string());
+    loop {
+        let node = stack.last().expect("stack is non-empty").clone();
+        let neighbours = graph.get(&node).cloned().unwrap_or_default();
+        let mut descended = false;
+        for neighbour in neighbours {
+            if on_stack.contains(&neighbour) {
+                let position = stack
+                    .iter()
+                    .position(|item| item == &neighbour)
+                    .expect("back-edge target is on the stack");
+                let cycle: Vec<String> = stack[position..].to_vec();
+                let smallest = cycle.iter().min().expect("cycle is non-empty").clone();
+                let offset = cycle
+                    .iter()
+                    .position(|item| item == &smallest)
+                    .expect("smallest is in the cycle");
+                let mut rotated: Vec<String> = cycle[offset..].to_vec();
+                rotated.extend(cycle[..offset].iter().cloned());
+                if !found.contains(&rotated) {
+                    found.push(rotated);
+                }
+                continue;
+            }
+            if !visited.contains(&neighbour) {
+                visited.insert(neighbour.clone());
+                on_stack.insert(neighbour.clone());
+                stack.push(neighbour.clone());
+                descended = true;
+                break;
+            }
+        }
+        if !descended {
+            on_stack.remove(&node);
+            stack.pop();
+            if stack.is_empty() {
+                return;
+            }
+        }
+    }
 }
 
 /// §32.3 version-scoped symbol identity.

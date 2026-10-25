@@ -254,7 +254,10 @@ mod tests {
     fn the_in_process_transport_reaches_the_gateway() {
         let client = Client::new(InProcess::new(default_gateway()));
         let capabilities = client.capabilities(&context()).unwrap();
-        assert_eq!(capabilities["domain_operations"], 65);
+        assert_eq!(
+            capabilities["domain_operations"],
+            crate::manifest::DOMAIN_OPERATION_COUNT
+        );
         assert_eq!(capabilities["system_operations"], 4);
     }
 

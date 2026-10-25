@@ -71,7 +71,50 @@ export type OperationId =
   | 'system.capabilities' |
   | 'system.get_operation' |
   | 'system.get_job' |
-  | 'system.cancel_job';
+  | 'system.cancel_job' |
+  | 'code.get_ai_context' |
+  | 'code.get_curated_context' |
+  | 'code.analyze_complexity' |
+  | 'code.find_circular_deps' |
+  | 'code.find_hot_paths' |
+  | 'code.find_dead_imports' |
+  | 'code.get_module_summary' |
+  | 'code.search_by_pattern' |
+  | 'code.search_by_error' |
+  | 'code.find_by_signature' |
+  | 'code.find_entry_points' |
+  | 'code.find_related_tests' |
+  | 'code.index_files' |
+  | 'code.pr_context' |
+  | 'document.list_doc_sources' |
+  | 'document.generate_architecture_doc' |
+  | 'pro.analyze_coupling' |
+  | 'pro.find_unused_code' |
+  | 'pro.find_duplicates' |
+  | 'pro.find_similar' |
+  | 'pro.cluster_symbols' |
+  | 'pro.compare_symbols' |
+  | 'pro.cross_project_search' |
+  | 'pro.mine_git_history' |
+  | 'pro.mine_git_history_for_file' |
+  | 'pro.search_git_history' |
+  | 'pro.scan_security' |
+  | 'pro.security_control_flow' |
+  | 'pro.security_trace_data_flow' |
+  | 'pro.security_generate_sbom' |
+  | 'pro.security_audit_deps' |
+  | 'pro.security_check_unchecked_returns' |
+  | 'pro.security_check_resource_leaks' |
+  | 'pro.security_check_misconfig' |
+  | 'pro.security_check_input_validation' |
+  | 'pro.security_check_error_exposure' |
+  | 'pro.security_scan_iac' |
+  | 'pro.security_check_licenses' |
+  | 'pro.security_check_secrets_entropy' |
+  | 'pro.security_detect_injection' |
+  | 'pro.security_check_search_path' |
+  | 'pro.security_check_crypto' |
+  | 'pro.security_export_sarif';
 
 export interface OperationSpec {
   readonly id: OperationId;
@@ -151,4 +194,47 @@ export const OPERATIONS: readonly OperationSpec[] = [
   { id: 'system.get_operation', uri: 'ukma.system.get_operation.v1', mcp: 'ukma_system_get_operation_v1', scopes: ['system:read'], idempotency: 'not_required' },
   { id: 'system.get_job', uri: 'ukma.system.get_job.v1', mcp: 'ukma_system_get_job_v1', scopes: ['system:read'], idempotency: 'not_required' },
   { id: 'system.cancel_job', uri: 'ukma.system.cancel_job.v1', mcp: 'ukma_system_cancel_job_v1', scopes: ['system:manage'], idempotency: 'required' },
+  { id: 'code.get_ai_context', uri: 'ukma.code.get_ai_context.v1', mcp: 'ukma_code_get_ai_context_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'code.get_curated_context', uri: 'ukma.code.get_curated_context.v1', mcp: 'ukma_code_get_curated_context_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'code.analyze_complexity', uri: 'ukma.code.analyze_complexity.v1', mcp: 'ukma_code_analyze_complexity_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'code.find_circular_deps', uri: 'ukma.code.find_circular_deps.v1', mcp: 'ukma_code_find_circular_deps_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'code.find_hot_paths', uri: 'ukma.code.find_hot_paths.v1', mcp: 'ukma_code_find_hot_paths_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'code.find_dead_imports', uri: 'ukma.code.find_dead_imports.v1', mcp: 'ukma_code_find_dead_imports_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'code.get_module_summary', uri: 'ukma.code.get_module_summary.v1', mcp: 'ukma_code_get_module_summary_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'code.search_by_pattern', uri: 'ukma.code.search_by_pattern.v1', mcp: 'ukma_code_search_by_pattern_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'code.search_by_error', uri: 'ukma.code.search_by_error.v1', mcp: 'ukma_code_search_by_error_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'code.find_by_signature', uri: 'ukma.code.find_by_signature.v1', mcp: 'ukma_code_find_by_signature_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'code.find_entry_points', uri: 'ukma.code.find_entry_points.v1', mcp: 'ukma_code_find_entry_points_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'code.find_related_tests', uri: 'ukma.code.find_related_tests.v1', mcp: 'ukma_code_find_related_tests_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'code.index_files', uri: 'ukma.code.index_files.v1', mcp: 'ukma_code_index_files_v1', scopes: ['code:index'], idempotency: 'required' },
+  { id: 'code.pr_context', uri: 'ukma.code.pr_context.v1', mcp: 'ukma_code_pr_context_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'document.list_doc_sources', uri: 'ukma.document.list_doc_sources.v1', mcp: 'ukma_document_list_doc_sources_v1', scopes: ['document:read'], idempotency: 'not_required' },
+  { id: 'document.generate_architecture_doc', uri: 'ukma.document.generate_architecture_doc.v1', mcp: 'ukma_document_generate_architecture_doc_v1', scopes: ['document:analyze'], idempotency: 'not_required' },
+  { id: 'pro.analyze_coupling', uri: 'ukma.pro.analyze_coupling.v1', mcp: 'ukma_pro_analyze_coupling_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.find_unused_code', uri: 'ukma.pro.find_unused_code.v1', mcp: 'ukma_pro_find_unused_code_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.find_duplicates', uri: 'ukma.pro.find_duplicates.v1', mcp: 'ukma_pro_find_duplicates_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.find_similar', uri: 'ukma.pro.find_similar.v1', mcp: 'ukma_pro_find_similar_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.cluster_symbols', uri: 'ukma.pro.cluster_symbols.v1', mcp: 'ukma_pro_cluster_symbols_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.compare_symbols', uri: 'ukma.pro.compare_symbols.v1', mcp: 'ukma_pro_compare_symbols_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.cross_project_search', uri: 'ukma.pro.cross_project_search.v1', mcp: 'ukma_pro_cross_project_search_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.mine_git_history', uri: 'ukma.pro.mine_git_history.v1', mcp: 'ukma_pro_mine_git_history_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.mine_git_history_for_file', uri: 'ukma.pro.mine_git_history_for_file.v1', mcp: 'ukma_pro_mine_git_history_for_file_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.search_git_history', uri: 'ukma.pro.search_git_history.v1', mcp: 'ukma_pro_search_git_history_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.scan_security', uri: 'ukma.pro.scan_security.v1', mcp: 'ukma_pro_scan_security_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.security_control_flow', uri: 'ukma.pro.security_control_flow.v1', mcp: 'ukma_pro_security_control_flow_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.security_trace_data_flow', uri: 'ukma.pro.security_trace_data_flow.v1', mcp: 'ukma_pro_security_trace_data_flow_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.security_generate_sbom', uri: 'ukma.pro.security_generate_sbom.v1', mcp: 'ukma_pro_security_generate_sbom_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.security_audit_deps', uri: 'ukma.pro.security_audit_deps.v1', mcp: 'ukma_pro_security_audit_deps_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.security_check_unchecked_returns', uri: 'ukma.pro.security_check_unchecked_returns.v1', mcp: 'ukma_pro_security_check_unchecked_returns_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.security_check_resource_leaks', uri: 'ukma.pro.security_check_resource_leaks.v1', mcp: 'ukma_pro_security_check_resource_leaks_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.security_check_misconfig', uri: 'ukma.pro.security_check_misconfig.v1', mcp: 'ukma_pro_security_check_misconfig_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.security_check_input_validation', uri: 'ukma.pro.security_check_input_validation.v1', mcp: 'ukma_pro_security_check_input_validation_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.security_check_error_exposure', uri: 'ukma.pro.security_check_error_exposure.v1', mcp: 'ukma_pro_security_check_error_exposure_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.security_scan_iac', uri: 'ukma.pro.security_scan_iac.v1', mcp: 'ukma_pro_security_scan_iac_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.security_check_licenses', uri: 'ukma.pro.security_check_licenses.v1', mcp: 'ukma_pro_security_check_licenses_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.security_check_secrets_entropy', uri: 'ukma.pro.security_check_secrets_entropy.v1', mcp: 'ukma_pro_security_check_secrets_entropy_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.security_detect_injection', uri: 'ukma.pro.security_detect_injection.v1', mcp: 'ukma_pro_security_detect_injection_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.security_check_search_path', uri: 'ukma.pro.security_check_search_path.v1', mcp: 'ukma_pro_security_check_search_path_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.security_check_crypto', uri: 'ukma.pro.security_check_crypto.v1', mcp: 'ukma_pro_security_check_crypto_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.security_export_sarif', uri: 'ukma.pro.security_export_sarif.v1', mcp: 'ukma_pro_security_export_sarif_v1', scopes: ['code:read'], idempotency: 'not_required' },
 ];

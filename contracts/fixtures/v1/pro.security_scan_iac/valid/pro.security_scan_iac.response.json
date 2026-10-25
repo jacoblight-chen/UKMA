@@ -1,0 +1,14 @@
+{
+  "api_version": "1",
+  "request_id": "x",
+  "trace_id": "x",
+  "status": "ok",
+  "data": {
+    "report": {
+      "findings": []
+    }
+  },
+  "warnings": [],
+  "partial_reasons": [],
+  "freshness": "current"
+}

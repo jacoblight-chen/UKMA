@@ -507,3 +507,508 @@ pub struct ReferenceLocation {
     /// Edge kind.
     pub kind: CodeEdgeKind,
 }
+
+// ---------------------------------------------------------------------------
+// Parity operations (CodeGraph gap closure, spec v1.2.3)
+//
+// These operations close the CodeGraph feature-parity gap. Their wire shapes
+// are preliminary candidates like the rest of v1; every operation is bound to
+// the same registry, scope and error-code closed set as the CAPI operations.
+// ---------------------------------------------------------------------------
+
+/// Caller intent for context assembly (`get_ai_context` parity).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ContextIntent {
+    /// Why the code is written: definitions, docs, related symbols.
+    Explain,
+    /// What a modification touches: source, callers, dependants, tests.
+    Modify,
+    /// What to inspect when it misbehaves: callers, error handling, hints.
+    Debug,
+    /// How the code is exercised: tests, references, coverage candidates.
+    Test,
+}
+
+/// Request: intent-aware context assembly (`get_ai_context` parity).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AiContextQuery {
+    /// Caller intent.
+    pub intent: ContextIntent,
+    /// Repository the request is bound to.
+    pub repository_id: String,
+    /// Revision (commit SHA or a registered alias such as `@cwd`).
+    pub revision: String,
+    /// Symbols to build the context around.
+    pub target_refs: Vec<String>,
+    /// Hard token budget.
+    pub max_tokens: u32,
+}
+
+/// One section of an [`AiContextResult`].
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AiContextSection {
+    /// Section name (`definition`, `callers`, `callees`, `imports`, `tests`,
+    /// `debug_hints`).
+    pub section: String,
+    /// Rendered content.
+    pub content: String,
+    /// Estimated tokens of the content.
+    pub token_count: u32,
+}
+
+/// Result of `get_ai_context`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct AiContextResult {
+    /// The intent the sections were selected for.
+    pub intent: ContextIntent,
+    /// Sections in assembly order, within the token budget.
+    pub sections: Vec<AiContextSection>,
+    /// Total estimated tokens across sections.
+    pub token_total: u32,
+    /// Whether the budget cut the context short.
+    pub truncated: bool,
+}
+
+/// Request: curated cross-codebase context for a natural-language query
+/// (`get_curated_context` parity).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CuratedContextQuery {
+    /// Repository the request is bound to.
+    pub repository_id: String,
+    /// Revision (commit SHA or a registered alias).
+    pub revision: String,
+    /// Natural-language query.
+    pub query: String,
+    /// Maximum matched symbols to include (1..=25).
+    pub max_results: u32,
+}
+
+/// One scored match of a curated context query.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CuratedMatch {
+    /// Matched symbol.
+    pub symbol_id: String,
+    /// Simple name.
+    pub name: String,
+    /// Symbol kind.
+    pub kind: crate::SymbolKind,
+    /// Language.
+    pub language: String,
+    /// Normalised hybrid score (0..=1, keyword + semantic).
+    pub score: f64,
+    /// A short signature or docstring snippet.
+    pub snippet: String,
+}
+
+/// Result of `get_curated_context`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CuratedContext {
+    /// The query that was answered.
+    pub query: String,
+    /// Top matches by hybrid score.
+    pub matches: Vec<CuratedMatch>,
+    /// Rendered context sections, one per match.
+    pub sections: Vec<String>,
+}
+
+/// Request: cyclomatic complexity with breakdown (`analyze_complexity` parity).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ComplexityQuery {
+    /// Repository the request is bound to.
+    pub repository_id: String,
+    /// Revision (commit SHA or a registered alias).
+    pub revision: String,
+    /// Symbols to measure; empty means every function-like symbol.
+    pub symbol_ids: Vec<String>,
+    /// Maximum reports when `symbol_ids` is empty (1..=100).
+    pub max_results: u32,
+}
+
+/// One measured function (`analyze_complexity` parity).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ComplexityReport {
+    /// Measured symbol.
+    pub symbol_id: String,
+    /// Simple name.
+    pub name: String,
+    /// Cyclomatic number: 1 + decision points.
+    pub cyclomatic: u32,
+    /// Branching constructs (if/else, conditional operators).
+    pub branches: u32,
+    /// Loop constructs (for/while/do, match arms counted as branches).
+    pub loops: u32,
+    /// Maximum nesting depth of control structures.
+    pub nesting: u32,
+    /// Exception handling constructs (try/catch/except/panic recovery).
+    pub exceptions: u32,
+    /// Early returns.
+    pub early_returns: u32,
+    /// `low` (<=10), `moderate` (11..=20) or `high` (>20).
+    pub verdict: String,
+}
+
+/// Request: circular import/dependency detection (`find_circular_deps` parity).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CircularDepsQuery {
+    /// Repository the request is bound to.
+    pub repository_id: String,
+    /// Revision (commit SHA or a registered alias).
+    pub revision: String,
+    /// Edge kinds to build the module graph from (empty means
+    /// `imports` + `depends_on`).
+    pub edge_kinds: Vec<CodeEdgeKind>,
+    /// Page.
+    pub page: PageRequest,
+}
+
+/// One detected cycle, at module (file) granularity.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CircularDependency {
+    /// Files in the cycle; the lexicographically smallest first, no repeat
+    /// of the first element at the end.
+    pub files: Vec<String>,
+    /// The edge kinds the cycle is built from.
+    pub edge_kinds: Vec<CodeEdgeKind>,
+}
+
+/// Request: most-called functions (`find_hot_paths` parity).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HotPathsQuery {
+    /// Repository the request is bound to.
+    pub repository_id: String,
+    /// Revision (commit SHA or a registered alias).
+    pub revision: String,
+    /// Maximum ranked functions (1..=100).
+    pub max_results: u32,
+}
+
+/// One ranked hot path.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HotPath {
+    /// Ranked symbol.
+    pub symbol_id: String,
+    /// Simple name.
+    pub name: String,
+    /// Number of distinct transitive callers.
+    pub transitive_caller_count: u32,
+    /// Number of direct callers.
+    pub direct_caller_count: u32,
+}
+
+/// Request: unused import detection (`find_dead_imports` parity).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DeadImportsQuery {
+    /// Repository the request is bound to.
+    pub repository_id: String,
+    /// Revision (commit SHA or a registered alias).
+    pub revision: String,
+    /// Page.
+    pub page: PageRequest,
+}
+
+/// One import with no observable use in the bound revision.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DeadImport {
+    /// Importing file.
+    pub importer_file: String,
+    /// Imported module or symbol (as recorded on the edge).
+    pub target: String,
+    /// Identity of the import edge.
+    pub edge_id: String,
+}
+
+/// Request: per-directory summary (`get_module_summary` parity).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ModuleSummaryQuery {
+    /// Repository the request is bound to.
+    pub repository_id: String,
+    /// Revision (commit SHA or a registered alias).
+    pub revision: String,
+    /// Only modules under this path prefix (empty means the root grouping).
+    pub path_prefix: Option<String>,
+    /// Page.
+    pub page: PageRequest,
+}
+
+/// One language count inside a [`ModuleSummary`].
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LanguageCount {
+    /// Language identifier.
+    pub language: String,
+    /// Symbols in that language.
+    pub count: u32,
+}
+
+/// One directory summary.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ModuleSummary {
+    /// Directory path (the module identity).
+    pub module: String,
+    /// Files in the directory.
+    pub file_count: u32,
+    /// Symbols defined in the directory.
+    pub symbol_count: u32,
+    /// Function-like symbols.
+    pub function_count: u32,
+    /// Language breakdown.
+    pub languages: Vec<LanguageCount>,
+    /// The five most complex functions of the directory.
+    pub top_complex_functions: Vec<ComplexityReport>,
+}
+
+/// Where a pattern may match (`search_by_pattern` parity).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PatternScope {
+    /// Symbol names only.
+    Name,
+    /// Signatures only.
+    Signature,
+    /// Function bodies only.
+    Body,
+    /// Doc comments only.
+    Doc,
+    /// Every field (default).
+    All,
+}
+
+/// Request: regex search over code (`search_by_pattern` parity).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PatternSearchQuery {
+    /// Repository the request is bound to.
+    pub repository_id: String,
+    /// Revision (commit SHA or a registered alias).
+    pub revision: String,
+    /// Rust regex pattern.
+    pub pattern: String,
+    /// Which fields to search.
+    pub scope: PatternScope,
+    /// Page.
+    pub page: PageRequest,
+}
+
+/// One pattern hit.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PatternMatch {
+    /// Symbol the hit belongs to.
+    pub symbol_id: String,
+    /// Simple name.
+    pub name: String,
+    /// Which field matched (`name`, `signature`, `body`, `doc`).
+    pub matched_field: String,
+    /// 1-based line of the match (0 for name matches).
+    pub line: u32,
+    /// Short snippet around the match.
+    pub snippet: String,
+}
+
+/// Request: error-handling search (`search_by_error` parity).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ErrorSearchQuery {
+    /// Repository the request is bound to.
+    pub repository_id: String,
+    /// Revision (commit SHA or a registered alias).
+    pub revision: String,
+    /// Error type names to look for; empty means every error-handling site.
+    pub error_types: Vec<String>,
+    /// Page.
+    pub page: PageRequest,
+}
+
+/// One error-handling hit.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ErrorMatch {
+    /// Symbol the site belongs to.
+    pub symbol_id: String,
+    /// `throws`, `catches` or `handles`.
+    pub role: String,
+    /// The matched error type or keyword.
+    pub matched: String,
+    /// 1-based line.
+    pub line: u32,
+}
+
+/// Request: search by signature shape (`find_by_signature` parity).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SignatureQuery {
+    /// Repository the request is bound to.
+    pub repository_id: String,
+    /// Revision (commit SHA or a registered alias).
+    pub revision: String,
+    /// Exact parameter count (top-level commas).
+    pub param_count: Option<u32>,
+    /// Return type substring (`-> T`, `: T` tails).
+    pub return_type: Option<String>,
+    /// Required modifier keywords (`pub`, `static`, `async`, `const`,
+    /// `private`, ...).
+    pub modifiers: Vec<String>,
+    /// Page.
+    pub page: PageRequest,
+}
+
+/// Request: entry point detection (`find_entry_points` parity).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EntryPointsQuery {
+    /// Repository the request is bound to.
+    pub repository_id: String,
+    /// Revision (commit SHA or a registered alias).
+    pub revision: String,
+    /// Page.
+    pub page: PageRequest,
+}
+
+/// One detected entry point.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EntryPoint {
+    /// Entry point symbol.
+    pub symbol_id: String,
+    /// Simple name.
+    pub name: String,
+    /// `main`, `test` or `root_callable`.
+    pub kind: String,
+    /// Language.
+    pub language: String,
+}
+
+/// Request: related test detection (`find_related_tests` parity).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RelatedTestsQuery {
+    /// Repository the request is bound to.
+    pub repository_id: String,
+    /// Revision (commit SHA or a registered alias).
+    pub revision: String,
+    /// Symbol whose tests are wanted.
+    pub symbol_id: String,
+    /// Page.
+    pub page: PageRequest,
+}
+
+/// One test that exercises a symbol.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RelatedTest {
+    /// Test symbol.
+    pub symbol_id: String,
+    /// Simple name.
+    pub name: String,
+    /// How the relationship was established (edge ids / name match).
+    pub evidence: Vec<String>,
+}
+
+/// One file for partial indexing (`index_files` parity).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct IndexFile {
+    /// Repo-relative path, `/` separators.
+    pub path: String,
+    /// Full file content.
+    pub content: String,
+}
+
+/// Request: add/update specific files without a full re-index
+/// (`index_files` parity).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct IndexFiles {
+    /// Repository the files are added to.
+    pub repository_id: String,
+    /// Base revision to extend (commit SHA or a registered alias).
+    pub base_revision: String,
+    /// Files to add or replace (by path).
+    pub files: Vec<IndexFile>,
+    /// Parser profile.
+    pub parser_profile: String,
+}
+
+/// The revision produced by `index_files`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct IndexedRevision {
+    /// New content-addressed revision id (40-char hex).
+    pub revision: String,
+    /// The base revision it extends.
+    pub base_revision: String,
+    /// Files in the request that were indexed.
+    pub indexed_files: u32,
+    /// Total files in the new revision.
+    pub total_files: u32,
+    /// Always true: the base revision is never a clean commit boundary here.
+    pub dirty: bool,
+}
+
+/// Output format of `pr_context`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PrContextFormat {
+    /// Ready-to-post markdown (GitHub Action parity).
+    Markdown,
+    /// Structured data only.
+    Json,
+}
+
+/// Request: one-call PR/change review (`pr_context` parity).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PrContextQuery {
+    /// Repository the review is bound to.
+    pub repository_id: String,
+    /// Revision the change is measured against.
+    pub base_revision: String,
+    /// Revision containing the change (usually the `@cwd` worktree).
+    pub head_revision: String,
+    /// Output format.
+    pub format: PrContextFormat,
+    /// Impact traversal depth (1..=5).
+    pub max_depth: u32,
+    /// Impact traversal node cap (1..=1000).
+    pub max_nodes: u32,
+}
+
+/// Result of `pr_context`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PrContextReport {
+    /// Ready-to-post markdown when `format` is `markdown` (empty for `json`).
+    pub summary: String,
+    /// Changed symbol ids (signature or body change).
+    pub changed: Vec<String>,
+    /// Symbols impacted by the change (blast radius), ordered by distance.
+    pub impacted: Vec<String>,
+    /// Changed symbols with no related test candidate.
+    pub test_gaps: Vec<String>,
+    /// Complexity of the changed functions.
+    pub complexity: Vec<ComplexityReport>,
+    /// Changed symbols whose signature changed.
+    pub signature_changes: Vec<String>,
+    /// Changed symbols whose body changed (signature unchanged).
+    pub body_changes: Vec<String>,
+}

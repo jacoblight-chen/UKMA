@@ -26,7 +26,7 @@
   },
   "$defs": {
     "wire.CodeEdgeKind": {
-      "description": "Edge kind (\u00a732.1 `CodeEdge.kind`).",
+      "description": "Edge kind (§32.1 `CodeEdge.kind`).",
       "oneOf": [
         {
           "description": "Function call.",

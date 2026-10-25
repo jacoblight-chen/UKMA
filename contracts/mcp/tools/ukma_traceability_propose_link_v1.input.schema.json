@@ -43,7 +43,7 @@
       "type": "object"
     },
     "wire.TraceKind": {
-      "description": "Relation kind of a link (\u00a735.1).",
+      "description": "Relation kind of a link (§35.1).",
       "oneOf": [
         {
           "description": "Requirement specifies an artefact.",
@@ -90,7 +90,7 @@
       ]
     },
     "wire.TraceLinkInput": {
-      "description": "Input of `traceability.propose_link` (\u00a735.1).",
+      "description": "Input of `traceability.propose_link` (§35.1).",
       "properties": {
         "evidence": {
           "description": "Evidence.",

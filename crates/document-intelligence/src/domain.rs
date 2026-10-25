@@ -1094,3 +1094,62 @@ impl std::error::Error for DocumentError {}
 
 /// Result alias.
 pub type Result<T> = std::result::Result<T, DocumentError>;
+
+// ---------------------------------------------------------------------------
+// Parity operations (CodeGraph gap closure, spec v1.2.3)
+// ---------------------------------------------------------------------------
+
+/// `document.list_doc_sources`: list every ingested document source.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ListDocSources {
+    /// Page.
+    pub page: PageRequest,
+}
+
+/// One ingested document source.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DocSourceSummary {
+    /// Document id.
+    pub document_id: String,
+    /// Original URI (informational).
+    pub source_uri: String,
+    /// Media type.
+    pub media_type: String,
+    /// Caller-provided revision label.
+    pub revision: String,
+    /// Language hint, when one was given.
+    pub language_hint: Option<String>,
+    /// Parser that produced the blocks.
+    pub parser_id: String,
+    /// Blocks in the index.
+    pub block_count: u32,
+    /// Whether the revision is stale.
+    pub stale: bool,
+}
+
+/// `document.generate_architecture_doc`: render an architecture document
+/// from code facts supplied through the [`ArchitectureFactsPort`].
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GenerateArchitectureDoc {
+    /// Repository the document is generated from.
+    pub repository_id: String,
+    /// Revision (commit SHA or a registered alias such as `@cwd`).
+    pub revision: String,
+    /// Optional document title (defaults to `Architecture: <repo>`).
+    pub title: Option<String>,
+}
+
+/// The rendered architecture document.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ArchitectureDoc {
+    /// The rendered markdown.
+    pub markdown: String,
+    /// Where the facts came from (`code_graph`).
+    pub source: String,
+    /// Section titles in order.
+    pub sections: Vec<String>,
+}

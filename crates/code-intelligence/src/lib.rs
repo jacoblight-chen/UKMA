@@ -13,6 +13,8 @@
 
 pub mod domain;
 pub mod parsers;
+pub mod pro;
+pub mod search;
 pub mod service;
 
 use serde::{Deserialize, Serialize};

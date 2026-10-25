@@ -56,7 +56,7 @@
       "type": "object"
     },
     "wire.MemoryKind": {
-      "description": "Which memory store an item lives in (\u00a734.1).",
+      "description": "Which memory store an item lives in (§34.1).",
       "oneOf": [
         {
           "description": "Working memory: session/agent scoped and budgeted.",

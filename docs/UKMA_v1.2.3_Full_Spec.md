@@ -1624,15 +1624,19 @@ TraceLink 法定狀態遷移：`proposed→validated→accepted`；`proposed/val
 
 # 36. Capability → API → Contract → Test Closure Matrix
 
-## 36.1 四大 Domain operation count 與必測集合
+## 36.1 Domain operation count 與必測集合
 
 | Domain | Operations | Required test IDs | Coverage gate |
 |---|---:|---|---|
-| Code Intelligence | 13 | CAPI-01...CAPI-13 | 所有 13 項正向+拒絕情境 |
-| Document Intelligence | 14 | DAPI-01...DAPI-14 | 所有 14 項正向+partial/parse 情境 |
+| Code Intelligence | 27 | CAPI-01...CAPI-27 | 所有 27 項正向+拒絕情境 |
+| Document Intelligence | 16 | DAPI-01...DAPI-16 | 所有 16 項正向+partial/parse 情境 |
 | Fractal Memory | 25 | MAPI-01...MAPI-25 | 所有 25 項正向+policy 情境 |
 | Traceability | 13 | TAPI-01...TAPI-13 | 所有 13 項正向+state 情境 |
-| **Total** | **65** | 65 unique operation tests | **100% operation mapping** |
+| System | 4 | SYS-01...SYS-04 | 所有 4 項正向+拒絕情境 |
+| CodeGraph Pro（相容） | 27 | PRO-01...PRO-27 | 所有 27 項正向+拒絕情境 |
+| **Total** | **112** | 112 unique operation tests | **100% operation mapping** |
+
+> Code Intelligence（27）= 核心 13 + CodeGraph parity 14；Document Intelligence（16）= 核心 14 + parity 2。Pro 為相容、非移植（見 §36.5）。Schema 狀態為 `SCHEMA_CLOSURE_IN_PROGRESS`，不得宣稱 N/N 收斂。
 
 每個 ID 的測試最少包含：`valid_case`, `invalid_schema`, `unauthorized_cross_scope`, `revision_conflict_if_mutation`, `idempotent_retry_if_mutation`, `backend_capability_missing`, `generation_staleness_if_indexed`, `pagination_boundary_if_paged`；不適用的子案例需有 `not_applicable_reason` 及 CI 審查，不能無聲省略。
 
@@ -1683,6 +1687,30 @@ ukma:
 ## 36.4 MCP operation mapping（Normative Naming）
 
 所有 §32–§35 的 `domain.operation` 都 MUST 註冊對應 `ukma_<domain>_<operation>_v1`（其中 `traceability` 可用 `traceability` 全名，禁止同時默默使用 `trace`），並由相同 Operation Registry 產生 MCP inputSchema、SDK binding、權限與測試宣告。Public Gateway SHALL 提供 `ukma_system_capabilities_v1`、`ukma_system_get_operation_v1`、`ukma_system_get_job_v1`、`ukma_system_cancel_job_v1` 作共用管理 API；前述四個 system API 另以 SYS-01...SYS-04 測試。所有工具名稱應長度不超過 MCP host 可支援範圍；若主機有更嚴格限制，以版本化 alias 註冊並在 capability manifest 標示。舊 CodeGraph MCP aliases 必須保留實際 upstream manifest mapping 及 parity tests 才可啟用，不保證沒有審計就相容。
+
+## 36.5 CodeGraph Pro Operations（相容、非移植）
+
+UKMA 提供 27 個 **CodeGraph Pro 相容 operations**（domain `pro`），作為 UKMA 自有之重新實作，**非 CodeGraph Pro 原始碼移植**。Pro operations 皆為 read-only（`code:read` scope、`read_only` state machine、`immutable_snapshot` 並發模型、`not_required` idempotency），註冊錯誤碼固定為 `INVALID_SCHEMA`/`UNAUTHENTICATED`/`FORBIDDEN`/`INTERNAL`/`SOURCE_UNAVAILABLE`/`NOT_FOUND`，測試集合為 PRO-01...PRO-27（每項含正向與拒絕情境）。
+
+| 類別 | 操作 |
+|---|---|
+| 結構分析（code，10） | `pro.analyze_coupling`、`pro.find_unused_code`、`pro.find_duplicates`、`pro.find_similar`、`pro.cluster_symbols`、`pro.compare_symbols`、`pro.cross_project_search`、`pro.mine_git_history`、`pro.mine_git_history_for_file`、`pro.search_git_history` |
+| 安全分析（security，17） | `pro.scan_security`、`pro.security_control_flow`、`pro.security_trace_data_flow`、`pro.security_generate_sbom`、`pro.security_audit_deps`、`pro.security_check_unchecked_returns`、`pro.security_check_resource_leaks`、`pro.security_check_misconfig`、`pro.security_check_input_validation`、`pro.security_check_error_exposure`、`pro.security_scan_iac`、`pro.security_check_licenses`、`pro.security_check_secrets_entropy`、`pro.security_detect_injection`、`pro.security_check_search_path`、`pro.security_check_crypto`、`pro.security_export_sarif` |
+
+**誠實邊界（不得宣稱超越）**：
+- 安全分析為**啟發式偵測**（模式覆蓋較廣：控制流/資料流/注入/弱加密/誤配置/高熵與已知金鑰前綴/未檢查回傳/資源洩漏/輸入驗證/錯誤洩露/搜尋路徑/IaC/授權），標記候選模式；**不證明**存在漏洞，亦不取代 SAST/DAST/依賴掃瞄工具。
+- Pro 以 `repository_revision_exists` 為前置；對 reference corpus 運算時，symbol-based 分析器僅作用於該 revision 已索引之 symbols，file-based 分析器作用於該 revision 之檔案。
+- `pro_security_audit` / `pro_dependency_audit` **離線預設**報告 manifests 與已索引事實；`--online`（feature `osv`）執行 OSV/依賴遠端查詢（**網路操作**，transport 失敗時 degrade 為 manifest-only）。
+- `ukma_system_capabilities` 回報 `pro: 27`；`ToolProfile::Security` 暴露 17 個安全分析器。
+
+## 36.6 Embedding Model、ONNX 機制與 Memory Gate
+
+- **`--embedding-model`**：CLI 接受具名模型（`static-256`、`bge-small` 384d、`jina-code-v2` 768d、`granite-97m` 384d）。預設為 `static-256`（無外部權重、可離線）。ONNX 為**真實 runtime**（feature `onnx`，`ort` `load-dynamic` 於運行時載入 ONNX Runtime、開啟模型、推論、正規化 embedding）；UKMA **不自帶** ONNX Runtime 庫與模型權重（由部署側提供）。
+- **ONNX 模型不可用時**：語意通道 degrade 至 static fallback，不得宣稱 ONNX 模型已啟用。
+- **`CODEGRAPH_SKIP_MEMORY_CHECK`**：ONNX 模型 ~1.5GB RAM gate 開關。未設定時，ONNX 模型啟動前探測可用記憶體；不足時 degrade 至 `GraphOnly`。設定該變數可略過 gate（用於已知記憶體充足的部署）。此為 CodeGraph 相容行為，非 UKMA 自有語意。
+- **JetBrains plugin**：提供**完整、可建置結構**（startup activity、tool window、action、薄 REST client，皆註冊於 `plugin.xml`）；Gradle/IntelliJ build **未在本倉庫驗收 gate 執行**（需 IntelliJ SDK），不得宣稱可分發 .zip 已完成。
+
+本節為開源範圍內之相容性 surface，非 CodeGraph 原始碼移植。
 
 # 37. Formal Domain Rust Port Contracts
 

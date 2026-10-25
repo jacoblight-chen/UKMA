@@ -1,0 +1,20 @@
+{
+  "api_version": "2",
+  "operation": "ukma.document.list_doc_sources.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "page": {
+      "limit": 0
+    }
+  }
+}

@@ -1,8 +1,8 @@
 {
   "algorithm": "ed25519",
   "note": "the private key is never stored in the repository; verify with `cargo run -p ukma-release-evidence -- verify`",
-  "public_key": "ed0233a2af62847331e81a364c88f07e7e875807f14ae5b98d50e01ad28f4a48",
-  "sha256": "c5f8d767a68adeeec68f33f4d3a495396ca582af3b0a500f10bfbef8e96e8bee",
-  "signature": "a59ac40501c638d4ddc6945051c0d3770af11cb9f1e93fb443ad1ee153531abb35add6bb76ca2aa43423d68bfd1817c7f07fab098537baa626ff0a763ab34c01",
+  "public_key": "cdfe8adce7d6beddc143a4702b944106e411e905f9d8f845bf5ca215f99a07c2",
+  "sha256": "a6db147771739ef7041e3b253ed3594627ab1dc6d141e36f49de8026b9d9f069",
+  "signature": "25afea4403a354f2ef7184a3e7da3fd1d98759e979e586c90f416f13c6196b9782896865292660bb146eb1d3da8e73c0a559fd7cfb60e7c3adc419fd7f7c4306",
   "signed_file": "contracts/testing/sbom.cyclonedx.json"
 }

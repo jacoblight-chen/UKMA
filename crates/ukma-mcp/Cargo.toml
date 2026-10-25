@@ -4,13 +4,22 @@ version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 publish = false
-description = "MCP/REST gateway: registry-driven dispatch of 65 domain + 4 system operations."
+description = "MCP/REST gateway: registry-driven dispatch of 108 domain + 4 system operations."
+
+[features]
+# Propagates the real ONNX Runtime into the gateway (off by default).
+onnx = ["embedding-engine/onnx"]
+# Real OSV dependency audit (network). Off by default; the offline manifest is
+# the fallback when off or when the network is unavailable. Enabled by `--online`.
+osv = ["code-intelligence/osv"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = "0.10"
 ukma-contracts = { path = "../ukma-contracts" }
 code-intelligence = { path = "../code-intelligence" }
+embedding-engine = { path = "../embedding-engine" }
 document-intelligence = { path = "../document-intelligence" }
 memory-domain = { path = "../memory-domain" }
 traceability-engine = { path = "../traceability-engine" }

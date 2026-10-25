@@ -11,8 +11,9 @@ use ukma_contracts::generated::{OperationSpec, OPERATIONS};
 
 use crate::rest;
 
-/// Registered domain operations (code 13 + document 14 + memory 25 + trace 13).
-pub const DOMAIN_OPERATION_COUNT: usize = 65;
+/// Registered domain operations (code 27 + document 16 + memory 25 + trace 13
+/// + pro 27).
+pub const DOMAIN_OPERATION_COUNT: usize = 108;
 /// Registered system operations (`capabilities`, `get_operation`, `get_job`, `cancel_job`).
 pub const SYSTEM_OPERATION_COUNT: usize = 4;
 /// Prefix shared by every MCP tool name.
@@ -102,6 +103,116 @@ pub fn operation_of_tool(name: &str) -> Option<&'static str> {
         .iter()
         .find(|spec| spec.mcp_tool == name)
         .map(|spec| spec.operation_id)
+}
+
+/// Search + symbol info + AI context (CodeGraph `core` parity).
+const CORE_OPERATIONS: &[&str] = &[
+    "code.find_symbols",
+    "code.get_symbol",
+    "code.get_ai_context",
+    "code.get_edit_context",
+    "code.get_curated_context",
+    "code.search_by_pattern",
+    "code.search_by_error",
+    "code.find_by_signature",
+];
+
+/// Structural / graph / impact / PR context (CodeGraph `graph` parity).
+const GRAPH_OPERATIONS: &[&str] = &[
+    "code.query_callers",
+    "code.query_callees",
+    "code.query_dependencies",
+    "code.analyze_impact",
+    "code.compare_revisions",
+    "code.find_circular_deps",
+    "code.find_hot_paths",
+    "code.find_dead_imports",
+    "code.find_entry_points",
+    "code.find_related_tests",
+    "code.analyze_complexity",
+    "code.get_module_summary",
+    "code.index_files",
+    "code.pr_context",
+    "code.analyze_repository",
+    "code.get_analysis_job",
+    "code.find_references",
+];
+
+/// CodeGraph Pro security analyzers (the 17 `pro.security_*` /
+/// `pro.scan_security` tools).
+const PRO_SECURITY_OPERATIONS: &[&str] = &[
+    "pro.scan_security",
+    "pro.security_control_flow",
+    "pro.security_trace_data_flow",
+    "pro.security_generate_sbom",
+    "pro.security_audit_deps",
+    "pro.security_check_unchecked_returns",
+    "pro.security_check_resource_leaks",
+    "pro.security_check_misconfig",
+    "pro.security_check_input_validation",
+    "pro.security_check_error_exposure",
+    "pro.security_scan_iac",
+    "pro.security_check_licenses",
+    "pro.security_check_secrets_entropy",
+    "pro.security_detect_injection",
+    "pro.security_check_search_path",
+    "pro.security_check_crypto",
+    "pro.security_export_sarif",
+];
+
+/// A named subset of the tool surface (CodeGraph `--profile` parity).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ToolProfile {
+    /// Every tool (default).
+    #[default]
+    All,
+    /// Search + symbol info + AI context.
+    Core,
+    /// Callers/callees/deps/impact/traverse/PR context.
+    Graph,
+    /// Memory + document tools.
+    Memory,
+    /// Security tools only (the 17 CodeGraph Pro analyzers).
+    Security,
+}
+
+impl ToolProfile {
+    /// Parse a profile name; `None` when unrecognised.
+    pub fn from_name(name: &str) -> Option<Self> {
+        match name {
+            "all" => Some(ToolProfile::All),
+            "core" => Some(ToolProfile::Core),
+            "graph" => Some(ToolProfile::Graph),
+            "memory" => Some(ToolProfile::Memory),
+            "security" => Some(ToolProfile::Security),
+            _ => None,
+        }
+    }
+
+    /// The canonical profile names, for usage text.
+    pub const NAMES: &'static [&'static str] = &["all", "core", "graph", "memory", "security"];
+
+    /// Whether an operation id belongs to this profile.
+    pub fn contains(&self, operation_id: &str) -> bool {
+        match self {
+            ToolProfile::All => true,
+            ToolProfile::Core => CORE_OPERATIONS.contains(&operation_id),
+            ToolProfile::Graph => GRAPH_OPERATIONS.contains(&operation_id),
+            ToolProfile::Memory => {
+                operation_id.starts_with("memory.") || operation_id.starts_with("document.")
+            }
+            ToolProfile::Security => PRO_SECURITY_OPERATIONS.contains(&operation_id),
+        }
+    }
+
+    /// The tools visible under this profile, in registry order.
+    pub fn tools(&self) -> Vec<Tool> {
+        OPERATIONS
+            .iter()
+            .filter(|spec| self.contains(spec.operation_id))
+            .map(tool_of)
+            .collect()
+    }
 }
 
 /// Manifest drift findings; empty means the projection is consistent.
@@ -209,8 +320,8 @@ mod tests {
     fn the_domain_split_is_the_registered_one() {
         let tools = tools();
         let count = |domain: &str| tools.iter().filter(|tool| tool.domain == domain).count();
-        assert_eq!(count("code"), 13);
-        assert_eq!(count("document"), 14);
+        assert_eq!(count("code"), 27);
+        assert_eq!(count("document"), 16);
         assert_eq!(count("memory"), 25);
         assert_eq!(count("traceability"), 13);
         assert_eq!(count("system"), 4);

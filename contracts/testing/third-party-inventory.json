@@ -1,9 +1,9 @@
 {
   "audit": "P10-WP5 third-party licence inventory (REP-003)",
-  "command": "cargo metadata --locked --format-version 1",
+  "command": "cargo metadata --locked --all-features --format-version 1",
   "counts": {
     "blocked": 0,
-    "external": 369,
+    "external": 375,
     "unlicensed": 0,
     "workspace": 30
   },
@@ -1202,6 +1202,14 @@
     },
     {
       "decision": "allowed",
+      "license": "ISC",
+      "name": "libloading",
+      "reason": "permissive",
+      "version": "0.9.0",
+      "workspace_member": false
+    },
+    {
+      "decision": "allowed",
       "license": "MIT",
       "name": "libredox",
       "reason": "permissive",
@@ -1266,6 +1274,14 @@
     },
     {
       "decision": "allowed",
+      "license": "MIT/Apache-2.0",
+      "name": "matrixmultiply",
+      "reason": "permissive",
+      "version": "0.3.11",
+      "workspace_member": false
+    },
+    {
+      "decision": "allowed",
       "license": "MIT OR Apache-2.0",
       "name": "md-5",
       "reason": "permissive",
@@ -1318,6 +1334,14 @@
       "name": "multiversion_no_op",
       "reason": "permissive",
       "version": "1.0.0",
+      "workspace_member": false
+    },
+    {
+      "decision": "allowed",
+      "license": "MIT OR Apache-2.0",
+      "name": "ndarray",
+      "reason": "permissive",
+      "version": "0.17.2",
       "workspace_member": false
     },
     {
@@ -1438,6 +1462,22 @@
       "name": "once_cell_polyfill",
       "reason": "permissive",
       "version": "1.70.2",
+      "workspace_member": false
+    },
+    {
+      "decision": "allowed",
+      "license": "MIT OR Apache-2.0",
+      "name": "ort",
+      "reason": "permissive",
+      "version": "2.0.0-rc.15",
+      "workspace_member": false
+    },
+    {
+      "decision": "allowed",
+      "license": "MIT OR Apache-2.0",
+      "name": "ort-sys",
+      "reason": "permissive",
+      "version": "2.0.0-rc.15",
       "workspace_member": false
     },
     {
@@ -1670,6 +1710,14 @@
       "name": "rangemap",
       "reason": "permissive",
       "version": "1.8.0",
+      "workspace_member": false
+    },
+    {
+      "decision": "allowed",
+      "license": "MIT/Apache-2.0",
+      "name": "rawpointer",
+      "reason": "permissive",
+      "version": "0.2.1",
       "workspace_member": false
     },
     {

@@ -14,5 +14,7 @@ pub mod parsers;
 pub mod service;
 
 pub use domain::{
-    DocumentError, DocumentSource, MediaFormat, ParsedDocument, RequirementCandidate, Result,
+    ArchitectureDoc, DocSourceSummary, DocumentError, DocumentSource, GenerateArchitectureDoc,
+    ListDocSources, MediaFormat, ParsedDocument, RequirementCandidate, Result,
 };
+pub use service::{ArchitectureFacts, ArchitectureFactsPort};

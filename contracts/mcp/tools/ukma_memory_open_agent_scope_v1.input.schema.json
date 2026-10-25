@@ -26,7 +26,7 @@
   },
   "$defs": {
     "wire.AgentScopeGrant": {
-      "description": "Delegation grant handed to a sub-agent (\u00a726.4, \u00a734.1).",
+      "description": "Delegation grant handed to a sub-agent (§26.4, §34.1).",
       "properties": {
         "allowed_scopes": {
           "description": "Scopes the child may use; must be a subset of the parent's.",

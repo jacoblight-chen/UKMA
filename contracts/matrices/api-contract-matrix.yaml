@@ -1326,3 +1326,543 @@ operations:
   - cross_scope
   - revision_consistency
   - backend_capability
+- operation_id: pro.analyze_coupling
+  test_id: PRO-01
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.find_unused_code
+  test_id: PRO-02
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.find_duplicates
+  test_id: PRO-03
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.find_similar
+  test_id: PRO-04
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.cluster_symbols
+  test_id: PRO-05
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.compare_symbols
+  test_id: PRO-06
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.cross_project_search
+  test_id: PRO-07
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.mine_git_history
+  test_id: PRO-08
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.mine_git_history_for_file
+  test_id: PRO-09
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.search_git_history
+  test_id: PRO-10
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.scan_security
+  test_id: PRO-11
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.security_control_flow
+  test_id: PRO-12
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.security_trace_data_flow
+  test_id: PRO-13
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.security_generate_sbom
+  test_id: PRO-14
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.security_audit_deps
+  test_id: PRO-15
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.security_check_unchecked_returns
+  test_id: PRO-16
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.security_check_resource_leaks
+  test_id: PRO-17
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.security_check_misconfig
+  test_id: PRO-18
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.security_check_input_validation
+  test_id: PRO-19
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.security_check_error_exposure
+  test_id: PRO-20
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.security_scan_iac
+  test_id: PRO-21
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.security_check_licenses
+  test_id: PRO-22
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.security_check_secrets_entropy
+  test_id: PRO-23
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.security_detect_injection
+  test_id: PRO-24
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.security_check_search_path
+  test_id: PRO-25
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.security_check_crypto
+  test_id: PRO-26
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.security_export_sarif
+  test_id: PRO-27
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+

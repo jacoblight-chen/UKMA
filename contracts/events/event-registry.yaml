@@ -572,3 +572,19 @@ events:
   produced_by:
   - traceability.revalidate_stale
   family: trace.revalidation.*
+- event_type: code.index.partial_committed
+  event_version: '1'
+  aggregate_kind: source_revision
+  payload_schema_id: https://schemas.ukma.dev/v1/events/code.index.partial_committed.payload.schema.json
+  payload_schema_path: contracts/events/code.index.partial_committed/code.index.partial_committed.payload.schema.json
+  required_scopes:
+  - code:index
+  producer: CodeIndexService
+  consumers: *id001
+  ordering_key: repo_id
+  dedup_key: operation_id
+  privacy_class: internal
+  retention_policy: P2Y
+  produced_by:
+  - code.index_files
+  family: code.index.*

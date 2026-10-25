@@ -26,7 +26,7 @@
   },
   "$defs": {
     "wire.CodeEdgeKind": {
-      "description": "Edge kind (\u00a732.1 `CodeEdge.kind`).",
+      "description": "Edge kind (§32.1 `CodeEdge.kind`).",
       "oneOf": [
         {
           "description": "Function call.",
@@ -73,7 +73,7 @@
       ]
     },
     "wire.CodePageRequest": {
-      "description": "A page request (\u00a731.4). `limit` is bounded; `cursor` is opaque.",
+      "description": "A page request (§31.4). `limit` is bounded; `cursor` is opaque.",
       "properties": {
         "cursor": {
           "description": "Opaque cursor from a previous page.",
@@ -95,7 +95,7 @@
       "type": "object"
     },
     "wire.Direction": {
-      "description": "Direction of a traversal (`\u00a732.1 TraversalQuery.direction`).",
+      "description": "Direction of a traversal (`§32.1 TraversalQuery.direction`).",
       "oneOf": [
         {
           "description": "Callers / incoming edges.",

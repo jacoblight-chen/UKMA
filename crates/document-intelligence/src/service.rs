@@ -19,14 +19,15 @@ use sha2::{Digest, Sha256};
 use ukma_contracts::{RequestContext, ScopeRef};
 
 use crate::domain::{
-    BlockKind, CancelJob, ChangeReceipt, ConsistencyCategory, ConsistencyFinding,
-    ConsistencyReport, DocChange, DocChangeKind, DocCompleteness, DocDiff, DocumentBlock,
-    DocumentError, DocumentIngest, DocumentManifest, DocumentRevisionDiff, DocumentSource,
-    DocumentView, ExtractRelations, ExtractRequirements, ExtractedRelation, GetDocument, GetJob,
-    GetSourceSpan, InvalidateDocumentRevision, JobHandle, JobView, ListRequirements, MediaFormat,
-    NormativeStrength, Page, ParseDiagnostic, ParsePreview, ParseStatus, RequirementCandidate,
-    RequirementReviewResult, RequirementStatus, Result, ReviewDecision, ReviewRequirement,
-    SearchDocument, SearchHit, Severity, SourceSpanView, Span, ValidationState, VerifyConsistency,
+    ArchitectureDoc, BlockKind, CancelJob, ChangeReceipt, ConsistencyCategory, ConsistencyFinding,
+    ConsistencyReport, DocChange, DocChangeKind, DocCompleteness, DocDiff, DocSourceSummary,
+    DocumentBlock, DocumentError, DocumentIngest, DocumentManifest, DocumentRevisionDiff,
+    DocumentSource, DocumentView, ExtractRelations, ExtractRequirements, ExtractedRelation,
+    GenerateArchitectureDoc, GetDocument, GetJob, GetSourceSpan, InvalidateDocumentRevision,
+    JobHandle, JobView, ListDocSources, ListRequirements, MediaFormat, NormativeStrength, Page,
+    ParseDiagnostic, ParsePreview, ParseStatus, RequirementCandidate, RequirementReviewResult,
+    RequirementStatus, Result, ReviewDecision, ReviewRequirement, SearchDocument, SearchHit,
+    Severity, SourceSpanView, Span, ValidationState, VerifyConsistency,
 };
 use crate::parsers::{Anchor, DocLink, DocumentParserPort, ParseLimits};
 
@@ -115,6 +116,25 @@ impl DocumentSourcePort for InMemoryDocuments {
         }
         Ok(bytes)
     }
+}
+
+/// Architecture facts rendered into an architecture document. The document
+/// domain never sees code types: the values are pre-rendered markdown
+/// sections plus section titles (ports keep the domain independent).
+#[derive(Debug, Clone, Default)]
+pub struct ArchitectureFacts {
+    /// Section titles in order (paired 1:1 with `sections`).
+    pub section_titles: Vec<String>,
+    /// Pre-rendered markdown sections.
+    pub sections: Vec<String>,
+}
+
+/// Port: fetch architecture facts for a code revision. The gateway wires
+/// the adapter (the code-intelligence service fills the rows); without a
+/// wired port the operation fails with `MODEL_UNAVAILABLE`.
+pub trait ArchitectureFactsPort: Send + Sync {
+    /// Facts for one repository revision.
+    fn facts(&self, repository_id: &str, revision: &str) -> Result<ArchitectureFacts>;
 }
 
 /// Authorization and redaction decisions.
@@ -226,6 +246,7 @@ pub struct DocumentService {
     parser: Arc<dyn DocumentParserPort>,
     sources: Arc<dyn DocumentSourcePort>,
     authorizer: Arc<dyn DocumentAuthorizer>,
+    architecture: Option<Arc<dyn ArchitectureFactsPort>>,
     state: Mutex<ServiceState>,
 }
 
@@ -242,6 +263,7 @@ impl DocumentService {
             parser,
             sources,
             authorizer: Arc::new(ScopeAuthorizer),
+            architecture: None,
             state: Mutex::new(ServiceState::default()),
         }
     }
@@ -249,6 +271,12 @@ impl DocumentService {
     /// Replace the authorizer.
     pub fn with_authorizer(mut self, authorizer: Arc<dyn DocumentAuthorizer>) -> Self {
         self.authorizer = authorizer;
+        self
+    }
+
+    /// Wire the architecture facts port (enables `generate_architecture_doc`).
+    pub fn with_architecture_port(mut self, port: Arc<dyn ArchitectureFactsPort>) -> Self {
+        self.architecture = Some(port);
         self
     }
 
@@ -1341,11 +1369,88 @@ impl DocumentService {
         }
         Ok(out)
     }
-}
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+    // -- Parity operations (CodeGraph gap closure) ---------------------------
+
+    /// `document.list_doc_sources`.
+    pub fn list_doc_sources(
+        &self,
+        ctx: &RequestContext,
+        request: &ListDocSources,
+    ) -> Result<Page<DocSourceSummary>> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        request.page.validate()?;
+        let state = self.lock();
+        let mut items: Vec<DocSourceSummary> = Vec::new();
+        for index in state.documents.values() {
+            if index.scope.tenant_id != ctx.scope.tenant_id
+                || index.scope.project_id != ctx.scope.project_id
+            {
+                continue;
+            }
+            items.push(DocSourceSummary {
+                document_id: index.document_id.clone(),
+                source_uri: index.source.source_uri.clone(),
+                media_type: index.source.media_type.clone(),
+                revision: index.source.revision.clone(),
+                language_hint: index.source.language_hint.clone(),
+                parser_id: index.parser_id.clone(),
+                block_count: index.blocks.len() as u32,
+                stale: index.stale,
+            });
+        }
+        items.sort_by(|left, right| left.document_id.cmp(&right.document_id));
+        Page::of(items, &request.page)
+    }
+
+    /// `document.generate_architecture_doc`: renders the markdown document
+    /// from the code facts supplied through the facts port.
+    pub fn generate_architecture_doc(
+        &self,
+        ctx: &RequestContext,
+        request: &GenerateArchitectureDoc,
+    ) -> Result<ArchitectureDoc> {
+        self.authorizer.require_scope(ctx, SCOPE_ANALYZE)?;
+        if request.repository_id.trim().is_empty() {
+            return Err(DocumentError::InvalidArgument {
+                field: "repository_id",
+                reason: "must be non-empty".into(),
+            });
+        }
+        let port = self
+            .architecture
+            .as_ref()
+            .ok_or_else(|| DocumentError::ModelUnavailable {
+                profile: "architecture-facts".to_string(),
+            })?;
+        let facts = port.facts(&request.repository_id, &request.revision)?;
+        if facts.sections.len() != facts.section_titles.len() {
+            return Err(DocumentError::InvalidArgument {
+                field: "facts",
+                reason: "section titles must pair 1:1 with sections".into(),
+            });
+        }
+        let title = request
+            .title
+            .clone()
+            .filter(|title| !title.trim().is_empty())
+            .unwrap_or_else(|| format!("Architecture: {}", request.repository_id));
+        let mut markdown = String::new();
+        markdown.push_str(&format!("# {title}\n\n"));
+        markdown.push_str(&format!(
+            "_Generated from `{}/{}._\n\n",
+            request.repository_id, request.revision
+        ));
+        for (title, section) in facts.section_titles.iter().zip(&facts.sections) {
+            markdown.push_str(&format!("## {title}\n\n{section}\n\n"));
+        }
+        Ok(ArchitectureDoc {
+            markdown,
+            source: "code_graph".to_string(),
+            sections: facts.section_titles,
+        })
+    }
+}
 
 fn review_tag(status: RequirementStatus) -> &'static str {
     match status {

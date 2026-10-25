@@ -3131,6 +3131,27 @@
       "version": "0.2.191"
     },
     {
+      "bom-ref": "libloading@0.9.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "ISC"
+          }
+        }
+      ],
+      "name": "libloading",
+      "properties": [
+        {
+          "name": "ukma:workspace_member",
+          "value": "false"
+        }
+      ],
+      "purl": "pkg:cargo/libloading@0.9.0",
+      "scope": "required",
+      "type": "library",
+      "version": "0.9.0"
+    },
+    {
       "bom-ref": "libredox@0.1.25",
       "licenses": [
         {
@@ -3299,6 +3320,27 @@
       "version": "0.1.20"
     },
     {
+      "bom-ref": "matrixmultiply@0.3.11",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT/Apache-2.0"
+          }
+        }
+      ],
+      "name": "matrixmultiply",
+      "properties": [
+        {
+          "name": "ukma:workspace_member",
+          "value": "false"
+        }
+      ],
+      "purl": "pkg:cargo/matrixmultiply@0.3.11",
+      "scope": "required",
+      "type": "library",
+      "version": "0.3.11"
+    },
+    {
       "bom-ref": "md-5@0.10.6",
       "licenses": [
         {
@@ -3444,6 +3486,27 @@
       "scope": "required",
       "type": "library",
       "version": "1.0.0"
+    },
+    {
+      "bom-ref": "ndarray@0.17.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT OR Apache-2.0"
+          }
+        }
+      ],
+      "name": "ndarray",
+      "properties": [
+        {
+          "name": "ukma:workspace_member",
+          "value": "false"
+        }
+      ],
+      "purl": "pkg:cargo/ndarray@0.17.2",
+      "scope": "required",
+      "type": "library",
+      "version": "0.17.2"
     },
     {
       "bom-ref": "nom@8.0.0",
@@ -3759,6 +3822,48 @@
       "scope": "required",
       "type": "library",
       "version": "1.70.2"
+    },
+    {
+      "bom-ref": "ort@2.0.0-rc.15",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT OR Apache-2.0"
+          }
+        }
+      ],
+      "name": "ort",
+      "properties": [
+        {
+          "name": "ukma:workspace_member",
+          "value": "false"
+        }
+      ],
+      "purl": "pkg:cargo/ort@2.0.0-rc.15",
+      "scope": "required",
+      "type": "library",
+      "version": "2.0.0-rc.15"
+    },
+    {
+      "bom-ref": "ort-sys@2.0.0-rc.15",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT OR Apache-2.0"
+          }
+        }
+      ],
+      "name": "ort-sys",
+      "properties": [
+        {
+          "name": "ukma:workspace_member",
+          "value": "false"
+        }
+      ],
+      "purl": "pkg:cargo/ort-sys@2.0.0-rc.15",
+      "scope": "required",
+      "type": "library",
+      "version": "2.0.0-rc.15"
     },
     {
       "bom-ref": "parking_lot@0.12.5",
@@ -4368,6 +4473,27 @@
       "scope": "required",
       "type": "library",
       "version": "1.8.0"
+    },
+    {
+      "bom-ref": "rawpointer@0.2.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT/Apache-2.0"
+          }
+        }
+      ],
+      "name": "rawpointer",
+      "properties": [
+        {
+          "name": "ukma:workspace_member",
+          "value": "false"
+        }
+      ],
+      "purl": "pkg:cargo/rawpointer@0.2.1",
+      "scope": "required",
+      "type": "library",
+      "version": "0.2.1"
     },
     {
       "bom-ref": "rayon@1.12.0",
@@ -8402,7 +8528,7 @@
       },
       {
         "name": "ukma:generated_from",
-        "value": "cargo metadata --locked --format-version 1"
+        "value": "cargo metadata --locked --all-features --format-version 1"
       }
     ],
     "tools": [

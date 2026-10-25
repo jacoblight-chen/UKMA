@@ -10,6 +10,12 @@ description = "Command-line client over the public API."
 name = "ukma"
 path = "src/main.rs"
 
+[features]
+# Enables the real ONNX Runtime path (off by default).
+onnx = ["ukma-mcp/onnx"]
+# Enables the real OSV dependency audit (off by default; `--online`).
+osv = ["ukma-mcp/osv"]
+
 [dependencies]
 serde_json = "1"
 ukma-contracts = { path = "../ukma-contracts" }

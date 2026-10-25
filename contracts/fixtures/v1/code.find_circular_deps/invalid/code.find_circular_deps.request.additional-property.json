@@ -1,0 +1,24 @@
+{
+  "api_version": "1",
+  "operation": "ukma.code.find_circular_deps.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "edge_kinds": [],
+    "page": {
+      "limit": 0
+    },
+    "repository_id": "x",
+    "revision": "x"
+  },
+  "unexpected_field": true
+}
