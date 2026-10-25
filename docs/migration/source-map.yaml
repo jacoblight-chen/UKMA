@@ -115,7 +115,7 @@ crates:
     rs_files: 12
     ukma_slice: test-infrastructure
     files: []
-  - crate: language-parsers (37 crates: codegraph-bash ... codegraph-yaml, codegraph-zig)
+  - crate: language-parsers (38 crates: codegraph-bash ... codegraph-yaml, codegraph-zig)
     path: crates/codegraph-<lang>
     rs_files: 5-17 each
     ukma_slice: S2

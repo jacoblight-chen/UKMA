@@ -10,17 +10,21 @@ upstream:
     # Read-only mirror + reference checkout preserved OUTSIDE the UKMA git repo
     - "f:\\codegraph-workspace\\codegraph-upstream.git (bare mirror, refs/heads/main == locked SHA)"
     - "f:\\codegraph-workspace\\codegraph-reference (checkout at locked SHA, clean tree)"
-    # Source map covers the full observed workspace (47 crates); see source-map.yaml
+    # Source map covers the full observed workspace (43 crates, verified via
+    # cargo metadata --locked); see source-map.yaml
 target:
   repository: ukma
   crate: none (S0 adds no code; documents only)
   files:
     - docs/migration/upstream-lock.yaml
     - docs/migration/source-map.yaml
+    - docs/migration/dependency-graph.yaml
     - docs/migration/ledger/s0-upstream-baseline.yaml
     - docs/migration/s1-contract-proposal.md
     - docs/migration/s0-baseline-report.md
     - tests/golden/graph-basic-ops.golden.json
+    - .github/pull_request_template.md
+    - .github/CODEOWNERS
 license:
   identified: true            # LICENSE = Apache-2.0 (full text); NOTICE preserved (Copyright 2025-2026 Andrey Vasilevsky)
   notices_preserved: true    # NOTICE + per-file SPDX headers observed and recorded

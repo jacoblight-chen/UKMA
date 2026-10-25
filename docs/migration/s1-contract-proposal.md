@@ -61,8 +61,8 @@ Source basis: upstream SHA `590c2ca7dd7b37bd1d41caf45fac535b6522f969`
 | R4 | Toolchain deviation: upstream pin 1.94.1 (msvc) vs executed 1.99.1-gnu (host has no MSVC linker) | Medium | Record deviation in upstream-lock; re-run pinned toolchain in CI before S1 merge |
 | R5 | `PropertyMap` untyped bag vs UKMA versioned schema | Medium | Boundary validation + versioned schema in contract; bag preserved internally |
 | R6 | Upstream `StorageBackend.write_batch` atomicity guarantees differ from UKMA outbox/transaction model | Medium | S1 contract defines transaction boundary; adapters declare capability |
-| R7 | 37 language parsers (S2) share `codegraph-parser-api`; parser API churn could break S1 assumptions | Low | S1 depends only on graph/storage crates, not parser crates |
-| R8 | Workspace comment says 27 parsers, actual 37 — stale doc at locked SHA | Low | Recorded as observed fact in source-map; no correction applied upstream |
+| R7 | 38 language parsers (S2) share `codegraph-parser-api`; parser API churn could break S1 assumptions | Low | S1 depends only on graph/storage crates, not parser crates |
+| R8 | Workspace comment says 27 parsers, actual 38 — stale doc at locked SHA | Low | Recorded as observed fact in source-map; no correction applied upstream |
 
 ## 5. Acceptance (S1 gate, per plan §6)
 

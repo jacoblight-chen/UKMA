@@ -37,8 +37,11 @@ executed with `stable-x86_64-pc-windows-gnu` (rustc 1.99.1).
 ## 4. Baseline metadata — DONE
 
 - Pinned toolchain (upstream `rust-toolchain.toml`): **rust 1.94.1** (components rustfmt, clippy)
-- Workspace: version 0.21.0, resolver 2, edition 2021, **47 crates**
-  (1 graph engine, 1 parser API, 37 language parsers, 1 memory, 1 server, 1 harness)
+- Workspace: version 0.21.0, resolver 2, edition 2021, **43 crates**
+  (1 graph engine, 1 parser API, 38 language parsers, 1 memory, 1 server, 1 harness)
+  — verified via `cargo metadata --locked --format-version 1` (43 members == 43
+  Cargo.toml entries, exact match); the workspace comment "Language parsers (27)"
+  is stale (38 listed; recorded as-is, not corrected)
 - Graph engine crate `codegraph`: 42 rs files; storage impls Memory / Namespaced / RocksDB (feature-gated)
 
 ## 5. Upstream baseline test — final results (executed 2026-10-25)
@@ -96,9 +99,15 @@ runner infrastructure flake); `f:\codegraph-workspace\upstream-baseline-test.log
 
 - `docs/migration/upstream-lock.yaml` — SHA, license, deps, toolchain, reproducibility
 - `docs/migration/source-map.yaml` — observed paths only (no invented paths)
+- `docs/migration/dependency-graph.yaml` — Cargo dependency graph + Rust features audit
+  (executed `cargo metadata --locked --format-version 1`; full 5.1 MB JSON preserved at
+  `f:\codegraph-workspace\upstream-cargo-metadata.json`; 43 members, 71 unique external
+  deps, `codegraph` features: default→rocksdb-backend→dep:rocksdb)
 - `docs/migration/ledger/s0-upstream-baseline.yaml` — ledger entry
 - `docs/migration/s1-contract-proposal.md` — S1 contract proposal + risks (pending architecture approval)
 - `tests/golden/graph-basic-ops.golden.json` — one Graph golden fixture (from observed upstream test semantics)
+- `.github/pull_request_template.md` — S1+ pre-merge checklist (ledger/license/tests required)
+- `.github/CODEOWNERS` — owner review required on all PRs
 
 ## 7. Result
 
@@ -113,7 +122,19 @@ runner infrastructure flake); `f:\codegraph-workspace\upstream-baseline-test.log
   Toolchain deviation recorded: upstream pin is MSVC 1.94.1; this host executed with
   GNU 1.99.1 + WinLibs 16.2 + forced `-include cstdint` (rocksdb 8.10 C++ workaround,
   root-caused). CI audit (ubuntu-22.04) confirmed the C++ compiles under gcc 11.
-- Source map: generated from observed paths only (47 crates; graph engine file-level).
+- Source map: generated from observed paths only (43 crates; graph engine file-level).
+- Dependency graph: exported via actually executed `cargo metadata --locked --format-version 1`
+  (exit 0; 43 workspace members; 71 unique external dependencies; feature audit:
+  `codegraph` default→rocksdb-backend→dep:rocksdb; parser-api has no features).
+- Count correction: earlier "47 crates / 37 parsers" was a miscount — verified actual
+  **43 crates / 38 parsers** (Cargo.toml members == cargo metadata members, exact match);
+  all S0 records corrected to the verified numbers.
+- Repo protection (plan §5 item 6): lightweight guardrails IMPLEMENTED —
+  `.github/pull_request_template.md` (S1+ checklist: ledger/license/tests mandatory) +
+  `.github/CODEOWNERS` (owner review required). Platform-level branch protection
+  rules are **BLOCKED** (GitHub free plan: branch protection is unavailable for
+  private repositories — recorded explicitly, not marked as success); S1 PRs are
+  enforced via the reviewer checklist in the template.
 - Golden fixture: `tests/golden/graph-basic-ops.golden.json` (from observed upstream test semantics).
 - S1 contract: PROPOSAL only — pending architecture approval; no S1 code written.
 - No upstream source has been migrated into UKMA.

@@ -56,17 +56,19 @@ workspace:
   workspace_version: "0.21.0"
   edition: "2021"
   resolver: "2"
-  crate_count: 47
+  crate_count: 43
   crates:
     graph_engine: codegraph (crates/codegraph, 42 rs files)
     parser_api: codegraph-parser-api (19 rs files)
-    language_parsers: 37 (crates/codegraph-*)
+    language_parsers: 38 (crates/codegraph-*)
     memory_layer: codegraph-memory (18 rs files)
     server: codegraph-server (72 rs files)
     test_harness: codegraph-harness (12 rs files)
   note: >
-    Workspace comment says "Language parsers (27)" but 37 parser crates are
-    listed (observed at the locked SHA; recorded as-is, not corrected).
+    Workspace comment says "Language parsers (27)" but 38 parser crates are
+    listed in [workspace].members (verified via cargo metadata --locked:
+    43 members == 43 Cargo.toml entries, exact match; observed at the locked
+    SHA; recorded as-is, not corrected).
 
 baseline_test:
   # Run 4 (2026-10-25): official full-workspace test EXECUTED TO COMPLETION
