@@ -28,7 +28,9 @@ target:
     - crates/ukma-graph-engine/src/types.rs
     - crates/ukma-graph-engine/src/error.rs
     - crates/ukma-graph-engine/src/store.rs
+    - crates/ukma-graph-engine/src/state.rs        # shared StoreInner + serde Snapshot (UKMA-original)
     - crates/ukma-graph-engine/src/memory_store.rs
+    - crates/ukma-graph-engine/src/file_store.rs   # UKMA-original: JSON file adapter (development-only)
     - crates/ukma-graph-engine/src/algorithms.rs
     - crates/ukma-graph-engine/src/engine.rs
     - crates/ukma-graph-engine/tests/ids_contract.rs
@@ -36,6 +38,7 @@ target:
     - crates/ukma-graph-engine/tests/traversal_contract.rs
     - crates/ukma-graph-engine/tests/tenant_isolation_contract.rs
     - crates/ukma-graph-engine/tests/versioning_contract.rs
+    - crates/ukma-graph-engine/tests/persistence_contract.rs
     - Cargo.toml (workspace members += crates/ukma-graph-engine)
     - docs/migration/contract-gap-report-s1.md
     - docs/migration/source-map.yaml (s1_changes section)
@@ -55,6 +58,7 @@ changes:
   - per-scope idempotency keys on add_node/add_edge
   - snake_case wire names (ADR-031 D3; v1 addition — no graph ops exist in the 65-op registry, so no API semantics change)
   - scope validation (non-empty tenant/project -> INVALID_ARGUMENT)
+  - UKMA-original FileGraphStore (JSON file adapter, development-only; NOT a port — no upstream counterpart): StoreInner/Snapshot factored into state.rs shared by both adapters
 behavior:
   preserved:
     - bfs: start node excluded from results, depth-limited, visited-set deduplication
@@ -67,12 +71,13 @@ behavior:
   intentional_breaking: []    # no upstream behavior is broken; only recorded UKMA-mandated additions
 tests:
   golden: "tests/golden/graph-basic-ops.golden.json — VALIDATED by crates/ukma-graph-engine/tests/crud_contract.rs::golden_fixture_basic_ops_parity (node_count=2, edge_count=1, exactly one outgoing neighbor, missing ops -> typed NotFound)"
-  contract: "EXECUTED (2026-10-25, stable-x86_64-pc-windows-gnu 1.99.1): 43/43 contract tests passed across ids (7), crud (11, incl. golden), traversal (9), tenant_isolation (8), versioning (8)"
-  integration: "workspace gate: cargo test --workspace --all-targets = 56/56 passed (ukma-code-runtime 9, ukma-contracts 4, ukma-graph-engine 43)"
-  rust_cargo: "FULL GATE GREEN (2026-10-25): cargo fmt --all -- --check = exit 0; cargo check --workspace --all-targets = exit 0; cargo clippy --workspace --all-targets -- -D warnings = exit 0; cargo test --workspace --all-targets = exit 0 (56/56)"
+  contract: "EXECUTED (2026-10-25, stable-x86_64-pc-windows-gnu 1.99.1): 53/53 contract tests passed across ids (7), crud (11, incl. golden), traversal (9), tenant_isolation (8), versioning (8), persistence (10: flush/reload, no-flush non-persistence, delete persistence, corrupt/unsupported-file graceful failure, traversal-after-reload, adapter equivalence)"
+  integration: "workspace gate: cargo test --workspace --all-targets = 66/66 passed (ukma-code-runtime 9, ukma-contracts 4, ukma-graph-engine 53)"
+  rust_cargo: "FULL GATE GREEN (2026-10-25): cargo fmt --all -- --check = exit 0; cargo check --workspace --all-targets = exit 0; cargo clippy --workspace --all-targets -- -D warnings = exit 0; cargo test --workspace --all-targets = exit 0 (66/66)"
 known_issues:
   - "upstream toolchain pin (MSVC 1.94.1) still requires CI re-verification before S1 merge (windows-latest job in upstream-baseline.yml detects the known /tmp/ defect honestly; see upstream-baseline-report.md §7)"
   - "InMemoryGraphStore is a development/test adapter: no cross-process safety or durability guarantee (capability probe reports persistent=false; flush -> CAPABILITY_UNAVAILABLE)"
+  - "FileGraphStore is a development-only adapter: single-process, single-writer, no cross-process safety; durability only via flush() (atomic write-temp-then-rename); JSON snapshot format v1 (no RocksDB or any database dependency in the Domain — Database-Agnostic rule held)"
 review:
   owner: "jacoblight-chen"
   status: pending

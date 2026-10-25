@@ -1,34 +1,21 @@
 //! In-memory `GraphStore` adapter (test + development).
 //!
-//! Database-agnostic: no RocksDB, no filesystem, no external state. The
+//! Database-agnostic: no database, no filesystem, no external state. The
 //! adapter is interior-mutable (`Mutex`) so the engine can share it via
 //! `Arc<dyn GraphStore>`.
 
-use std::collections::HashMap;
 use std::sync::Mutex;
 
 use crate::error::{GraphError, Result};
 use crate::ids::CanonicalId;
+use crate::state::StoreInner;
 use crate::store::{GraphStore, ScopeKey, StoreCapabilities};
 use crate::types::{GraphEdge, GraphNode};
-
-type NodeKey = (ScopeKey, CanonicalId);
-type EdgeKey = (ScopeKey, CanonicalId);
-
-#[derive(Default)]
-struct Inner {
-    nodes: HashMap<NodeKey, GraphNode>,
-    edges: HashMap<EdgeKey, GraphEdge>,
-    /// node id -> outgoing edge ids.
-    outgoing: HashMap<NodeKey, Vec<CanonicalId>>,
-    /// node id -> incoming edge ids.
-    incoming: HashMap<NodeKey, Vec<CanonicalId>>,
-}
 
 /// In-memory graph store (non-persistent).
 #[derive(Default)]
 pub struct InMemoryGraphStore {
-    inner: Mutex<Inner>,
+    inner: Mutex<StoreInner>,
 }
 
 impl InMemoryGraphStore {
@@ -42,10 +29,7 @@ impl InMemoryGraphStore {
         self.inner
             .lock()
             .expect("store lock poisoned")
-            .nodes
-            .iter()
-            .filter(|((s, _), _)| *s == *scope)
-            .count()
+            .node_count(scope)
     }
 
     /// Number of edges in scope (test helper).
@@ -53,17 +37,8 @@ impl InMemoryGraphStore {
         self.inner
             .lock()
             .expect("store lock poisoned")
-            .edges
-            .iter()
-            .filter(|((s, _), _)| *s == *scope)
-            .count()
+            .edge_count(scope)
     }
-}
-
-fn sorted<T: Ord>(v: impl IntoIterator<Item = T>) -> Vec<T> {
-    let mut v: Vec<T> = v.into_iter().collect();
-    v.sort();
-    v
 }
 
 impl GraphStore for InMemoryGraphStore {
@@ -78,8 +53,7 @@ impl GraphStore for InMemoryGraphStore {
         self.inner
             .lock()
             .expect("store lock poisoned")
-            .nodes
-            .insert((scope.clone(), node.id.clone()), node.clone());
+            .put_node(scope, node);
         Ok(())
     }
 
@@ -88,79 +62,30 @@ impl GraphStore for InMemoryGraphStore {
             .inner
             .lock()
             .expect("store lock poisoned")
-            .nodes
-            .get(&(scope.clone(), id.clone()))
-            .cloned())
+            .get_node(scope, id))
     }
 
     fn delete_node(&self, scope: &ScopeKey, id: &CanonicalId) -> Result<()> {
-        let mut inner = self.inner.lock().expect("store lock poisoned");
-        if inner.nodes.remove(&(scope.clone(), id.clone())).is_none() {
-            return Ok(()); // idempotent at the storage level
-        }
-        // Cascade: delete all incident edges (preserved upstream semantics).
-        let incident: Vec<CanonicalId> = inner
-            .outgoing
-            .get(&(scope.clone(), id.clone()))
-            .cloned()
-            .unwrap_or_default()
-            .into_iter()
-            .chain(
-                inner
-                    .incoming
-                    .get(&(scope.clone(), id.clone()))
-                    .cloned()
-                    .unwrap_or_default(),
-            )
-            .collect();
-        for edge_id in incident {
-            if let Some(edge) = inner.edges.remove(&(scope.clone(), edge_id.clone())) {
-                if let Some(list) = inner
-                    .outgoing
-                    .get_mut(&(scope.clone(), edge.source_id.clone()))
-                {
-                    list.retain(|e| e != &edge_id);
-                }
-                if let Some(list) = inner
-                    .incoming
-                    .get_mut(&(scope.clone(), edge.target_id.clone()))
-                {
-                    list.retain(|e| e != &edge_id);
-                }
-            }
-        }
-        inner.outgoing.remove(&(scope.clone(), id.clone()));
-        inner.incoming.remove(&(scope.clone(), id.clone()));
+        self.inner
+            .lock()
+            .expect("store lock poisoned")
+            .delete_node(scope, id);
         Ok(())
     }
 
     fn node_ids(&self, scope: &ScopeKey) -> Result<Vec<CanonicalId>> {
-        Ok(sorted(
-            self.inner
-                .lock()
-                .expect("store lock poisoned")
-                .nodes
-                .iter()
-                .filter(|((s, _), _)| *s == *scope)
-                .map(|((_, id), _)| id.clone()),
-        ))
+        Ok(self
+            .inner
+            .lock()
+            .expect("store lock poisoned")
+            .node_ids(scope))
     }
 
     fn put_edge(&self, scope: &ScopeKey, edge: &GraphEdge) -> Result<()> {
-        let mut inner = self.inner.lock().expect("store lock poisoned");
-        inner
-            .edges
-            .insert((scope.clone(), edge.id.clone()), edge.clone());
-        inner
-            .outgoing
-            .entry((scope.clone(), edge.source_id.clone()))
-            .or_default()
-            .push(edge.id.clone());
-        inner
-            .incoming
-            .entry((scope.clone(), edge.target_id.clone()))
-            .or_default()
-            .push(edge.id.clone());
+        self.inner
+            .lock()
+            .expect("store lock poisoned")
+            .put_edge(scope, edge);
         Ok(())
     }
 
@@ -169,64 +94,39 @@ impl GraphStore for InMemoryGraphStore {
             .inner
             .lock()
             .expect("store lock poisoned")
-            .edges
-            .get(&(scope.clone(), id.clone()))
-            .cloned())
+            .get_edge(scope, id))
     }
 
     fn delete_edge(&self, scope: &ScopeKey, id: &CanonicalId) -> Result<()> {
-        let mut inner = self.inner.lock().expect("store lock poisoned");
-        if let Some(edge) = inner.edges.remove(&(scope.clone(), id.clone())) {
-            if let Some(list) = inner
-                .outgoing
-                .get_mut(&(scope.clone(), edge.source_id.clone()))
-            {
-                list.retain(|e| e != id);
-            }
-            if let Some(list) = inner
-                .incoming
-                .get_mut(&(scope.clone(), edge.target_id.clone()))
-            {
-                list.retain(|e| e != id);
-            }
-        }
+        self.inner
+            .lock()
+            .expect("store lock poisoned")
+            .delete_edge(scope, id);
         Ok(())
     }
 
     fn edge_ids(&self, scope: &ScopeKey) -> Result<Vec<CanonicalId>> {
-        Ok(sorted(
-            self.inner
-                .lock()
-                .expect("store lock poisoned")
-                .edges
-                .iter()
-                .filter(|((s, _), _)| *s == *scope)
-                .map(|((_, id), _)| id.clone()),
-        ))
+        Ok(self
+            .inner
+            .lock()
+            .expect("store lock poisoned")
+            .edge_ids(scope))
     }
 
     fn outgoing_edge_ids(&self, scope: &ScopeKey, node: &CanonicalId) -> Result<Vec<CanonicalId>> {
-        Ok(sorted(
-            self.inner
-                .lock()
-                .expect("store lock poisoned")
-                .outgoing
-                .get(&(scope.clone(), node.clone()))
-                .cloned()
-                .unwrap_or_default(),
-        ))
+        Ok(self
+            .inner
+            .lock()
+            .expect("store lock poisoned")
+            .outgoing_edge_ids(scope, node))
     }
 
     fn incoming_edge_ids(&self, scope: &ScopeKey, node: &CanonicalId) -> Result<Vec<CanonicalId>> {
-        Ok(sorted(
-            self.inner
-                .lock()
-                .expect("store lock poisoned")
-                .incoming
-                .get(&(scope.clone(), node.clone()))
-                .cloned()
-                .unwrap_or_default(),
-        ))
+        Ok(self
+            .inner
+            .lock()
+            .expect("store lock poisoned")
+            .incoming_edge_ids(scope, node))
     }
 
     fn flush(&self) -> Result<()> {

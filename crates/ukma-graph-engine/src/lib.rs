@@ -9,6 +9,9 @@
 //! - **Database-agnostic**: the `GraphStore` port has no dependency on any
 //!   database. RocksDB, if ever added, is an optional feature-gated adapter
 //!   outside the Domain — never a Domain dependency.
+//! - **Adapters**: `InMemoryGraphStore` (test/dev, non-persistent) and
+//!   `FileGraphStore` (JSON file, development-only: single-process,
+//!   single-writer, no cross-process safety; durability via `flush()`).
 //! - **Canonical IDs** are engine-assigned, persisted, and stable across
 //!   adapter substitution (ADR-031 D1); vendor `u64` counters are never exposed.
 //! - **Traversal** is deterministic and bounded (PROP-03): sorted-adjacency
@@ -26,13 +29,16 @@
 pub mod algorithms;
 pub mod engine;
 pub mod error;
+pub mod file_store;
 pub mod ids;
 pub mod memory_store;
+pub mod state;
 pub mod store;
 pub mod types;
 
 pub use engine::GraphEngine;
 pub use error::{GraphError, Result};
+pub use file_store::FileGraphStore;
 pub use ids::{
     CanonicalId, DefaultIdGenerator, DeterministicIdGenerator, IdGenerator, IdKind, Ulid,
 };
