@@ -211,12 +211,12 @@ flowchart LR
 
 | WP | 目標 | 交付物 | 驗收 | 規模 |
 |---|---|---|---|---|
-| **P4-WP1** | Markdown Parser | `ukma-domain-document/parsers/markdown`：heading tree、fenced code、table、link、anchor、source span | DOC-001、DAPI-05；`interpretation` 不得失去位置 | L |
-| **P4-WP2** | PDF / DOCX（**ADR-048 O-02：無 OCR**） | page/paragraph/table/heading/list + layout offsets；**OCR 標 NOT_IMPLEMENTED**，影像區塊 MUST 記 `parse_status=unparsed` + diagnostics 並使 `completeness=partial` | DAPI-01/02；「OCR 未啟用」須有負向案例；`DOC-001` 不以 OCR 結果為通過條件 | XL |
-| **P4-WP3** | Requirement / Relation 抽取 | `RequirementCandidate`（`normative_strength: must \| should \| may \| unknown`、`verification`、`status: candidate`）、`ExtractedRelation` | DAPI-07/08；LLM 抽取預設 `candidate/unverified`，不得自動 approved | L |
-| **P4-WP4** | Review 流程 | `review_requirement`：僅 `candidate` → approved/rejected；approved 變更需新 revision | DAPI-09；`EVIDENCE_REQUIRED`/`ETAG_MISMATCH` 負向 | M |
-| **P4-WP5** | Consistency / Compare / Span | `verify_consistency`（`ConsistencyReport.completeness`）、`compare_revisions`、`get_source_span`（redaction 標記） | DAPI-11/12/14；DOC-002（可回溯 location + hash） | L |
-| **P4-WP6** | 14 ops 全量 | Document FSM：`REGISTERED→PARSING→EXTRACTING→STAGING→COMMITTED→INDEXING→READY` + `PARTIAL/FAILED/CANCELLED/STALE` | DAPI-01..14 各 8 子案例 | L |
+| ~~**P4-WP1**~~ ✅ | Markdown Parser | `crates/document-intelligence/src/parsers/markdown.rs`：heading（ATX + setext）、fenced code、table/cell、list、image、link、anchor、1-based line + byte span；位置不遺失 | `tests/p4_markdown.rs` 10 tests（hand-written 期望 + `tests/golden/s3-markdown/spec.md`） | L |
+| ~~**P4-WP2**~~ ✅ | PDF / DOCX（無 OCR） | `parsers/pdf.rs`（lopdf 文字層）＋ `parsers/docx.rs`（zip + quick-xml：heading/list/table/cell/image）；影像 → `unparsed` + `OCR_NOT_IMPLEMENTED` + `partial`，純影像頁 `PAGE_WITHOUT_TEXT` | `tests/p4_pdf_docx.rs` 7 tests（真實 PDF/DOCX 於測試中生成） | XL |
+| ~~**P4-WP3**~~ ✅ | Requirement / Relation 抽取 | `service.rs`：rule-based profile `normative-keyword/1`（must/shall、should、may）、`RequirementCandidate`（一律 `candidate`/`unverified`、`req:v1:` id、沿用 block 內的 REQ-id）、`ExtractedRelation` | `dapi07_*`／`dapi08_*`；未知 profile → `MODEL_UNAVAILABLE` | L |
+| ~~**P4-WP4**~~ ✅ | Review 流程 | `review_requirement`：只有 `candidate` 可轉 approved/rejected；`EVIDENCE_REQUIRED`、`ETAG_MISMATCH`、approved 再審 → `LINK_STATE_CONFLICT` | `dapi09_*`／`dapi10_*` | M |
+| ~~**P4-WP5**~~ ✅ | Consistency / Compare / Span | `verify_consistency`（missing_reference/unverified/ambiguity/contradiction、`max_findings` → `RESOURCE_LIMIT`、`compare_code` → skipped + partial）、`compare_revisions`（added/removed/modified/moved）、`get_source_span`（policy 或 `max_bytes` → `redacted` + text null） | `dapi11_*`／`dapi12_*`／`dapi14_*` | L |
+| ~~**P4-WP6**~~ ✅ | 14 ops 全量 | `DocumentService` 實作 DAPI-01..14 ＋ §37 `async` port；job lifecycle 沿用 `indexing-engine`（commit 前可取消、manifest 經 result_ref） | `tests/dapi_matrix.rs` 19 tests 覆蓋 DAPI-01..14 × 子案例 | L |
 
 ---
 

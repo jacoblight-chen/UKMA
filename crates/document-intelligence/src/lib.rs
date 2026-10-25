@@ -11,6 +11,7 @@
 
 pub mod domain;
 pub mod parsers;
+pub mod service;
 
 pub use domain::{
     DocumentError, DocumentSource, MediaFormat, ParsedDocument, RequirementCandidate, Result,

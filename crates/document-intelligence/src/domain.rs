@@ -648,6 +648,32 @@ pub struct DocumentView {
     pub etag: String,
 }
 
+/// Analysis manifest of a parsed document.
+///
+/// Not a wire operation: this is how a caller (or a test) reads what the parser
+/// actually did ? parser identity, diagnostics and how much was left unparsed.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DocumentManifest {
+    /// Document id.
+    pub document_id: String,
+    /// Parser id.
+    pub parser_id: String,
+    /// Parser version.
+    pub parser_version: String,
+    /// Completeness.
+    pub completeness: String,
+    /// Blocks parsed.
+    pub block_count: u32,
+    /// Percentage of blocks that are not fully parsed.
+    pub partial_ratio: u8,
+    /// Diagnostics.
+    pub diagnostics: Vec<ParseDiagnostic>,
+    /// E-tag.
+    pub etag: String,
+    /// Published generation.
+    pub generation: String,
+}
+
 /// `document.parse_preview` (DAPI-05): parse without persisting.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ParsePreview {
@@ -917,6 +943,11 @@ pub enum DocumentError {
         /// Profile.
         profile: String,
     },
+    /// An idempotency key was reused with different arguments.
+    IdempotencyConflict {
+        /// The reused key.
+        key: String,
+    },
     /// A consistency check exceeded its finding budget.
     ResourceLimit {
         /// Detail.
@@ -946,6 +977,7 @@ impl DocumentError {
             DocumentError::EvidenceRequired { .. } => "EVIDENCE_REQUIRED",
             DocumentError::RequirementStateConflict { .. } => "LINK_STATE_CONFLICT",
             DocumentError::ModelUnavailable { .. } => "MODEL_UNAVAILABLE",
+            DocumentError::IdempotencyConflict { .. } => "IDEMPOTENCY_CONFLICT",
             DocumentError::ResourceLimit { .. } => "RESOURCE_LIMIT",
         }
     }
@@ -994,6 +1026,12 @@ impl std::fmt::Display for DocumentError {
             } => write!(f, "{candidate_id} is {status:?} and cannot be reviewed"),
             DocumentError::ModelUnavailable { profile } => {
                 write!(f, "no extractor available for `{profile}`")
+            }
+            DocumentError::IdempotencyConflict { key } => {
+                write!(
+                    f,
+                    "idempotency key {key} was reused with different arguments"
+                )
             }
             DocumentError::ResourceLimit { detail } => write!(f, "resource limit: {detail}"),
         }

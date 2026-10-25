@@ -589,10 +589,12 @@ dependencies = [
 name = "document-intelligence"
 version = "0.1.0"
 dependencies = [
+ "indexing-engine",
  "lopdf",
  "quick-xml",
  "serde",
  "sha2",
+ "ukma-contracts",
  "zip",
 ]
 

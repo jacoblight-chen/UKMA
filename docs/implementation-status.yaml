@@ -202,31 +202,31 @@ phases:
     blocked_reason: null
 - id: P4
   name: Document Intelligence 14 ops
-  status: not_started
+  status: done
   work_packages:
   - id: P4-WP1
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'crates/document-intelligence/src/parsers/markdown.rs: line scanner producing heading (ATX + setext), paragraph, fenced code, table, table_cell, list, image and code blocks with exact 1-based line spans and byte offsets, the heading tree (parent pointers), heading anchors and outbound links classified as anchor/url/document. Unterminated fence -> partial code block + UNTERMINATED_CODE_FENCE. 10 golden tests in tests/p4_markdown.rs against tests/golden/s3-markdown/spec.md with hand-written block/span/anchor expectations.'
     blocked_reason: null
   - id: P4-WP2
-    status: not_started
-    evidence: ADR-048 O-02：PDF 文字層 + DOCX、OCR 排除；可開工
+    status: done
+    evidence: 'PDF text layer (lopdf; Tj/TJ/quote operators, UTF-16BE + literal strings) and DOCX (zip + quick-xml over word/document.xml: w:pStyle headings, w:numPr list items, w:tbl/w:tc cells, w:drawing images). No OCR (ADR-048 O-02): images become unparsed blocks + OCR_NOT_IMPLEMENTED and the document becomes partial; a page with neither text nor image is PAGE_WITHOUT_TEXT and also partial. 7 tests in tests/p4_pdf_docx.rs build real PDFs with lopdf and a real DOCX zip in-process.'
     blocked_reason: null
   - id: P4-WP3
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'Requirement extraction (rule-based profile normative-keyword/1) classifies normative strength from must/shall/required, should/recommended, may/optional/can, keeps the requirement id found in the block (REQ-12), emits deterministic req:v1 ids and always candidate/unverified; unknown profile -> MODEL_UNAVAILABLE. ExtractedRelation from anchors/document/url links with verification unverified and cross-scope refusal.'
     blocked_reason: null
   - id: P4-WP4
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'review_requirement: evidence required (EVIDENCE_REQUIRED), etag checked (ETAG_MISMATCH), only candidate -> approved/rejected, approved cannot be re-reviewed (LINK_STATE_CONFLICT) and the document etag moves so an approved change needs a new revision. Tests dapi09_*/dapi10_*.'
     blocked_reason: null
   - id: P4-WP5
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'verify_consistency (missing_reference for dangling anchors, unverified for candidates, ambiguity for etc./TBD, contradiction for equal normalised subject with different strength, max_findings -> RESOURCE_LIMIT, compare_code -> skipped_refs + completeness=partial), compare_revisions (added/removed/modified/moved), get_source_span (policy or max_bytes -> redacted + text null, never a silently truncated span). Tests dapi11_*/dapi12_*/dapi14_*.'
     blocked_reason: null
   - id: P4-WP6
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'All 14 operations implemented in DocumentService with the ?37 async port delegating to the sync core; job lifecycle reuses indexing-engine (queued->parsing->extracting->staging->committing->indexing->ready, cancel only before commit, committed manifest via result_ref). 19 tests in tests/dapi_matrix.rs cover DAPI-01..14 with valid/invalid/cross-scope/FORBIDDEN/JOB_*/INDEX_STALE/EVIDENCE_REQUIRED/ETAG_MISMATCH/MODEL_UNAVAILABLE/RESOURCE_LIMIT/pagination plus the async port.'
     blocked_reason: null
 - id: P5
   name: Memory Domain Core
