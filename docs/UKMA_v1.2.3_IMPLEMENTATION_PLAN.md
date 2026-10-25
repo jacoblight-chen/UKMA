@@ -56,6 +56,8 @@
 | B-06 | legacy Python harness（`scripts/*.py`、`tests/*.py`）仍可被誤認為驗證來源 | 規格要求 Rust Runtime；退役排程見 P0-WP7 |
 | B-07 | `ukma-contracts` 無 domain request/response 型別；`crates/` 缺 12 個目標 crate | 部分 **RESOLVED**（22 個 crate 骨架已建立，型別待 P0-WP4） |
 | B-08 | Crate 命名與規格 §3.1/§39.2 不一致（原 `ukma-graph-engine`、缺 `ukma-domain-*` 對應） | **RESOLVED**（ADR-045：採 §3.1 命名，`crates/ukma-graph-engine` → `crates/graph-engine`） |
+| B-09 | `contracts/schema/v1/shared.schema.json` **完全沒有 `$defs`**，但 138 份 schema 共 342 次 `ID`、65 次 `RequestContext`/`ErrorDetail`/`PartialReason` 等 21 個型別引用全部指向它 | **RESOLVED（結構）**：已補 45 個 `$defs`，138 份 schema 0 懸空引用；型別內容待逐項對照 §31.3 複核 |
+| B-10 | 4 個 `system.*` operation 的 wire 形狀規格未定義；已以 ADR-047 暫行定義 | **PROVISIONAL**：待 owner 核准後轉 ACCEPTED |
 
 ---
 

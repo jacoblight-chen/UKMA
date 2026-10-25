@@ -23,8 +23,8 @@ baseline:
   apps_present: [ukma-server]
   s0_upstream_baseline: done
   s1_graph_slice: done           # 53 contract tests
-  schemas_total: 131             # 65x2 + shared (provisional)
-  system_schemas: 0              # 需 8（4 ops x request/response）
+  schemas_total: 139             # 65x2 + 4x2 system + shared
+  system_schemas: 8              # 4 ops x request/response (ADR-047 provisional)
 
 gates:
   G0_specification: partial
@@ -36,10 +36,10 @@ gates:
   G6_integration: not_started
   G7_production: not_started
   DOC-01: not_started    # 13+14+25+13=65 唯一
-  DOC-02: not_started    # ErrorCode 封閉
+  DOC-02: partial        # error-registry.yaml closed set (37 codes); CI cross-check pending (WP5)
   DOC-03: not_started    # 無第二套 budget / memory API
   DOC-04: not_started    # source authority / projection / commit 分離
-  SCHEMA-01: not_started # 69x2 machine-valid schemas
+  SCHEMA-01: partial     # 138 op schemas exist; shared $defs added; per-op constraint closure pending
   SCHEMA-02: not_started # event envelope + payload schemas
   TEST-01: not_started   # CAPI/DAPI/MAPI/TAPI/SYS 實際通過
   DB-01: not_started     # >=2 production-capable backend（禁 only in-memory）
@@ -52,14 +52,14 @@ phases:
     status: not_started
     work_packages:
       - {id: P0-WP1, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P0-WP2, status: not_started, evidence: null, blocked_reason: null}
-      - {id: P0-WP3, status: not_started, evidence: null, blocked_reason: null}
+      - {id: P0-WP2, status: in_progress, evidence: "contracts/api/error-registry.yaml (37 closed codes) + scope-registry.yaml (24 scopes) done; event-registry 11-field expansion pending", blocked_reason: null}
+      - {id: P0-WP3, status: in_progress, evidence: "shared.schema.json $defs 45 types added (was empty -> 21 dangling refs resolved, 138 schemas 0 dangling); 8 system schemas added; per-operation constraint closure pending", blocked_reason: null}
       - {id: P0-WP4, status: not_started, evidence: null, blocked_reason: null}
       - {id: P0-WP5, status: not_started, evidence: null, blocked_reason: null}
       - {id: P0-WP6, status: done, evidence: "docs/adr/ADR-021..046 (27 files) + README index; ADR-031 renamed to ADR-031a; commit for WP6", blocked_reason: null}
       - {id: P0-WP7, status: not_started, evidence: null, blocked_reason: null}
       - {id: P0-WP8, status: done, evidence: "22 workspace crates + apps/ukma-server skeleton; cargo check --workspace --all-targets exit 0", blocked_reason: null}
-      - {id: P0-WP9, status: not_started, evidence: null, blocked_reason: null}
+      - {id: P0-WP9, status: done, evidence: "B-01 source_file+sha256 fixed (docs/UKMA_v1.2.3_Full_Spec.md, sha256 d556bf27...); B-02 mojibake replaced by auditable spec pointers; B-03 4 system ops + 8 schemas added (ADR-047 provisional); B-09 shared.schema.json had no $defs -> 45 defs added", blocked_reason: null}
   - id: P1
     name: Storage Ports + 雙 Adapter
     status: not_started
@@ -288,4 +288,4 @@ open_decisions:
 notes:
   - "SR-003/MIG-01 為 partial：S0/S1 有 ledger，S2..S7 尚無。"
   - "DB-001/002/003/007/008 為 partial：僅 S1 graph in-memory 與 JSON file 兩 adapter，尚非 production-capable。"
-  - "system.* 4 ops 目前無 schema（baseline.system_schemas=0），屬 P0-WP1/P0-WP3 範圍。"
+  - "system.* 4 ops 的 schema 已建立（ADR-047 暫行形狀），但 closure_status 仍為 provisional，待形狀核准。"

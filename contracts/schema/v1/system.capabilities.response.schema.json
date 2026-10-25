@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/system.capabilities.response.schema.json",
+  "title": "system.capabilities Response (provisional system API — ADR-047)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "request_id",
+    "trace_id",
+    "status",
+    "warnings",
+    "partial_reasons",
+    "freshness"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "1"
+    },
+    "request_id": {
+      "$ref": "shared.schema.json#/$defs/ID"
+    },
+    "trace_id": {
+      "$ref": "shared.schema.json#/$defs/ID"
+    },
+    "status": {
+      "$ref": "shared.schema.json#/$defs/Status"
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "api_major": {
+          "const": 1
+        },
+        "operations_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "limits": {
+          "$ref": "shared.schema.json#/$defs/LimitsProfile"
+        },
+        "adapters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "adapter_id": {
+                "$ref": "shared.schema.json#/$defs/ID"
+              },
+              "adapter_version": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "backend_kind": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "supported_ports": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "maxLength": 64
+                }
+              },
+              "capabilities": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "adapter_id",
+              "adapter_version",
+              "backend_kind",
+              "supported_ports"
+            ]
+          }
+        }
+      },
+      "required": [
+        "api_major",
+        "operations_count",
+        "limits",
+        "adapters"
+      ]
+    },
+    "error": {
+      "$ref": "shared.schema.json#/$defs/ErrorDetail"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "partial_reasons": {
+      "type": "array",
+      "items": {
+        "$ref": "shared.schema.json#/$defs/PartialReason"
+      }
+    },
+    "snapshot_id": {
+      "$ref": "shared.schema.json#/$defs/ID"
+    },
+    "index_generation": {
+      "$ref": "shared.schema.json#/$defs/ID"
+    },
+    "freshness": {
+      "$ref": "shared.schema.json#/$defs/Freshness"
+    },
+    "observed_revision": {
+      "$ref": "shared.schema.json#/$defs/ID"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "ok"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "error"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "error"
+        ]
+      }
+    }
+  ]
+}

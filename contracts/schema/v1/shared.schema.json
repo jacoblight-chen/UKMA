@@ -1,78 +1,74 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.ukma.dev/v1/shared.schema.json",
-  "title": "UKMA Shared Contracts Phase 2 — normative source-grounded subset",
+  "title": "UKMA v1 shared wire types (§31.3 / §32.1 / §40.3-§40.4)",
+  "type": "object",
+  "additionalProperties": false,
   "$defs": {
     "ID": {
       "type": "string",
       "minLength": 1,
       "maxLength": 256
     },
-    "ScopeRef": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "tenant_id": {
-          "$ref": "#/$defs/ID"
-        },
-        "project_id": {
-          "$ref": "#/$defs/ID"
-        },
-        "repo_id": {
-          "$ref": "#/$defs/ID"
-        },
-        "workspace_id": {
-          "$ref": "#/$defs/ID"
-        },
-        "agent_id": {
-          "$ref": "#/$defs/ID"
-        },
-        "session_id": {
-          "$ref": "#/$defs/ID"
-        }
-      },
-      "required": [
-        "tenant_id",
-        "project_id"
+    "ISODate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "Hash": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+:[0-9a-f]{8,}$"
+    },
+    "Consistency": {
+      "enum": [
+        "eventual",
+        "read_your_writes",
+        "snapshot",
+        "strict_generation"
       ]
     },
-    "Ref": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "domain": {
-          "enum": [
-            "code",
-            "document",
-            "memory",
-            "traceability",
-            "shared"
-          ]
-        },
-        "kind": {
-          "type": "string",
-          "minLength": 1
-        },
-        "id": {
-          "$ref": "#/$defs/ID"
-        },
-        "revision": {
-          "$ref": "#/$defs/ID"
-        },
-        "scope": {
-          "$ref": "#/$defs/ScopeRef"
-        }
-      },
-      "required": [
-        "domain",
-        "kind",
-        "id",
-        "revision",
-        "scope"
+    "Domain": {
+      "enum": [
+        "code",
+        "document",
+        "memory",
+        "traceability"
+      ]
+    },
+    "Status": {
+      "enum": [
+        "ok",
+        "partial",
+        "error"
+      ]
+    },
+    "ValidationState": {
+      "enum": [
+        "unverified",
+        "candidate",
+        "verified",
+        "rejected",
+        "stale"
+      ]
+    },
+    "OperationStatus": {
+      "enum": [
+        "queued",
+        "running",
+        "ready",
+        "partial",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "Freshness": {
+      "enum": [
+        "current",
+        "stale",
+        "rebuilding",
+        "unknown"
       ]
     },
     "ErrorCode": {
-      "type": "string",
       "enum": [
         "INVALID_SCHEMA",
         "INVALID_ARGUMENT",
@@ -113,149 +109,81 @@
         "INTERNAL"
       ]
     },
-    "RequestContext": {
+    "ScopeRef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "request_id": {
-          "$ref": "#/$defs/ID"
+        "tenant_id": {
+          "$ref": "shared.schema.json#/$defs/ID"
         },
-        "trace_id": {
-          "$ref": "#/$defs/ID"
+        "project_id": {
+          "$ref": "shared.schema.json#/$defs/ID"
         },
-        "scope": {
-          "$ref": "#/$defs/ScopeRef"
+        "repo_id": {
+          "$ref": "shared.schema.json#/$defs/ID"
         },
-        "principal_id": {
-          "$ref": "#/$defs/ID"
+        "workspace_id": {
+          "$ref": "shared.schema.json#/$defs/ID"
         },
-        "scopes": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "uniqueItems": true
+        "agent_id": {
+          "$ref": "shared.schema.json#/$defs/ID"
         },
-        "deadline_at": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "consistency": {
+        "session_id": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "project_id"
+      ]
+    },
+    "Ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
           "enum": [
-            "eventual",
-            "read_your_writes",
-            "snapshot",
-            "strict_generation"
+            "code",
+            "document",
+            "memory",
+            "traceability",
+            "shared"
           ]
         },
-        "required_generation": {
-          "$ref": "#/$defs/ID"
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
         },
-        "snapshot_id": {
-          "$ref": "#/$defs/ID"
+        "id": {
+          "$ref": "shared.schema.json#/$defs/ID"
         },
-        "idempotency_key": {
-          "$ref": "#/$defs/ID"
+        "revision": {
+          "$ref": "shared.schema.json#/$defs/ID"
         },
-        "expected_etag": {
-          "type": "string"
-        },
-        "delegation_token": {
-          "type": "string"
+        "scope": {
+          "$ref": "shared.schema.json#/$defs/ScopeRef"
         }
       },
       "required": [
-        "request_id",
-        "trace_id",
-        "scope",
-        "principal_id",
-        "scopes",
-        "consistency"
+        "domain",
+        "kind",
+        "id",
+        "revision",
+        "scope"
       ]
-    },
-    "ErrorDetail": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "code": {
-          "$ref": "#/$defs/ErrorCode"
-        },
-        "safe_message": {
-          "type": "string"
-        },
-        "retryable": {
-          "type": "boolean"
-        },
-        "retry_after_ms": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "correlated_operation_id": {
-          "$ref": "#/$defs/ID"
-        },
-        "field_violations": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "path": {
-                "type": "string"
-              },
-              "reason": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "path",
-              "reason"
-            ]
-          }
-        }
-      },
-      "required": [
-        "code",
-        "safe_message",
-        "retryable"
-      ]
-    },
-    "PartialReason": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "source": {
-          "type": "string"
-        },
-        "code": {
-          "$ref": "#/$defs/ErrorCode"
-        },
-        "detail": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "source",
-        "code",
-        "detail"
-      ]
-    },
-    "Hash": {
-      "type": "string",
-      "pattern": "^[a-z][a-z0-9_-]*:[0-9a-fA-F]+$"
-    },
-    "ISODate": {
-      "type": "string",
-      "format": "date-time"
     },
     "Span": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "source": {
-          "$ref": "#/$defs/Ref"
+          "$ref": "shared.schema.json#/$defs/Ref"
         },
         "media_type": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 200
         },
         "line_start": {
           "type": "integer",
@@ -289,24 +217,23 @@
         },
         "table_cell": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "row": {
               "type": "integer",
-              "minimum": 0
+              "minimum": 1
             },
             "column": {
               "type": "integer",
-              "minimum": 0
+              "minimum": 1
             }
           },
           "required": [
             "row",
             "column"
-          ],
-          "additionalProperties": false
+          ]
         },
         "coordinate_system": {
-          "type": "string",
           "enum": [
             "utf8_byte_0_based",
             "line_1_based",
@@ -317,26 +244,25 @@
       "required": [
         "source",
         "media_type"
-      ],
-      "additionalProperties": false
+      ]
     },
     "Evidence": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "evidence_id": {
-          "$ref": "#/$defs/ID"
+          "$ref": "shared.schema.json#/$defs/ID"
         },
         "ref": {
-          "$ref": "#/$defs/Ref"
+          "$ref": "shared.schema.json#/$defs/Ref"
         },
         "span": {
-          "$ref": "#/$defs/Span"
+          "$ref": "shared.schema.json#/$defs/Span"
         },
         "content_hash": {
-          "$ref": "#/$defs/Hash"
+          "$ref": "shared.schema.json#/$defs/Hash"
         },
         "method": {
-          "type": "string",
           "enum": [
             "parser",
             "static_analysis",
@@ -347,14 +273,7 @@
           ]
         },
         "verification": {
-          "type": "string",
-          "enum": [
-            "unverified",
-            "candidate",
-            "verified",
-            "rejected",
-            "stale"
-          ]
+          "$ref": "shared.schema.json#/$defs/ValidationState"
         },
         "confidence": {
           "type": "number",
@@ -367,10 +286,10 @@
           "maximum": 1
         },
         "created_at": {
-          "$ref": "#/$defs/ISODate"
+          "$ref": "shared.schema.json#/$defs/ISODate"
         },
         "valid_for_revision": {
-          "$ref": "#/$defs/ID"
+          "$ref": "shared.schema.json#/$defs/ID"
         }
       },
       "required": [
@@ -381,8 +300,137 @@
         "verification",
         "created_at",
         "valid_for_revision"
-      ],
-      "additionalProperties": false
+      ]
+    },
+    "RequestContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "trace_id": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "scope": {
+          "$ref": "shared.schema.json#/$defs/ScopeRef"
+        },
+        "principal_id": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "deadline_at": {
+          "$ref": "shared.schema.json#/$defs/ISODate"
+        },
+        "consistency": {
+          "$ref": "shared.schema.json#/$defs/Consistency"
+        },
+        "required_generation": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "snapshot_id": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "idempotency_key": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "expected_etag": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "delegation_token": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "request_id",
+        "trace_id",
+        "scope",
+        "principal_id",
+        "scopes",
+        "consistency"
+      ]
+    },
+    "ErrorDetail": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "shared.schema.json#/$defs/ErrorCode"
+        },
+        "safe_message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "retry_after_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "field_violations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "reason"
+            ]
+          }
+        },
+        "correlated_operation_id": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        }
+      },
+      "required": [
+        "code",
+        "safe_message",
+        "retryable"
+      ]
+    },
+    "PartialReason": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "code": {
+          "$ref": "shared.schema.json#/$defs/ErrorCode"
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "source",
+        "code",
+        "detail"
+      ]
     },
     "PageRequest": {
       "type": "object",
@@ -395,7 +443,8 @@
         },
         "cursor": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 4096
         }
       },
       "required": [
@@ -409,14 +458,52 @@
         "job_id": {
           "$ref": "shared.schema.json#/$defs/ID"
         },
-        "status": {
+        "job_kind": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "status": {
+          "$ref": "shared.schema.json#/$defs/OperationStatus"
+        },
+        "submitted_at": {
+          "$ref": "shared.schema.json#/$defs/ISODate"
+        },
+        "source_revision": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "target_generation": {
+          "$ref": "shared.schema.json#/$defs/ID"
         }
       },
       "required": [
         "job_id",
-        "status"
+        "job_kind",
+        "status",
+        "submitted_at"
+      ]
+    },
+    "JobProgress": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "done": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "done",
+        "stage"
       ]
     },
     "JobView": {
@@ -426,99 +513,325 @@
         "job_id": {
           "$ref": "shared.schema.json#/$defs/ID"
         },
-        "state": {
+        "job_kind": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "status": {
+          "$ref": "shared.schema.json#/$defs/OperationStatus"
+        },
+        "submitted_at": {
+          "$ref": "shared.schema.json#/$defs/ISODate"
+        },
+        "source_revision": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "target_generation": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "started_at": {
+          "$ref": "shared.schema.json#/$defs/ISODate"
+        },
+        "completed_at": {
+          "$ref": "shared.schema.json#/$defs/ISODate"
+        },
+        "progress": {
+          "$ref": "shared.schema.json#/$defs/JobProgress"
         },
         "result_ref": {
           "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "error": {
+          "$ref": "shared.schema.json#/$defs/ErrorDetail"
+        },
+        "partial_reasons": {
+          "type": "array",
+          "items": {
+            "$ref": "shared.schema.json#/$defs/PartialReason"
+          }
+        },
+        "cancellable": {
+          "type": "boolean"
         }
       },
       "required": [
         "job_id",
-        "state"
+        "job_kind",
+        "status",
+        "submitted_at",
+        "partial_reasons",
+        "cancellable"
+      ]
+    },
+    "LimitsProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_page_size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_batch_size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_query_chars": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_graph_depth": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_graph_nodes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_payload_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_deadline_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_vector_k": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_context_tokens": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "max_page_size",
+        "max_batch_size",
+        "max_query_chars",
+        "max_graph_depth",
+        "max_graph_nodes",
+        "max_payload_bytes",
+        "max_deadline_ms",
+        "max_vector_k",
+        "max_context_tokens"
+      ]
+    },
+    "ProjectionStatus": {
+      "enum": [
+        "pending",
+        "ready",
+        "failed"
+      ]
+    },
+    "ChangeReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ref": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "revision": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "etag": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "canonical_committed": {
+          "type": "boolean"
+        },
+        "projected_generation": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "projection_status": {
+          "$ref": "shared.schema.json#/$defs/ProjectionStatus"
+        },
+        "operation_id": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        }
+      },
+      "required": [
+        "ref",
+        "revision",
+        "etag",
+        "canonical_committed",
+        "projection_status",
+        "operation_id"
+      ]
+    },
+    "SearchHit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ref": {
+          "$ref": "shared.schema.json#/$defs/Ref"
+        },
+        "snippet": {
+          "type": "string",
+          "maxLength": 8000
+        },
+        "score": {
+          "type": "number"
+        },
+        "channel_scores": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          },
+          "maxProperties": 16
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "shared.schema.json#/$defs/Evidence"
+          }
+        },
+        "validation": {
+          "$ref": "shared.schema.json#/$defs/ValidationState"
+        },
+        "source_revision": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        }
+      },
+      "required": [
+        "ref",
+        "score",
+        "channel_scores",
+        "evidence",
+        "validation",
+        "source_revision"
+      ]
+    },
+    "ExecutionPhase": {
+      "enum": [
+        "queued",
+        "running",
+        "completed",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "CommitPhase": {
+      "enum": [
+        "not_started",
+        "not_committed",
+        "committed",
+        "unknown"
+      ]
+    },
+    "ProjectionPhase": {
+      "enum": [
+        "not_required",
+        "pending",
+        "ready",
+        "failed",
+        "rebuilding"
+      ]
+    },
+    "OperationOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "execution": {
+          "$ref": "shared.schema.json#/$defs/ExecutionPhase"
+        },
+        "commit": {
+          "$ref": "shared.schema.json#/$defs/CommitPhase"
+        },
+        "projection": {
+          "$ref": "shared.schema.json#/$defs/ProjectionPhase"
+        },
+        "canonical_revision": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "receipt": {
+          "$ref": "shared.schema.json#/$defs/ChangeReceipt"
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "shared.schema.json#/$defs/ErrorDetail"
+          }
+        },
+        "updated_at": {
+          "$ref": "shared.schema.json#/$defs/ISODate"
+        }
+      },
+      "required": [
+        "operation_id",
+        "execution",
+        "commit",
+        "projection",
+        "diagnostics",
+        "updated_at"
+      ]
+    },
+    "HistoricalValidity": {
+      "enum": [
+        "valid",
+        "invalid",
+        "unverified"
+      ]
+    },
+    "CurrentApplicability": {
+      "enum": [
+        "applicable",
+        "requires_revalidation",
+        "not_applicable",
+        "unknown"
+      ]
+    },
+    "IndexFreshness": {
+      "enum": [
+        "current",
+        "lagging",
+        "rebuilding",
+        "unavailable",
+        "unknown"
       ]
     },
     "ValidityVector": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "historical_validity": {
-          "type": "string",
-          "enum": [
-            "valid",
-            "invalid",
-            "unverified"
-          ]
+          "$ref": "shared.schema.json#/$defs/HistoricalValidity"
         },
         "current_applicability": {
-          "type": "string",
-          "enum": [
-            "applicable",
-            "stale",
-            "unknown"
-          ]
+          "$ref": "shared.schema.json#/$defs/CurrentApplicability"
         },
         "index_freshness": {
-          "type": "string",
-          "enum": [
-            "current",
-            "stale",
-            "rebuilding",
-            "unknown"
-          ]
+          "$ref": "shared.schema.json#/$defs/IndexFreshness"
+        },
+        "asserted_source_revision": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "observed_head_revision": {
+          "$ref": "shared.schema.json#/$defs/ID"
+        },
+        "assessed_at": {
+          "$ref": "shared.schema.json#/$defs/ISODate"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "shared.schema.json#/$defs/Ref"
+          }
         }
       },
       "required": [
         "historical_validity",
         "current_applicability",
-        "index_freshness"
-      ],
-      "additionalProperties": false
-    },
-    "OperationOutcome": {
-      "type": "object",
-      "properties": {
-        "execution_status": {
-          "type": "string",
-          "enum": [
-            "queued",
-            "running",
-            "ready",
-            "partial",
-            "failed",
-            "cancelled"
-          ]
-        },
-        "commit_status": {
-          "type": "string",
-          "enum": [
-            "not_started",
-            "pending",
-            "committed",
-            "unknown",
-            "failed"
-          ]
-        },
-        "projection_status": {
-          "type": "string",
-          "enum": [
-            "not_started",
-            "pending",
-            "ready",
-            "failed"
-          ]
-        },
-        "operation_id": {
-          "$ref": "#/$defs/ID"
-        }
-      },
-      "required": [
-        "execution_status",
-        "commit_status",
-        "projection_status",
-        "operation_id"
-      ],
-      "additionalProperties": false
+        "index_freshness",
+        "asserted_source_revision",
+        "assessed_at",
+        "evidence_refs"
+      ]
     },
     "RepoRevision": {
       "type": "object",
@@ -532,11 +845,11 @@
         },
         "commit_sha": {
           "type": "string",
-          "minLength": 1
+          "pattern": "^[0-9a-f]{40}$"
         },
         "tree_sha": {
           "type": "string",
-          "minLength": 1
+          "pattern": "^[0-9a-f]{40}$"
         },
         "dirty_policy": {
           "enum": [
@@ -563,45 +876,12 @@
           "$ref": "shared.schema.json#/$defs/Span"
         },
         "qualified_name": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         }
       },
       "required": [
         "file",
         "span"
-      ]
-    },
-    "CodeDiagnostic": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "file": {
-          "$ref": "shared.schema.json#/$defs/Ref"
-        },
-        "span": {
-          "$ref": "shared.schema.json#/$defs/Span"
-        },
-        "severity": {
-          "enum": [
-            "info",
-            "warning",
-            "error"
-          ]
-        },
-        "code": {
-          "type": "string",
-          "minLength": 1
-        },
-        "message": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "required": [
-        "severity",
-        "code",
-        "message"
       ]
     },
     "Symbol": {
@@ -613,11 +893,13 @@
         },
         "name": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 512
         },
         "qualified_name": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 1024
         },
         "symbol_kind": {
           "enum": [
@@ -637,18 +919,19 @@
         },
         "signature": {
           "type": "string",
-          "minLength": 1
+          "maxLength": 4096
         },
         "definition": {
           "$ref": "shared.schema.json#/$defs/CodeLocation"
         },
         "visibility": {
           "type": "string",
-          "minLength": 1
+          "maxLength": 64
         },
         "language": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 64
         },
         "resolution": {
           "enum": [
@@ -722,58 +1005,35 @@
         "evidence"
       ]
     },
-    "CodeAnalysisManifest": {
+    "CodeRevisionChange": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "repository": {
+        "change_kind": {
+          "enum": [
+            "added",
+            "removed",
+            "modified",
+            "moved",
+            "renamed"
+          ]
+        },
+        "old": {
           "$ref": "shared.schema.json#/$defs/Ref"
         },
-        "commit_sha": {
-          "type": "string",
-          "minLength": 1
+        "new": {
+          "$ref": "shared.schema.json#/$defs/Ref"
         },
-        "parser_profile": {
-          "type": "string",
-          "minLength": 1
-        },
-        "indexed_files": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "skipped_files": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "diagnostics": {
+        "evidence": {
           "type": "array",
           "items": {
-            "$ref": "shared.schema.json#/$defs/CodeDiagnostic"
+            "$ref": "shared.schema.json#/$defs/Evidence"
           }
-        },
-        "snapshot_id": {
-          "$ref": "shared.schema.json#/$defs/ID"
-        },
-        "graph_generation": {
-          "$ref": "shared.schema.json#/$defs/ID"
-        },
-        "completeness": {
-          "enum": [
-            "complete",
-            "partial"
-          ]
         }
       },
       "required": [
-        "repository",
-        "commit_sha",
-        "parser_profile",
-        "indexed_files",
-        "skipped_files",
-        "diagnostics",
-        "snapshot_id",
-        "graph_generation",
-        "completeness"
+        "change_kind",
+        "evidence"
       ]
     },
     "SymbolQuery": {
@@ -788,22 +1048,23 @@
         },
         "query": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 1024
         },
         "kinds": {
           "type": "array",
           "items": {
             "type": "string",
-            "minLength": 1
+            "maxLength": 64
           }
         },
         "path_glob": {
           "type": "string",
-          "minLength": 1
+          "maxLength": 1024
         },
         "language": {
           "type": "string",
-          "minLength": 1
+          "maxLength": 64
         },
         "page": {
           "$ref": "shared.schema.json#/$defs/PageRequest"
@@ -830,7 +1091,7 @@
           "type": "array",
           "items": {
             "type": "string",
-            "minLength": 1
+            "maxLength": 64
           }
         },
         "page": {
@@ -860,16 +1121,18 @@
           "type": "array",
           "items": {
             "type": "string",
-            "minLength": 1
+            "maxLength": 64
           }
         },
         "max_depth": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "maximum": 100
         },
         "max_nodes": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "maximum": 100000
         },
         "page": {
           "$ref": "shared.schema.json#/$defs/PageRequest"
@@ -901,16 +1164,18 @@
           "type": "array",
           "items": {
             "type": "string",
-            "minLength": 1
+            "maxLength": 64
           }
         },
         "max_depth": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "maximum": 100
         },
         "max_nodes": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "maximum": 100000
         },
         "include_test_candidates": {
           "type": "boolean"
@@ -982,7 +1247,8 @@
       "properties": {
         "intent": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 4096
         },
         "repository": {
           "$ref": "shared.schema.json#/$defs/Ref"
@@ -998,7 +1264,8 @@
         },
         "max_tokens": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "maximum": 1000000
         }
       },
       "required": [
@@ -1009,34 +1276,6 @@
         "max_tokens"
       ]
     },
-    "EditContextBlock": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "ref": {
-          "$ref": "shared.schema.json#/$defs/Ref"
-        },
-        "content": {
-          "type": "string"
-        },
-        "token_count": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "evidence": {
-          "type": "array",
-          "items": {
-            "$ref": "shared.schema.json#/$defs/Evidence"
-          }
-        }
-      },
-      "required": [
-        "ref",
-        "content",
-        "token_count",
-        "evidence"
-      ]
-    },
     "EditContextResult": {
       "type": "object",
       "additionalProperties": false,
@@ -1044,7 +1283,32 @@
         "blocks": {
           "type": "array",
           "items": {
-            "$ref": "shared.schema.json#/$defs/EditContextBlock"
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "ref": {
+                "$ref": "shared.schema.json#/$defs/Ref"
+              },
+              "content": {
+                "type": "string"
+              },
+              "token_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "$ref": "shared.schema.json#/$defs/Evidence"
+                }
+              }
+            },
+            "required": [
+              "ref",
+              "content",
+              "token_count",
+              "evidence"
+            ]
           }
         },
         "total_tokens": {
@@ -1066,58 +1330,6 @@
         "total_tokens",
         "truncation",
         "omitted_refs"
-      ]
-    },
-    "CodeRevisionChange": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "change_kind": {
-          "enum": [
-            "added",
-            "removed",
-            "modified",
-            "renamed",
-            "unknown"
-          ]
-        },
-        "old": {
-          "$ref": "shared.schema.json#/$defs/Ref"
-        },
-        "new": {
-          "$ref": "shared.schema.json#/$defs/Ref"
-        },
-        "evidence": {
-          "type": "array",
-          "items": {
-            "$ref": "shared.schema.json#/$defs/Evidence"
-          }
-        }
-      },
-      "required": [
-        "change_kind",
-        "evidence"
-      ]
-    },
-    "ChangeReceipt": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "revision": {
-          "$ref": "shared.schema.json#/$defs/ID"
-        },
-        "etag": {
-          "type": "string",
-          "minLength": 1
-        },
-        "changed": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "revision",
-        "etag",
-        "changed"
       ]
     }
   }

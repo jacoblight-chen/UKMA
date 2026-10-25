@@ -1,0 +1,78 @@
+spec_version: 1.2.3
+api_major: 1
+source: docs/UKMA_v1.2.3_Full_Spec.md §32.2/§33.2/§34.2/§35.2 (auth column) + §14
+default_policy: deny_by_default
+rule: Every operation MUST declare at least one scope; every read/write/graph-hop/snippet/evidence is checked (§31.4, §40.7).
+scopes:
+- scope: code:read
+  domain: code
+  grants: Read code knowledge (symbols, references, edges, impact).
+- scope: code:index
+  domain: code
+  grants: Submit/cancel repository analysis and ingest revisions.
+- scope: code:index_admin
+  domain: code
+  grants: Invalidate/publish code index generations.
+- scope: document:read
+  domain: document
+  grants: Read documents, blocks, search hits, source spans.
+- scope: document:index
+  domain: document
+  grants: Ingest/cancel document ingestion.
+- scope: document:analyze
+  domain: document
+  grants: Run extraction/consistency analysis.
+- scope: document:review
+  domain: document
+  grants: Approve/reject requirement candidates.
+- scope: document:index_admin
+  domain: document
+  grants: Invalidate document revisions.
+- scope: memory:read
+  domain: memory
+  grants: Read WM/EM/SM/PM views and budgets.
+- scope: memory:write
+  domain: memory
+  grants: Write WM/EM, update revisions, propose facts, page, reconsolidate.
+- scope: memory:review
+  domain: memory
+  grants: Verify/reject semantic facts.
+- scope: memory:fold
+  domain: memory
+  grants: Fold episodes under the safety preserve gate.
+- scope: memory:consolidate
+  domain: memory
+  grants: Run the nine-stage consolidation job.
+- scope: memory:delegate
+  domain: memory
+  grants: Open/close attenuated agent scopes.
+- scope: memory:forget
+  domain: memory
+  grants: Policy-authorized deletion with deletion receipt.
+- scope: memory:manage
+  domain: memory
+  grants: Evaluate eviction plans; memory administration.
+- scope: memory:procedure_write
+  domain: memory
+  grants: Register procedure candidates / record outcomes.
+- scope: memory:procedure_review
+  domain: memory
+  grants: Activate/refine/disable procedures.
+- scope: trace:read
+  domain: traceability
+  grants: Read trace links, coverage, impact, gap and evidence reports.
+- scope: trace:write
+  domain: traceability
+  grants: Propose trace links.
+- scope: trace:verify
+  domain: traceability
+  grants: Validate links and revalidate stale links.
+- scope: trace:approve
+  domain: traceability
+  grants: Accept/reject/revoke trace links.
+- scope: system:read
+  domain: system
+  grants: Read capability/operation/job status.
+- scope: system:manage
+  domain: system
+  grants: Cancel jobs.

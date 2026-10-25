@@ -1,0 +1,158 @@
+spec_version: 1.2.3
+api_major: 1
+source: docs/UKMA_v1.2.3_Full_Spec.md §31.3 (closed union) + §15 (retry semantics)
+closure: closed
+rule: Any value not listed here MUST be rejected or mapped to a listed code; no local error enums may add values (ADR-035).
+retryable_values:
+- 'true'
+- 'false'
+- conditional
+error_codes:
+- code: INVALID_SCHEMA
+  retryable: false
+  category: validation
+  description: Missing/invalid field or schema version mismatch.
+- code: INVALID_ARGUMENT
+  retryable: false
+  category: validation
+  description: Argument fails a bounds/format rule.
+- code: UNAUTHENTICATED
+  retryable: false
+  category: authz
+  description: No valid principal credentials.
+- code: FORBIDDEN
+  retryable: false
+  category: authz
+  description: Denied for a visible operation; never reveals existence of hidden resources.
+- code: NOT_FOUND
+  retryable: false
+  category: lookup
+  description: Resource absent in scope; used instead of FORBIDDEN for invisible objects (§40.7).
+- code: SOURCE_REVISION_MISMATCH
+  retryable: true
+  category: concurrency
+  description: Source changed concurrently; fetch latest revision and resubmit.
+- code: ETAG_MISMATCH
+  retryable: false
+  category: concurrency
+  description: expected_etag/expected_revision does not match current revision.
+- code: IDEMPOTENCY_CONFLICT
+  retryable: false
+  category: idempotency
+  description: Same idempotency key replayed with a different payload/hash.
+- code: CURSOR_EXPIRED
+  retryable: false
+  category: pagination
+  description: Signed cursor expired or no longer matches query/scope/snapshot.
+- code: CAPABILITY_UNAVAILABLE
+  retryable: false
+  category: capability
+  description: Adapter/model cannot provide a required capability.
+- code: CONSISTENCY_UNSUPPORTED
+  retryable: false
+  category: consistency
+  description: Requested snapshot/strict generation cannot be satisfied; refuse, do not downgrade.
+- code: INDEX_STALE
+  retryable: true
+  category: consistency
+  description: Index lags the required revision; observed generation returned.
+- code: INDEX_NOT_READY
+  retryable: true
+  category: consistency
+  description: Strict read timed out waiting for the required generation.
+- code: SOURCE_PARSE_FAILED
+  retryable: true
+  category: ingest
+  description: Parser failed; diagnostics/quarantine required.
+- code: UNSUPPORTED_MEDIA_TYPE
+  retryable: false
+  category: ingest
+  description: No registered parser for the media type.
+- code: SOURCE_UNAVAILABLE
+  retryable: true
+  category: source
+  description: Source artifact/revision cannot be read.
+- code: SOURCE_TOO_LARGE
+  retryable: false
+  category: limits
+  description: Source exceeds the configured payload/artifact limit.
+- code: RESOURCE_LIMIT
+  retryable: false
+  category: limits
+  description: Depth/node/path/k bounds exceeded; no silent truncation.
+- code: INSUFFICIENT_CONTEXT_BUDGET
+  retryable: false
+  category: budget
+  description: C_usable < 4096 at agent creation/spawn (ADR-033).
+- code: CONTEXT_BUDGET_EXCEEDED
+  retryable: true
+  category: budget
+  description: Single operation exceeds the allocated budget.
+- code: CONFLICTING_EVIDENCE
+  retryable: true
+  category: evidence
+  description: Evidence contradicts; both sides retained for review.
+- code: EVIDENCE_REQUIRED
+  retryable: false
+  category: evidence
+  description: Mutation requires evidence that was not supplied.
+- code: LINK_STATE_CONFLICT
+  retryable: false
+  category: state
+  description: Illegal trace link state transition.
+- code: CROSS_SCOPE_DENIED
+  retryable: false
+  category: authz
+  description: Cross-scope access/write attempted.
+- code: DELEGATION_EXPIRED
+  retryable: false
+  category: authz
+  description: Delegation token expired or revoked.
+- code: POLICY_DENIED
+  retryable: false
+  category: policy
+  description: Policy gate rejected the operation (retention, protection, safety).
+- code: STORAGE_COMMIT_UNKNOWN
+  retryable: true
+  category: storage
+  description: Commit outcome unknown; resolve via operation_id + idempotency receipt.
+- code: STORAGE_UNAVAILABLE
+  retryable: true
+  category: storage
+  description: Backend unavailable.
+- code: INDEX_PROJECTION_FAILED
+  retryable: true
+  category: storage
+  description: Projection failed after a successful canonical commit; replay.
+- code: JOB_NOT_CANCELLABLE
+  retryable: false
+  category: job
+  description: Job passed its cancellable phase; cancel only stops further work.
+- code: JOB_NOT_FOUND
+  retryable: false
+  category: job
+  description: Unknown job id in scope.
+- code: ALREADY_DELETED
+  retryable: false
+  category: deletion
+  description: Target already deleted (idempotent delete surface).
+- code: DELETION_BLOCKED
+  retryable: false
+  category: deletion
+  description: Retention/legal hold/protected reference prevents deletion.
+- code: MODEL_PROFILE_MISMATCH
+  retryable: false
+  category: model
+  description: Embedding/reranker profile dimension/metric/version mismatch.
+- code: MODEL_UNAVAILABLE
+  retryable: true
+  category: model
+  description: Model service unavailable; degrade only where policy allows.
+- code: TIMEOUT
+  retryable: true
+  category: runtime
+  description: Operation deadline exceeded.
+- code: INTERNAL
+  retryable: true
+  category: runtime
+  description: Unexpected internal failure.
