@@ -271,44 +271,45 @@ phases:
 
 - id: P6
   name: Memory Advanced
-  status: not_started
+  status: done
   work_packages:
   - id: P6-WP1
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'crates/memory-domain/src/consolidation.rs: the nine-stage DAG in its only order (Cluster->ExtractFacts->Align->DetectContradictions->Calibrate->Promote->WarmCache->OptimizeGraph->Rescore), only Promote writing canonical semantic memory, idempotent replay of a stage with the same input_hash (no extra attempt), checkpoint_uri + audit_ref per stage, Promote as the commit point so a WarmCache failure becomes FAILED_RETRYABLE without rolling committed facts back, and Quarantined/FailedFinal freezing the pipeline. MemoryService::consolidate runs the pipeline and MAPI-19 exposes status/canonical_committed/diagnostics. Tests: consolidation::tests (8), p6_matrix mapi18_*.'
     blocked_reason: null
   - id: P6-WP2
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'crates/memory-domain/src/facts.rs: propose_fact (evidence required, candidate/unverified, deterministic fact:v1 ids), verify_fact (Unverified->Verified/Rejected only, evidence ids must exist on the fact, contradicted claims cannot be verified, repeat review is LINK_STATE_CONFLICT), find_conflicts by subject+predicate with incompatible object/qualifier, and the promotion gate (3 independent groups + confidence>=0.65 with the auditable manual_approval_ref exception that cannot waive safety/ACL/hold/evidence/conflict). Tests: facts::tests (9), p6_matrix mapi10_*/mapi11_*/mapi12_*.'
     blocked_reason: null
   - id: P6-WP3
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'crates/memory-domain/src/trust.rs: Beta(2,2) posterior with source-group dedup so a restatement is not an independent observation, Kalman update with Q=0.05/R=0.1, T_rank=clamp(0.7*Beta+0.3*Kalman,0,1) with a recorded beta_only_cold_start fallback, the four separated trust columns plus authz_decision (a decision, not a score), and depth/fold discounts exp(-0.2d)/exp(-0.15f) that only scale the ranking signal. Tests: trust::tests (7).'
     blocked_reason: null
   - id: P6-WP4
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'crates/memory-domain/src/poisoning.rs: source mutation, write-rate and contradiction-burst limits, trust_delta_z<-2 and instruction smuggling all quarantine the source and freeze promotion; injected text is still classified as PayloadClass::Data and only raises a signal; quarantine restore requires reviewer + reason + snapshot and is refused twice. Service exposes quarantine_source/restore_source/is_quarantined; verify_fact returns POLICY_DENIED and consolidation reports QUARANTINED while a group is quarantined. Tests: poisoning::tests (7), p6_matrix mapi18_a_quarantined_source_freezes_promotion.'
     blocked_reason: null
   - id: P6-WP5
-    status: not_started
-    evidence: ADR-048 O-04：BGE-M3 1024d；截斷須品質測試核准；可開工
+    status: done
+    evidence: 'crates/memory-domain/src/language.rs: script segmentation that preserves original byte offsets, mixed-script detection, script candidate tags (und-Hans/und-Latn/...), lang_match factors 1.0/0.85/0.425, omega_align, the cross-lingual merge gate (entity match + theta_align 0.85 + compatible qualifiers + valid provenance, theta_cross 0.75 recall-only), translation-cache key with acl_scope and 24h TTL, Laplace language prior with explicit preference winning, and embedding-profile generation switch on any model/revision/dimension/metric/tokenizer/normalization/quantization change with truncation below 1024 dims marked RequiresLocalQualityTest. Tests: language::tests (7). NOTE: script-level identification only; no ICU/jieba/Kuromoji analyzers, no translator, no bilingual vector calibration (ADR-052 gap 3).'
     blocked_reason: null
   - id: P6-WP6
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'crates/memory-domain/src/procedures.rs: LEARN->CONSOLIDATE->APPLY->REFINE with DISABLE terminal, consolidation gate calls>=3 && raw success>=0.65, refinement trigger calls>=5 or success<=0.50, bounded Beta success rate (1 success = 0.667), and an active procedure granting no tool. Service review_procedure does a pure consolidation_ready check first so a refused activation does not move the revision (ADR-052 D-12), and record_procedure_outcome refuses only Disabled. Tests: procedures::tests (6), p6_matrix mapi20_*/mapi21_*/mapi22_*.'
     blocked_reason: null
   - id: P6-WP7
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'crates/memory-domain/src/jobs.rs: the nine registered job kinds, tenant partition, idempotent submission per tenant+kind+key, lease with fencing tokens (an expired lease may be taken over, a stale token cannot complete or fail), exponential backoff 5s*2^(n-1) to MAX_ATTEMPTS=5 then dead letter, resume_checkpoint for restart, and the hourly fsrs_refresh interval. Tests: jobs::tests (6). NOTE: the primitives are wired to the pipeline and sweeps but no background worker loop is started by this build (ADR-052 gap 1).'
     blocked_reason: null
   - id: P6-WP8
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'crates/memory-domain/src/entropy.rs: compression candidates require 0.3<=R<0.7 and gzip_ratio<0.4, empty payloads report SKIPPED_EMPTY, and verify() rolls the attempt back when key content or source references are lost or when the token count did not shrink. Tests: entropy::tests (3) plus fsrs::tests for the gzip ratio itself. NOTE: the entropy_candidate_scan job does not yet drive the rewrite (ADR-052 gap 9).'
     blocked_reason: null
   - id: P6-WP9
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'MemoryService now implements all 25 §37 operations: MAPI-10 propose_fact, MAPI-11 verify_fact, MAPI-12 find_conflicts, MAPI-18 consolidate, MAPI-19 get_consolidation_job, MAPI-20 register_procedure_candidate, MAPI-21 review_procedure, MAPI-22 record_procedure_outcome are real behaviours, and the FractalMemoryPort no longer returns CAPABILITY_UNAVAILABLE anywhere (ADR-052 supersedes ADR-051 D-09). Tests: tests/p6_matrix.rs (13) covering positive/negative/authorization/cross-scope/version/quarantine paths plus the port delegation test in tests/mapi_matrix.rs.'
     blocked_reason: null
+
 - id: P7
   name: Traceability 13 ops
   status: not_started

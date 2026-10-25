@@ -23,8 +23,8 @@ use crate::domain::{
     DetailLevel, EvaluateEviction, EvictionPlan, FoldInput, FoldMemory, FoldedResult, ForgetMemory,
     GetMemoryBudget, ListWorkingBlocks, MemoryError, MemoryKind, MemoryPatch, MemoryView,
     OpenAgentScope, Page, PageIn, PageInResult, PageOut, PageRequest, PagingReceipt, PagingStatus,
-    PutWorkingBlock, Ref, RemoveWorkingBlock, Result, RetrieveMemory, SearchMemory, StoreEpisode,
-    Trust, UpdateMemory, VerificationState, WorkingState,
+    ProcedureState, PutWorkingBlock, Ref, RemoveWorkingBlock, Result, RetrieveMemory, SearchMemory,
+    StoreEpisode, Trust, UpdateMemory, VerificationState, WorkingState,
 };
 use crate::episodic::{self, Episode, SweepAction, SweepDecision};
 use crate::fsrs::{self, FsrsState};
@@ -45,6 +45,14 @@ pub const SCOPE_FOLD: &str = "memory:fold";
 pub const SCOPE_MANAGE: &str = "memory:manage";
 /// Scope needed to delete memory.
 pub const SCOPE_FORGET: &str = "memory:forget";
+/// Scope needed to review a fact (§34.2 MAPI-11).
+pub const SCOPE_REVIEW: &str = "memory:review";
+/// Scope needed to consolidate (§34.2 MAPI-18).
+pub const SCOPE_CONSOLIDATE: &str = "memory:consolidate";
+/// Scope needed to write a procedure (§34.2 MAPI-20/22).
+pub const SCOPE_PROCEDURE_WRITE: &str = "memory:procedure_write";
+/// Scope needed to review a procedure (§34.2 MAPI-21).
+pub const SCOPE_PROCEDURE_REVIEW: &str = "memory:procedure_review";
 
 /// Deterministic policy identifier (§22.3).
 pub const POLICY_DETERMINISTIC: &str = "deterministic-v1";
@@ -287,6 +295,10 @@ struct ServiceState {
     evicted: BTreeMap<String, Block>,
     pages: BTreeMap<String, PageRecord>,
     items: BTreeMap<String, MemoryItem>,
+    facts: BTreeMap<String, crate::facts::SemanticFact>,
+    procedures: BTreeMap<String, crate::procedures::Procedure>,
+    pipelines: BTreeMap<String, crate::consolidation::ConsolidationPipeline>,
+    quarantines: BTreeMap<String, crate::poisoning::QuarantineRecord>,
     scopes: BTreeMap<String, ScopeRecord>,
     turns: BTreeMap<String, TurnState>,
     trace_links: BTreeMap<String, BTreeSet<String>>,
@@ -2226,6 +2238,689 @@ impl MemoryService {
     }
 }
 
+fn fact_etag(id: &str, version: u64) -> String {
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    hasher.update(id.as_bytes());
+    hasher.update([0u8]);
+    hasher.update(version.to_le_bytes());
+    let digest = hasher.finalize();
+    let mut out = String::with_capacity(16);
+    for byte in &digest[..8] {
+        out.push_str(&format!("{byte:02x}"));
+    }
+    format!("\"{out}\"")
+}
+
+fn short_hash<S: AsRef<str>>(parts: &[S]) -> String {
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    for part in parts {
+        hasher.update(part.as_ref().as_bytes());
+        hasher.update([0u8]);
+    }
+    let digest = hasher.finalize();
+    let mut out = String::with_capacity(16);
+    for byte in &digest[..8] {
+        out.push_str(&format!("{byte:02x}"));
+    }
+    out
+}
+
+impl MemoryService {
+    fn require_fact_scope(
+        &self,
+        ctx: &RequestContext,
+        fact: &crate::facts::SemanticFact,
+    ) -> Result<()> {
+        // Facts carry a tenant/project in their id prefix; the caller must be in
+        // the same tenant and project (§34.3).
+        let expected = format!("fact:{}:{}:", ctx.scope.tenant_id, ctx.scope.project_id);
+        if fact.id.starts_with(&expected) {
+            Ok(())
+        } else {
+            Err(MemoryError::CrossScopeDenied {
+                requested: format!("{}/{}", ctx.scope.tenant_id, ctx.scope.project_id),
+                actual: fact.id.clone(),
+            })
+        }
+    }
+
+    fn fact_view(&self, fact: &crate::facts::SemanticFact) -> MemoryView {
+        let summary = format!("{} {} {}", fact.subject, fact.predicate, fact.object);
+        MemoryView {
+            reference: Ref::new(
+                fact.id.clone(),
+                MemoryKind::Semantic,
+                fact_etag(&fact.id, fact.version),
+            ),
+            kind: MemoryKind::Semantic,
+            state: fact.verification.as_str().to_string(),
+            summary: Some(summary.clone()),
+            content: Some(summary),
+            evidence: fact.evidence.clone(),
+            trust: fact.confidence.clamp(0.0, 1.0),
+            version: fact_etag(&fact.id, fact.version),
+            token_count: token_count(&format!(
+                "{} {} {}",
+                fact.subject, fact.predicate, fact.object
+            )),
+            folded: false,
+            language: fact.language.clone(),
+            redacted: false,
+        }
+    }
+
+    fn promotion_frozen(state: &ServiceState, fact: &crate::facts::SemanticFact) -> bool {
+        let groups: BTreeSet<&str> = fact
+            .evidence
+            .iter()
+            .map(|item| item.source_group.as_str())
+            .collect();
+        state
+            .quarantines
+            .values()
+            .any(|record| record.active && groups.contains(record.source_group.as_str()))
+    }
+
+    /// Evaluate a source observation and quarantine it when a poison signal fires.
+    ///
+    /// This is the seam the ingestion path calls; on the wire the poison decision
+    /// arrives through the policy layer (§26.3).
+    pub fn quarantine_source(
+        &self,
+        ctx: &RequestContext,
+        observation: &crate::poisoning::SourceObservation,
+    ) -> Result<crate::poisoning::QuarantineRecord> {
+        self.authorizer.require_scope(ctx, SCOPE_MANAGE)?;
+        let decision = crate::poisoning::evaluate(observation)?;
+        if !decision.quarantined {
+            return Err(MemoryError::InvalidArgument {
+                field: "observation".to_string(),
+                reason: "no poison signal fired".to_string(),
+            });
+        }
+        let now = self.now();
+        let record = crate::poisoning::QuarantineRecord::open(
+            observation.source_group.clone(),
+            &decision,
+            now,
+        )?;
+        let mut state = self.lock();
+        state
+            .quarantines
+            .insert(observation.source_group.clone(), record.clone());
+        Ok(record)
+    }
+
+    /// Lift a quarantine after an audited offline review.
+    pub fn restore_source(
+        &self,
+        ctx: &RequestContext,
+        source_group: &str,
+        reviewer: &str,
+        reason: &str,
+        snapshot_ref: &str,
+    ) -> Result<()> {
+        self.authorizer.require_scope(ctx, SCOPE_MANAGE)?;
+        let now = self.now();
+        let mut state = self.lock();
+        let record =
+            state
+                .quarantines
+                .get_mut(source_group)
+                .ok_or_else(|| MemoryError::NotFound {
+                    resource: format!("quarantine {source_group}"),
+                })?;
+        record.restore(reviewer, reason, snapshot_ref, now)
+    }
+
+    /// Whether a source group is currently quarantined.
+    pub fn is_quarantined(&self, source_group: &str) -> bool {
+        self.lock()
+            .quarantines
+            .get(source_group)
+            .map(|record| record.active)
+            .unwrap_or(false)
+    }
+
+    // -- MAPI-10 -------------------------------------------------------------
+
+    /// `memory.propose_fact` — record an evidence-backed claim as a candidate.
+    pub fn propose_fact(
+        &self,
+        ctx: &RequestContext,
+        request: &crate::domain::ProposeFact,
+    ) -> Result<Ref> {
+        self.authorizer.require_scope(ctx, SCOPE_WRITE)?;
+        let input = &request.input;
+        let mut state = self.lock();
+        let sequence = state.next_sequence();
+        let id = format!(
+            "fact:{}:{}:{}",
+            ctx.scope.tenant_id, ctx.scope.project_id, sequence
+        );
+        let fact = crate::facts::SemanticFact {
+            id: id.clone(),
+            subject: input.subject.id.clone(),
+            predicate: input.predicate.clone(),
+            object: input.object.clone(),
+            qualifier: None,
+            language: input.language.clone(),
+            translations: Vec::new(),
+            confidence: input.confidence,
+            evidence: input.evidence.clone(),
+            verification: VerificationState::Unverified,
+            contradicted_by: BTreeSet::new(),
+            version: 1,
+            created_at: self.now(),
+            last_verified_at: None,
+            legal_hold: false,
+        };
+        fact.validate()?;
+        let etag = fact_etag(&id, fact.version);
+        state.facts.insert(id.clone(), fact);
+        Ok(Ref::new(id, MemoryKind::Semantic, etag))
+    }
+
+    // -- MAPI-11 -------------------------------------------------------------
+
+    /// `memory.verify_fact` — independent review of a candidate claim.
+    pub fn verify_fact(
+        &self,
+        ctx: &RequestContext,
+        request: &crate::domain::VerifyFact,
+    ) -> Result<ChangeReceipt> {
+        self.authorizer.require_scope(ctx, SCOPE_REVIEW)?;
+        let mut state = self.lock();
+        let now = self.now();
+        let scope_marker = format!("fact:{}:{}:", ctx.scope.tenant_id, ctx.scope.project_id);
+        let snapshot =
+            state
+                .facts
+                .get(&request.fact.id)
+                .cloned()
+                .ok_or_else(|| MemoryError::NotFound {
+                    resource: format!("fact {}", request.fact.id),
+                })?;
+        if !snapshot.id.starts_with(&scope_marker) {
+            return Err(MemoryError::CrossScopeDenied {
+                requested: format!("{}/{}", ctx.scope.tenant_id, ctx.scope.project_id),
+                actual: snapshot.id.clone(),
+            });
+        }
+        let actual_etag = fact_etag(&snapshot.id, snapshot.version);
+        if request.expected_etag != actual_etag {
+            return Err(MemoryError::EtagMismatch {
+                expected: request.expected_etag.clone(),
+                actual: actual_etag,
+            });
+        }
+        if MemoryService::promotion_frozen(&state, &snapshot) {
+            return Err(MemoryError::PolicyDenied {
+                reason: "the source group is quarantined; promotion is frozen (§26.3)".to_string(),
+            });
+        }
+        // Derive contradictions from the rest of the store before reviewing, so a
+        // conflicting claim cannot be verified by accident.
+        let mut contradicted: BTreeSet<String> = BTreeSet::new();
+        let others: Vec<crate::facts::SemanticFact> = state
+            .facts
+            .values()
+            .filter(|candidate| candidate.id != snapshot.id)
+            .cloned()
+            .collect();
+        for other in others.iter() {
+            if crate::facts::classify(&snapshot, other, crate::facts::THETA_ALIGN)
+                == crate::facts::ClaimRelation::Contradicts
+            {
+                contradicted.insert(other.id.clone());
+            }
+        }
+        let fact = state
+            .facts
+            .get_mut(&request.fact.id)
+            .ok_or_else(|| MemoryError::NotFound {
+                resource: format!("fact {}", request.fact.id),
+            })?;
+        fact.contradicted_by = contradicted;
+        let decision = match request.decision {
+            crate::domain::FactDecision::Verify => crate::facts::ReviewDecision::Verify,
+            crate::domain::FactDecision::Reject => crate::facts::ReviewDecision::Reject,
+        };
+        let outcome = crate::facts::verify(fact, &request.evidence_ids, decision, now)?;
+        let etag = fact_etag(&fact.id, fact.version);
+        Ok(ChangeReceipt {
+            resource_id: request.fact.id.clone(),
+            etag,
+            changed: outcome.changed,
+            events: vec!["memory.fact.reviewed".to_string()],
+        })
+    }
+
+    // -- MAPI-12 -------------------------------------------------------------
+    /// `memory.find_conflicts` — claims that contradict the given fact.
+    pub fn find_conflicts(
+        &self,
+        ctx: &RequestContext,
+        request: &crate::domain::FindConflicts,
+    ) -> Result<Page<MemoryView>> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        if request.max_results == 0 || request.max_results > crate::search::MAX_RESULTS {
+            return Err(MemoryError::InvalidArgument {
+                field: "max_results".to_string(),
+                reason: format!("must be in 1..={}", crate::search::MAX_RESULTS),
+            });
+        }
+        let state = self.lock();
+        let target = state
+            .facts
+            .get(&request.fact.id)
+            .ok_or_else(|| MemoryError::NotFound {
+                resource: format!("fact {}", request.fact.id),
+            })?;
+        self.require_fact_scope(ctx, target)?;
+        let candidates: Vec<crate::facts::SemanticFact> = state
+            .facts
+            .values()
+            .filter(|candidate| {
+                candidate.id.starts_with(&format!(
+                    "fact:{}:{}:",
+                    ctx.scope.tenant_id, ctx.scope.project_id
+                ))
+            })
+            .cloned()
+            .collect();
+        let conflicts =
+            crate::facts::find_conflicts(target, candidates.iter(), request.max_results as usize)?;
+        let views: Vec<MemoryView> = conflicts
+            .into_iter()
+            .map(|conflict| self.fact_view(conflict))
+            .collect();
+        Page::of(views, &PageRequest::new(request.max_results))
+    }
+
+    // -- MAPI-18 -------------------------------------------------------------
+
+    /// `memory.consolidate` — run the nine-stage pipeline over the given episodes.
+    pub fn consolidate(
+        &self,
+        ctx: &RequestContext,
+        request: &crate::domain::Consolidate,
+    ) -> Result<crate::domain::JobHandle> {
+        self.authorizer.require_scope(ctx, SCOPE_CONSOLIDATE)?;
+        if !request.asynchronous {
+            return Err(MemoryError::InvalidArgument {
+                field: "async".to_string(),
+                reason: "memory.consolidate is asynchronous; pass `async: true` (§34.2)"
+                    .to_string(),
+            });
+        }
+        if request.episode_refs.is_empty() {
+            return Err(MemoryError::InvalidArgument {
+                field: "episode_refs".to_string(),
+                reason: "at least one episode is required".to_string(),
+            });
+        }
+        if request.policy_id.trim().is_empty() {
+            return Err(MemoryError::InvalidArgument {
+                field: "policy_id".to_string(),
+                reason: "must be non-empty".to_string(),
+            });
+        }
+        let mut state = self.lock();
+        for reference in &request.episode_refs {
+            let item = self.item(&state, &reference.id)?;
+            self.require_item_scope(ctx, item)?;
+        }
+        let sequence = state.next_sequence();
+        let job_id = format!("job:consolidation:{}:{}", ctx.scope.tenant_id, sequence);
+        let mut pipeline = crate::consolidation::ConsolidationPipeline::new(job_id.clone());
+        let source_ids: Vec<String> = request
+            .episode_refs
+            .iter()
+            .map(|reference| reference.id.clone())
+            .collect();
+        let candidates: Vec<String> = state
+            .facts
+            .values()
+            .filter(|fact| {
+                fact.id.starts_with(&format!(
+                    "fact:{}:{}:",
+                    ctx.scope.tenant_id, ctx.scope.project_id
+                )) && fact.verification == VerificationState::Unverified
+            })
+            .map(|fact| fact.id.clone())
+            .collect();
+        let mut promoted: Vec<String> = Vec::new();
+
+        for stage in crate::consolidation::Stage::ALL {
+            let input_hash = short_hash(&[
+                "consolidation",
+                &job_id,
+                stage.as_str(),
+                &source_ids.join(","),
+            ]);
+            let outcome = match stage {
+                crate::consolidation::Stage::Cluster => {
+                    crate::consolidation::StageOutcome::Completed {
+                        output_hash: short_hash(&source_ids),
+                    }
+                }
+                crate::consolidation::Stage::ExtractFacts => {
+                    crate::consolidation::StageOutcome::Completed {
+                        output_hash: short_hash(&candidates),
+                    }
+                }
+                crate::consolidation::Stage::Align => {
+                    crate::consolidation::StageOutcome::Completed {
+                        output_hash: short_hash(&["align", &candidates.len().to_string()]),
+                    }
+                }
+                crate::consolidation::Stage::DetectContradictions => {
+                    let mut pairs: Vec<String> = Vec::new();
+                    for left in &candidates {
+                        let Some(target) = state.facts.get(left) else {
+                            continue;
+                        };
+                        let others: Vec<crate::facts::SemanticFact> = candidates
+                            .iter()
+                            .filter(|id| *id != left)
+                            .filter_map(|id| state.facts.get(id).cloned())
+                            .collect();
+                        for conflict in crate::facts::find_conflicts(
+                            target,
+                            others.iter(),
+                            crate::search::MAX_RESULTS as usize,
+                        )? {
+                            pairs.push(format!("{}~{}", left, conflict.id));
+                        }
+                    }
+                    let mut frozen = false;
+                    for id in &candidates {
+                        if let Some(fact) = state.facts.get(id) {
+                            if MemoryService::promotion_frozen(&state, fact) {
+                                frozen = true;
+                            }
+                        }
+                    }
+                    if frozen {
+                        crate::consolidation::StageOutcome::Quarantined {
+                            reason: "a source group is quarantined (§26.3)".to_string(),
+                        }
+                    } else {
+                        crate::consolidation::StageOutcome::Completed {
+                            output_hash: short_hash(&pairs),
+                        }
+                    }
+                }
+                crate::consolidation::Stage::Calibrate => {
+                    let total: f64 = candidates
+                        .iter()
+                        .filter_map(|id| state.facts.get(id))
+                        .map(|fact| fact.confidence)
+                        .sum();
+                    crate::consolidation::StageOutcome::Completed {
+                        output_hash: short_hash(&[&format!("{total:.4}")]),
+                    }
+                }
+                crate::consolidation::Stage::Promote => {
+                    let mut promoted_now = Vec::new();
+                    for id in &candidates {
+                        let Some(fact) = state.facts.get(id).cloned() else {
+                            continue;
+                        };
+                        let gate = crate::facts::promotion_gate(&fact, None);
+                        if gate.allowed {
+                            if let Some(stored) = state.facts.get_mut(id) {
+                                stored.verification = VerificationState::Verified;
+                                stored.last_verified_at = Some(self.now());
+                                stored.version += 1;
+                            }
+                            promoted_now.push(id.clone());
+                        }
+                    }
+                    promoted = promoted_now.clone();
+                    crate::consolidation::StageOutcome::Completed {
+                        output_hash: short_hash(&promoted_now),
+                    }
+                }
+                crate::consolidation::Stage::WarmCache => {
+                    crate::consolidation::StageOutcome::Completed {
+                        output_hash: short_hash(&["warm-cache", &promoted.join(",")]),
+                    }
+                }
+                crate::consolidation::Stage::OptimizeGraph => {
+                    crate::consolidation::StageOutcome::Completed {
+                        output_hash: short_hash(&["graph", &state.facts.len().to_string()]),
+                    }
+                }
+                crate::consolidation::Stage::Rescore => {
+                    crate::consolidation::StageOutcome::Completed {
+                        output_hash: short_hash(&["rescore", &promoted.join(",")]),
+                    }
+                }
+            };
+            pipeline.run_stage(stage, &input_hash, |_stage, _input| outcome)?;
+            if pipeline.status().is_terminal() {
+                break;
+            }
+        }
+        let handle = crate::domain::JobHandle {
+            job_id: job_id.clone(),
+            kind: "memory.consolidation".to_string(),
+            stage: pipeline.status().as_str().to_string(),
+        };
+        state.pipelines.insert(job_id, pipeline);
+        Ok(handle)
+    }
+
+    // -- MAPI-19 -------------------------------------------------------------
+
+    /// `memory.get_consolidation_job` — live view of a consolidation job.
+    pub fn get_consolidation_job(
+        &self,
+        ctx: &RequestContext,
+        request: &crate::domain::GetMemoryJob,
+    ) -> Result<crate::domain::JobView> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        let expected = format!("job:consolidation:{}:", ctx.scope.tenant_id);
+        if !request.job_id.starts_with(&expected) {
+            return Err(MemoryError::NotFound {
+                resource: format!("job {}", request.job_id),
+            });
+        }
+        let state = self.lock();
+        let pipeline =
+            state
+                .pipelines
+                .get(&request.job_id)
+                .ok_or_else(|| MemoryError::NotFound {
+                    resource: format!("job {}", request.job_id),
+                })?;
+        Ok(crate::domain::JobView {
+            job_id: request.job_id.clone(),
+            kind: "memory.consolidation".to_string(),
+            stage: pipeline.status().as_str().to_string(),
+            canonical_committed: pipeline.semantic_committed(),
+            diagnostics: pipeline.diagnostics().to_vec(),
+        })
+    }
+
+    // -- MAPI-20 -------------------------------------------------------------
+
+    /// `memory.register_procedure_candidate` — learn a candidate procedure.
+    pub fn register_procedure_candidate(
+        &self,
+        ctx: &RequestContext,
+        request: &crate::domain::RegisterProcedure,
+    ) -> Result<crate::domain::ProcedureView> {
+        self.authorizer.require_scope(ctx, SCOPE_PROCEDURE_WRITE)?;
+        let draft = &request.draft;
+        let mut state = self.lock();
+        let sequence = state.next_sequence();
+        let id = format!(
+            "procedure:{}:{}:{}",
+            ctx.scope.tenant_id, ctx.scope.project_id, sequence
+        );
+        let mut procedure = crate::procedures::Procedure::learn(
+            id.clone(),
+            draft.name.clone(),
+            draft.language.clone(),
+            draft.evidence.clone(),
+            draft
+                .source_episodes
+                .iter()
+                .map(|reference| reference.id.clone())
+                .collect(),
+        )?;
+        procedure.steps = draft.steps.clone();
+        procedure.preconditions = draft.preconditions.clone();
+        procedure.tool_scope = draft.permissions.clone();
+        let view = crate::domain::ProcedureView {
+            reference: Ref::new(
+                id.clone(),
+                MemoryKind::Procedural,
+                fact_etag(&id, procedure.version),
+            ),
+            state: procedure.state,
+            success_rate: procedure.success_rate(),
+            run_count: procedure.calls,
+            permissions: procedure.tool_scope.clone(),
+            evidence: procedure.evidence.clone(),
+        };
+        state.procedures.insert(id, procedure);
+        Ok(view)
+    }
+
+    // -- MAPI-21 -------------------------------------------------------------
+
+    /// `memory.review_procedure` — activate, refine or disable a procedure.
+    pub fn review_procedure(
+        &self,
+        ctx: &RequestContext,
+        request: &crate::domain::ReviewProcedure,
+    ) -> Result<crate::domain::ProcedureView> {
+        self.authorizer.require_scope(ctx, SCOPE_PROCEDURE_REVIEW)?;
+        let now = self.now();
+        let mut state = self.lock();
+        let procedure = state
+            .procedures
+            .get_mut(&request.procedure.id)
+            .ok_or_else(|| MemoryError::NotFound {
+                resource: format!("procedure {}", request.procedure.id),
+            })?;
+        let scope_marker = format!(
+            "procedure:{}:{}:",
+            ctx.scope.tenant_id, ctx.scope.project_id
+        );
+        if !procedure.id.starts_with(&scope_marker) {
+            return Err(MemoryError::CrossScopeDenied {
+                requested: format!("{}/{}", ctx.scope.tenant_id, ctx.scope.project_id),
+                actual: procedure.id.clone(),
+            });
+        }
+        let actual = fact_etag(&procedure.id, procedure.version);
+        if request.expected_etag != actual {
+            return Err(MemoryError::EtagMismatch {
+                expected: request.expected_etag.clone(),
+                actual,
+            });
+        }
+        let decision = match request.decision {
+            crate::domain::ProcedureDecision::Activate => {
+                crate::procedures::ProcedureReview::Activate
+            }
+            crate::domain::ProcedureDecision::Refine => crate::procedures::ProcedureReview::Refine,
+            crate::domain::ProcedureDecision::Disable => {
+                crate::procedures::ProcedureReview::Disable
+            }
+        };
+        if decision == crate::procedures::ProcedureReview::Activate
+            && procedure.state == ProcedureState::Candidate
+        {
+            if !procedure.consolidation_ready() {
+                return Err(MemoryError::PolicyDenied {
+                    reason: format!(
+                        "the procedure needs REVIEW_REQUIRED consolidation first: {} runs at {:.2} success (§27.2)",
+                        procedure.calls,
+                        procedure.raw_success_rate()
+                    ),
+                });
+            }
+            let outcome = procedure.consolidate(now)?;
+            if outcome != crate::procedures::ConsolidationDecision::Approved {
+                return Err(MemoryError::PolicyDenied {
+                    reason: "the procedure needs REVIEW_REQUIRED consolidation first (§27.2)"
+                        .to_string(),
+                });
+            }
+        }
+        procedure.review(decision, now)?;
+        Ok(crate::domain::ProcedureView {
+            reference: Ref::new(
+                procedure.id.clone(),
+                MemoryKind::Procedural,
+                fact_etag(&procedure.id, procedure.version),
+            ),
+            state: procedure.state,
+            success_rate: procedure.success_rate(),
+            run_count: procedure.calls,
+            permissions: procedure.tool_scope.clone(),
+            evidence: procedure.evidence.clone(),
+        })
+    }
+
+    // -- MAPI-22 -------------------------------------------------------------
+
+    /// `memory.record_procedure_outcome` — record a run and detect drift.
+    pub fn record_procedure_outcome(
+        &self,
+        ctx: &RequestContext,
+        request: &crate::domain::RecordProcedureOutcome,
+    ) -> Result<ChangeReceipt> {
+        self.authorizer.require_scope(ctx, SCOPE_PROCEDURE_WRITE)?;
+        let mut state = self.lock();
+        let procedure = state
+            .procedures
+            .get_mut(&request.procedure.id)
+            .ok_or_else(|| MemoryError::NotFound {
+                resource: format!("procedure {}", request.procedure.id),
+            })?;
+        let scope_marker = format!(
+            "procedure:{}:{}:",
+            ctx.scope.tenant_id, ctx.scope.project_id
+        );
+        if !procedure.id.starts_with(&scope_marker) {
+            return Err(MemoryError::CrossScopeDenied {
+                requested: format!("{}/{}", ctx.scope.tenant_id, ctx.scope.project_id),
+                actual: procedure.id.clone(),
+            });
+        }
+        let actual = fact_etag(&procedure.id, procedure.version);
+        if request.expected_etag != actual {
+            return Err(MemoryError::EtagMismatch {
+                expected: request.expected_etag.clone(),
+                actual,
+            });
+        }
+        for item in &request.evidence {
+            item.validate()?;
+        }
+        procedure.record_outcome(request.success)?;
+        if procedure.needs_refinement() && procedure.state == ProcedureState::Active {
+            procedure.state = ProcedureState::Refining;
+        }
+        let etag = fact_etag(&procedure.id, procedure.version);
+        Ok(ChangeReceipt {
+            resource_id: request.procedure.id.clone(),
+            etag,
+            changed: true,
+            events: vec!["memory.procedure.outcome".to_string()],
+        })
+    }
+}
+
 fn compression_stage_name(stage: CompressionStage) -> &'static str {
     match stage {
         CompressionStage::RingReplacement => "ring_safety_replacement",
@@ -2391,12 +3086,6 @@ pub trait FractalMemoryPort: Send + Sync {
     ) -> Result<BudgetView>;
 }
 
-fn not_implemented<T>(capability: &str) -> Result<T> {
-    Err(MemoryError::CapabilityUnavailable {
-        capability: capability.to_string(),
-    })
-}
-
 impl FractalMemoryPort for MemoryService {
     async fn open_agent_scope(
         &self,
@@ -2459,24 +3148,24 @@ impl FractalMemoryPort for MemoryService {
     }
     async fn propose_fact(
         &self,
-        _ctx: &RequestContext,
-        _request: &crate::domain::ProposeFact,
+        ctx: &RequestContext,
+        request: &crate::domain::ProposeFact,
     ) -> Result<Ref> {
-        not_implemented("memory.propose_fact")
+        MemoryService::propose_fact(self, ctx, request)
     }
     async fn verify_fact(
         &self,
-        _ctx: &RequestContext,
-        _request: &crate::domain::VerifyFact,
+        ctx: &RequestContext,
+        request: &crate::domain::VerifyFact,
     ) -> Result<ChangeReceipt> {
-        not_implemented("memory.verify_fact")
+        MemoryService::verify_fact(self, ctx, request)
     }
     async fn find_conflicts(
         &self,
-        _ctx: &RequestContext,
-        _request: &crate::domain::FindConflicts,
+        ctx: &RequestContext,
+        request: &crate::domain::FindConflicts,
     ) -> Result<Page<MemoryView>> {
-        not_implemented("memory.find_conflicts")
+        MemoryService::find_conflicts(self, ctx, request)
     }
     async fn fold(&self, ctx: &RequestContext, request: &FoldMemory) -> Result<FoldedResult> {
         MemoryService::fold(self, ctx, request)
@@ -2507,38 +3196,38 @@ impl FractalMemoryPort for MemoryService {
     }
     async fn consolidate(
         &self,
-        _ctx: &RequestContext,
-        _request: &crate::domain::Consolidate,
+        ctx: &RequestContext,
+        request: &crate::domain::Consolidate,
     ) -> Result<crate::domain::JobHandle> {
-        not_implemented("memory.consolidate")
+        MemoryService::consolidate(self, ctx, request)
     }
     async fn get_consolidation_job(
         &self,
-        _ctx: &RequestContext,
-        _request: &crate::domain::GetMemoryJob,
+        ctx: &RequestContext,
+        request: &crate::domain::GetMemoryJob,
     ) -> Result<crate::domain::JobView> {
-        not_implemented("memory.get_consolidation_job")
+        MemoryService::get_consolidation_job(self, ctx, request)
     }
     async fn register_procedure_candidate(
         &self,
-        _ctx: &RequestContext,
-        _request: &crate::domain::RegisterProcedure,
+        ctx: &RequestContext,
+        request: &crate::domain::RegisterProcedure,
     ) -> Result<crate::domain::ProcedureView> {
-        not_implemented("memory.register_procedure_candidate")
+        MemoryService::register_procedure_candidate(self, ctx, request)
     }
     async fn review_procedure(
         &self,
-        _ctx: &RequestContext,
-        _request: &crate::domain::ReviewProcedure,
+        ctx: &RequestContext,
+        request: &crate::domain::ReviewProcedure,
     ) -> Result<crate::domain::ProcedureView> {
-        not_implemented("memory.review_procedure")
+        MemoryService::review_procedure(self, ctx, request)
     }
     async fn record_procedure_outcome(
         &self,
-        _ctx: &RequestContext,
-        _request: &crate::domain::RecordProcedureOutcome,
+        ctx: &RequestContext,
+        request: &crate::domain::RecordProcedureOutcome,
     ) -> Result<ChangeReceipt> {
-        not_implemented("memory.record_procedure_outcome")
+        MemoryService::record_procedure_outcome(self, ctx, request)
     }
     async fn forget(
         &self,

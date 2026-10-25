@@ -18,18 +18,22 @@ use memory_domain::domain::{
 use memory_domain::scope::ParentAuthority;
 use memory_domain::service::{
     DelegationAuthority, FixedClock, FractalMemoryPort, MemoryService, POLICY_DETERMINISTIC,
-    POLICY_SHADOW_RL, SCOPE_DELEGATE, SCOPE_FOLD, SCOPE_FORGET, SCOPE_MANAGE, SCOPE_READ,
-    SCOPE_WRITE,
+    POLICY_SHADOW_RL, SCOPE_CONSOLIDATE, SCOPE_DELEGATE, SCOPE_FOLD, SCOPE_FORGET, SCOPE_MANAGE,
+    SCOPE_PROCEDURE_REVIEW, SCOPE_PROCEDURE_WRITE, SCOPE_READ, SCOPE_REVIEW, SCOPE_WRITE,
 };
 use ukma_contracts::{Consistency, RequestContext, ScopeRef};
 
-const ALL_SCOPES: [&str; 6] = [
+const ALL_SCOPES: [&str; 10] = [
     SCOPE_READ,
     SCOPE_WRITE,
     SCOPE_DELEGATE,
     SCOPE_FOLD,
     SCOPE_MANAGE,
     SCOPE_FORGET,
+    SCOPE_REVIEW,
+    SCOPE_CONSOLIDATE,
+    SCOPE_PROCEDURE_WRITE,
+    SCOPE_PROCEDURE_REVIEW,
 ];
 
 fn context(tenant: &str, scopes: &[&str]) -> RequestContext {
@@ -2022,7 +2026,7 @@ fn mapi25_insufficient_context_budget_is_reported() {
 // -- §37 port ---------------------------------------------------------------
 
 #[test]
-fn port_delegates_core_operations_and_reports_capability_gaps() {
+fn port_delegates_every_operation() {
     let (service, _) = service();
     let ctx = full();
     let receipt = block_on(FractalMemoryPort::store_episode(
@@ -2049,9 +2053,34 @@ fn port_delegates_core_operations_and_reports_capability_gaps() {
     .unwrap();
     assert_eq!(view.kind, MemoryKind::Episodic);
 
-    let gap = block_on(FractalMemoryPort::consolidate(
+    // The advanced operations delegate too: with the right scope the call no
+    // longer reports a capability gap (ADR-052 supersedes ADR-051 D-09).
+    let fact = block_on(FractalMemoryPort::propose_fact(
         &service,
         &ctx,
+        &memory_domain::domain::ProposeFact {
+            input: memory_domain::domain::SemanticFactInput {
+                subject: Ref::new("concept:order", MemoryKind::Semantic, "\"1\""),
+                predicate: "status".into(),
+                object: "shipped".into(),
+                language: "en".into(),
+                evidence: vec![Evidence {
+                    evidence_id: "e1".into(),
+                    source_ref: "artifact:sha256:aa".into(),
+                    confidence: 0.9,
+                    source_group: "doc-a".into(),
+                }],
+                confidence: 0.8,
+            },
+        },
+    ))
+    .unwrap();
+    assert_eq!(fact.kind, MemoryKind::Semantic);
+
+    let denied = context("tenant-a", &[SCOPE_READ]);
+    let gap = block_on(FractalMemoryPort::consolidate(
+        &service,
+        &denied,
         &Consolidate {
             episode_refs: vec![Ref::new(
                 receipt.resource_id,
@@ -2063,6 +2092,5 @@ fn port_delegates_core_operations_and_reports_capability_gaps() {
         },
     ))
     .unwrap_err();
-    assert_eq!(gap.code(), "CAPABILITY_UNAVAILABLE");
-    assert!(gap.to_string().contains("memory.consolidate"));
+    assert_eq!(gap.code(), "FORBIDDEN", "authorization still applies");
 }

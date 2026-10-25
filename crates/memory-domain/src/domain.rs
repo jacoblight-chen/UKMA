@@ -1106,8 +1106,12 @@ pub struct RegisterProcedure {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ProcedureState {
+    /// Learned but not yet extracted into a recipe.
+    Learn,
     /// Candidate recipe, not usable.
     Candidate,
+    /// Approved by consolidation, not yet activated.
+    Consolidated,
     /// Approved for application.
     Active,
     /// Under refinement.
