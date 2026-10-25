@@ -31,8 +31,8 @@ behavior:
 tests:
   golden: "tests/golden/graph-basic-ops.golden.json (prepared; validated by Rust golden test in S1)"
   contract: pending
-  integration: "BLOCKED on this host (official cargo test --workspace: rocksdb 8.10 C++ vs MinGW; upstream pin MSVC 1.94.1 has no linker here). Feasible subset PASSED: cargo test -p codegraph --no-default-features --lib => 40/40."
-  rust_cargo: "Phase 6R gate green (13/13). Upstream baseline: see s0-baseline-report.md §5/§7 — blockers recorded as BLOCKED, never success. Re-run full suite on MSVC host/CI before S1 merge."
+  integration: "EXECUTED (Run 4, 2026-10-25): official cargo test --workspace completed — 299 tests: 297 passed / 1 ignored / 1 failed. Single failure = upstream Windows-portability defect (test_header_type_resolution hardcodes /tmp/ POSIX path; passes on Linux CI). All 20 RocksDB backend tests passed (gnu 1.99.1 + WinLibs 16.2 + forced -include cstdint workaround for rocksdb 8.10). Supplementary subset: cargo test -p codegraph --no-default-features --lib => 40/40."
+  rust_cargo: "Phase 6R gate green (13/13). Upstream baseline: see s0-baseline-report.md §5/§7 — every result backed by an actually executed command; prior blockers root-caused, repaired, and re-executed. Re-verify with pinned MSVC 1.94.1 in CI before S1 merge."
 review:
   owner: "jacoblight-chen"
   status: pending

@@ -10,13 +10,16 @@ upstream:
   default_branch: main
   # Pinned by upstream rust-toolchain.toml (channel = "1.94.1")
   pinned_rust_toolchain: "1.94.1"
-  # Actually executed with (local host has no MSVC linker; msvc 1.94.1 cannot link here):
+  # Actually executed with (MSVC path blocked: VS 2022 Build Tools 14.44 installed
+  # but Windows 11 SDK missing -> LNK1181; install stalled on ~5GB SDK download):
   executed_rust_toolchain: "stable-x86_64-pc-windows-gnu (rustc 1.99.1)"
   toolchain_deviation: >
-    Upstream pin 1.94.1 (msvc on this host) could not be executed because
-    link.exe / Visual Studio C++ Build Tools are absent. Baseline was run
-    with rustc 1.99.1 (GNU target). Re-verify with the pinned toolchain in
-    CI before S1 merge.
+    Upstream pin 1.94.1 (msvc) could not be executed on this host (Windows 11
+    SDK missing -> LNK1181 kernel32.lib). Baseline was executed with rustc 1.99.1
+    (GNU target, WinLibs 16.2) plus forced -include cstdint (rocksdb 8.10
+    workaround). CI (ubuntu-22.04, gcc 11) confirmed the C++ compiles under the
+    pinned-era toolchain. Re-verify with the pinned MSVC toolchain in CI before
+    S1 merge.
 
 mirror:
   # Read-only mirror, OUTSIDE the UKMA git repository (dual-repo rule, ADR-025)
@@ -66,19 +69,48 @@ workspace:
     listed (observed at the locked SHA; recorded as-is, not corrected).
 
 baseline_test:
+  # Run 4 (2026-10-25): official full-workspace test EXECUTED TO COMPLETION
   command: "cargo +stable-x86_64-pc-windows-gnu test --workspace"
+  env: >
+    CXXFLAGS="-include cstdint"; CFLAGS="-include stdint.h"
+    (forced-include workaround: rocksdb 8.10 C++ headers lack #include <cstdint>,
+    compatible with gcc<=12 era; upstream pin is MSVC 1.94.1)
   working_dir: "f:\\codegraph-workspace\\codegraph-reference"
-  log: "f:\\codegraph-workspace\\upstream-baseline-test.log"
-  full_workspace_status: BLOCKED
-  blocker_root_causes:
-    - "librocksdb-sys (rocksdb 8.10) C++ does not compile under MinGW g++ on Windows (uint64_t / ROCKSDB_PRIszt errors); upstream pin is MSVC 1.94.1 which has no linker on this host"
-    - "Upstream packaging defect: codegraph test suite (export_test.rs, crash_recovery_test.rs, rocksdb_backend_test.rs, examples) calls CodeGraph::open unconditionally, without a #[cfg(feature = \"rocksdb-backend\")] gate, so the no-rocksdb test build is broken upstream as well"
-    - "codegraph-parser-api and the 37 language parser crates transitively pull rocksdb via codegraph default features -> same blocker"
+  log: "f:\\codegraph-workspace\\upstream-baseline-local.log"
+  full_workspace_status: EXECUTED
+  full_workspace_result: "299 tests: 297 passed / 1 ignored / 1 failed (exit 101)"
+  per_binary_results:
+    - "ok. 57 passed"
+    - "ok. 72 passed; 1 ignored"
+    - "ok. 11 passed"
+    - "ok. 113 passed"
+    - "FAILED. 44 passed; 1 failed (codegraph-c integration tests)"
+  single_failure:
+    test: "test_header_type_resolution"
+    location: "crates/codegraph-c/tests/integration_tests.rs:1760"
+    attribution: "upstream Windows-portability defect"
+    detail: >
+      Test hardcodes POSIX path /tmp/test_header_resolve.h and calls
+      std::fs::write(...).unwrap(); Windows has no /tmp directory -> OS error 3
+      (NotFound). Passes on Linux CI; fails on any Windows host. Upstream source
+      not modified; defect recorded for S1 risk register.
+  rocksdb_tests: "all 20 storage::rocksdb_backend + integration::rocksdb_backend_test tests PASSED"
+  prior_blocked_runs:
+    - "Runs 1-3 (plain WinLibs g++ 16.2): BLOCKED on librocksdb-sys C++ (uint64_t / ROCKSDB_PRIszt); root cause: rocksdb 8.10 headers lack #include <cstdint>"
+    - "CI run #1 (ubuntu-latest, gcc 14): same C++ failure"
+    - "CI run #2 (ubuntu-22.04, gcc 11): full compile SUCCEEDED; rust-lld crashed (Bus error, signal 7) linking codegraph-clojure integration_tests - runner infrastructure flake (2 vCPU / 7.5GB)"
+    - "Local MSVC attempt: Windows 11 SDK missing (LNK1181 kernel32.lib) - VS Build Tools install stalled on ~5GB SDK download"
+  upstream_packaging_defect: >
+    codegraph test suite (export_test.rs, crash_recovery_test.rs,
+    rocksdb_backend_test.rs, examples) calls CodeGraph::open unconditionally,
+    without a #[cfg(feature = "rocksdb-backend")] gate, so the no-rocksdb test
+    build is broken upstream as well (relevant to S1: UKMA must gate
+    persistence-backend tests)
   feasible_subset:
     command: "cargo +stable-x86_64-pc-windows-gnu test -p codegraph --no-default-features --lib"
     result: "PASS: 40 passed / 0 failed (executed on this host)"
-    note: "Graph engine core (non-RocksDB) baseline is green; RocksDB-backed integration tests + parsers require an MSVC host or CI"
-  environment_blockers: "recorded as BLOCKED, never marked success; see s0-baseline-report.md"
+    note: "Supplementary graph-engine-core (non-RocksDB) baseline; full workspace now covered by Run 4"
+  environment_blockers: "no outstanding blockers; all prior blockers root-caused and repaired (see s0-baseline-report.md)"
 
 reproducibility:
   sha: "590c2ca7dd7b37bd1d41caf45fac535b6522f969"

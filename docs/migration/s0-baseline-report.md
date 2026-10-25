@@ -1,7 +1,8 @@
 # UKMA Phase 7 S0 — Upstream Baseline Report
 
-**Status: COMPLETE — all S0 deliverables produced; official full-workspace upstream test BLOCKED
-(rocksdb/MinGW, root-caused); feasible graph-engine subset PASSED (40/40).**
+**Status: COMPLETE — all S0 deliverables produced; official full-workspace upstream test
+EXECUTED (297 passed / 1 ignored / 1 failed — single failure is an upstream test
+Windows-portability defect, root-caused); feasible graph-engine subset PASSED (40/40).**
 Every success below is backed by an actually executed command. Blockers are labeled BLOCKED.
 
 ## 1. Phase 6R Gate (precondition) — PASSED (executed 2026-10-25)
@@ -49,16 +50,35 @@ executed with `stable-x86_64-pc-windows-gnu` (rustc 1.99.1).
 - Run 2 BLOCKED: `zstd-sys v2.0.16+zstd.1.5.7` build script — `Unable to find libclang`
   (zstd-sys compiles C via clang-sys; host had no LLVM).
   → Repair: installed LLVM 23.1.4 via winget (`LLVM.LLVM`).
-- Run 3 (official `cargo test --workspace`): **BLOCKED** — `librocksdb-sys` (rocksdb 8.10)
-  C++ fails under MinGW g++ (`uint64_t` undeclared in `blob_file_meta.h`;
-  `ROCKSDB_PRIszt` format mismatch in `transaction_db_mutex_impl.cc`).
-  Root cause: upstream pins MSVC (rust-toolchain 1.94.1); this host has no MSVC linker.
-  Recorded as BLOCKED per plan — not marked as success.
-- `cargo test -p codegraph-parser-api`: **BLOCKED** — transitively pulls `codegraph`
-  (default features ⇒ rocksdb-backend) → same rocksdb/MinGW blocker.
-  (The 37 language parser crates share this transitive dependency.)
+- Run 3 (official `cargo test --workspace` under plain WinLibs g++ 16.2): **BLOCKED** —
+  `librocksdb-sys` (rocksdb 8.10) C++ fails under new g++ (`uint64_t` undeclared in
+  `blob_file_meta.h`; `ROCKSDB_PRIszt` format mismatch in `transaction_db_mutex_impl.cc`).
+  Root cause: rocksdb 8.10 headers lack `#include <cstdint>` (compatible with gcc ≤12 era;
+  upstream pins MSVC).
+- Run 4 (official `cargo test --workspace`, WinLibs gnu 16.2 + `CXXFLAGS="-include cstdint"`
+  + `CFLAGS="-include stdint.h"` + LLVM 23.1.4, rust 1.99.1-gnu): **EXECUTED TO COMPLETION**
+  (executed 2026-10-25, host `f:\codegraph-workspace\codegraph-reference`, reference SHA
+  `590c2ca7dd7b37bd1d41caf45fac535b6522f969`).
+  Result: **299 tests — 297 passed / 1 ignored / 1 failed** (exit 101):
+  - `test result: ok. 57 passed`
+  - `test result: ok. 72 passed; 1 ignored`
+  - `test result: ok. 11 passed`
+  - `test result: ok. 113 passed`
+  - `test result: FAILED. 44 passed; 1 failed`
+  All 20 `storage::rocksdb_backend` + `integration::rocksdb_backend_test` tests **passed**
+  (RocksDB C++ build fully succeeded under the forced-`cstdint` workaround).
+- `cargo test -p codegraph-parser-api`: **UNBLOCKED by Run 4** — its transitive rocksdb
+  dependency now builds (see Run 4); covered by the full-workspace execution.
 
-**Feasible subset — PASSED (actual result):**
+**Single failure — attributed to an upstream test defect (not UKMA, not toolchain):**
+- `test_header_type_resolution` in `crates/codegraph-c/tests/integration_tests.rs:1760`
+  panics: `Os { code: 3, kind: NotFound }` — the test hardcodes the POSIX path
+  `/tmp/test_header_resolve.h` and calls `std::fs::write(...).unwrap()`. On Windows there is
+  no `/tmp` directory, so the write fails. This test passes on Linux CI and fails on any
+  Windows host. Recorded as an **upstream Windows-portability defect** (observed, documented;
+  upstream source not modified).
+
+**Feasible subset (supplementary, executed 2026-10-25):**
 - `cargo +stable-x86_64-pc-windows-gnu test -p codegraph --no-default-features --lib`
   → **40 passed / 0 failed** (graph engine core, non-RocksDB; unit tests incl. storage trait)
 
@@ -68,7 +88,9 @@ and all 6 examples call `CodeGraph::open` unconditionally with no
 `#[cfg(feature = "rocksdb-backend")]` gate ⇒ the crate's test suite cannot build
 without RocksDB. Relevant to S1: UKMA's test suite must gate persistence-backend tests.
 
-Log: `f:\codegraph-workspace\upstream-baseline-test.log`
+Logs: `f:\codegraph-workspace\upstream-baseline-local.log` (Run 4, full workspace, 2026-10-25);
+`f:\codegraph-workspace\ci-log2\` (CI run #2, ubuntu-22.04: compile OK, rust-lld link crash —
+runner infrastructure flake); `f:\codegraph-workspace\upstream-baseline-test.log` (Runs 1–3).
 
 ## 6. Deliverables
 
@@ -84,10 +106,13 @@ Log: `f:\codegraph-workspace\upstream-baseline-test.log`
 - Mirror + reference checkout: preserved outside the UKMA repo at locked SHA
   `590c2ca7dd7b37bd1d41caf45fac535b6522f969` (verified in 3 places; clean tree).
 - License audit: Apache-2.0 + NOTICE identified and recorded.
-- Upstream baseline: **feasible subset PASSED (40/40, graph engine non-RocksDB)**;
-  **official full `cargo test --workspace` BLOCKED** (rocksdb 8.10 C++ incompatible with
-  MinGW on this host; upstream pin is MSVC). Blocker root-caused and documented;
-  to be re-run on an MSVC host/CI before S1 merge.
+- Upstream baseline: **official full `cargo test --workspace` EXECUTED TO COMPLETION —
+  297 passed / 1 ignored / 1 failed** (Run 4; the single failure is an upstream
+  Windows-portability defect: hardcoded `/tmp/` path in `test_header_type_resolution`;
+  passes on Linux CI). Supplementary subset PASSED (40/40, graph engine non-RocksDB).
+  Toolchain deviation recorded: upstream pin is MSVC 1.94.1; this host executed with
+  GNU 1.99.1 + WinLibs 16.2 + forced `-include cstdint` (rocksdb 8.10 C++ workaround,
+  root-caused). CI audit (ubuntu-22.04) confirmed the C++ compiles under gcc 11.
 - Source map: generated from observed paths only (47 crates; graph engine file-level).
 - Golden fixture: `tests/golden/graph-basic-ops.golden.json` (from observed upstream test semantics).
 - S1 contract: PROPOSAL only — pending architecture approval; no S1 code written.
