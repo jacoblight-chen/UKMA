@@ -47,6 +47,7 @@ baseline:
   fixtures: 414 (69 ops x {2 valid, 4 invalid})
   mcp_tools: 69
   contract_check: cargo run -p ukma-contract-check => 4745 checks passed, 0 failed
+  workspace_crates: 26
 gates:
   G0_specification: passed
   G1_upstream_baseline: passed
@@ -109,68 +110,68 @@ phases:
     blocked_reason: null
 - id: P1
   name: Storage Ports + 雙 Adapter
-  status: not_started
+  status: done
   work_packages:
   - id: P1-WP1
-    status: not_started
-    evidence: null
+    status: done
+    evidence: six ports in crates/storage-ports/src/ports.rs; GraphPort is graph_engine::GraphStore re-exported (single graph contract)
     blocked_reason: null
   - id: P1-WP2
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'AdapterCapabilities: all 17 spec-6.3 fields + availability probe; MINIMUM_REQUIRED encodes the eight 40.5 capabilities; assert_minimum_profile fails closed'
     blocked_reason: null
   - id: P1-WP3
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'crates/adapters/embedded: file-backed canonical metadata + durable outbox with atomic flush; FTS/vector are rebuildable projections; passes assert_minimum_profile'
     blocked_reason: null
   - id: P1-WP4
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'crates/adapters/filesystem: content-addressed immutable artifacts with tamper detection; postgres/qdrant/neo4j declare themselves unavailable with reasons'
     blocked_reason: null
   - id: P1-WP5
-    status: not_started
-    evidence: null
+    status: done
+    evidence: '35 tests: 16 port contract, 8 embedded durability, 5 filesystem, 6 router'
     blocked_reason: null
   - id: P1-WP6
-    status: not_started
-    evidence: null
+    status: done
+    evidence: metadata manifest pointer + generation visibility (strict_generation lookup) and single-writer fencing token
     blocked_reason: null
   - id: P1-WP7
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'crates/storage-router: routes six ports, canonical ports require the minimum profile, derived ports do not, unavailable adapters are never substituted'
     blocked_reason: null
 - id: P2
   name: Shared Core 引擎
-  status: not_started
+  status: in_progress
   work_packages:
   - id: P2-WP1
-    status: not_started
-    evidence: null
+    status: in_progress
+    evidence: 'partial: S1 graph-engine provides scope-keyed CRUD, bounded bfs/dfs/Tarjan/paths and neighbors; §7.2 naming (upsert_batch/query_relations) and per-hop ACL filtering not added'
     blocked_reason: null
   - id: P2-WP2
-    status: not_started
-    evidence: null
+    status: done
+    evidence: FullTextPort BM25 (k1=1.5, b=0.75 per 29.2) with analyzer-versioned indexes and deterministic (score desc, id asc) ordering; 3 contract tests; RE-002 maths pinned
     blocked_reason: null
   - id: P2-WP3
-    status: not_started
-    evidence: null
+    status: in_progress
+    evidence: 'partial: vector port enforces profile isolation + dimension/metric rejection and does exact k-NN; HNSW (M=16/ef_construction=200/ef_search=64) is recorded but not implemented'
     blocked_reason: null
   - id: P2-WP4
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'retrieval-engine: RRF (k=60, ranks from 1), weighted RRF with weight validation, recency exp(-0.05*d), lang_match 1.0/0.85/0.425, omega_align min(1,a/0.85), final score exponents 1.0/0.5/0.8/0.2/0.6 with NaN/negative rejection, PPR (a=0.6, max_iter=200, L1<1e-6, dangling re-injection, hub dampening), 5-strategy planner with partial reporting, calibrated-relevance detail tiers; 13 tests'
     blocked_reason: null
   - id: P2-WP5
     status: not_started
     evidence: null
     blocked_reason: null
   - id: P2-WP6
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'indexing-engine: 8-stage ingestion FSM, orthogonal execution/commit/projection outcome (40.4), cancel only before commit, projection-failure keeps the commit and stays retryable, generation pointer with retention + strict_generation lookup; 8 tests'
     blocked_reason: null
   - id: P2-WP7
-    status: not_started
-    evidence: null
-    blocked_reason: 演算法規格已明確；待 P1 完成
+    status: done
+    evidence: 'context-engine: single budget algorithm (C_usable + B_eff + allocation + compression stages) proven against the six 40.2 golden vectors, 3-level folding with exact 0.3/0.7 boundaries and R1-R8 preservation, 22-feature vector with missing mask, T_fold trust decay, deterministic + shadow-RL eviction, integrity/ACL/revision-checked paging; 25 tests'
+    blocked_reason: null
 - id: P3
   name: Code Intelligence 13 ops
   status: not_started
@@ -918,15 +919,15 @@ tests:
     REP-003: partial
     ARC-001: passing
     ARC-002: partial
-    DB-001: partial
+    DB-001: passing
     DB-002: partial
     DB-003: partial
-    DB-004: not_started
+    DB-004: passing
     DB-005: not_started
-    DB-006: not_started
-    DB-007: partial
+    DB-006: passing
+    DB-007: passing
     DB-008: partial
-    DB-009: not_started
+    DB-009: partial
     DB-010: not_started
     CODE-001: not_started
     CODE-002: not_started
@@ -951,20 +952,20 @@ tests:
     FM-006: not_started
     FM-007: not_started
     FM-008: not_started
-    FM-009: not_started
+    FM-009: partial
     FM-010: not_started
-    FO-001: not_started
-    FO-002: not_started
-    FO-003: not_started
-    FO-004: not_started
+    FO-001: passing
+    FO-002: passing
+    FO-003: passing
+    FO-004: passing
     FO-005: not_started
-    RE-001: not_started
-    RE-002: not_started
-    RE-003: not_started
-    CT-001: not_started
-    CT-002: not_started
-    CT-003: not_started
-    CT-004: not_started
+    RE-001: passing
+    RE-002: passing
+    RE-003: passing
+    CT-001: passing
+    CT-002: passing
+    CT-003: passing
+    CT-004: passing
     AG-001: not_started
     AG-002: not_started
     AG-003: not_started
@@ -1020,8 +1021,8 @@ open_decisions:
   resolution: ADR-048：標 deprecated，P3 完成後移除；其 9 測試不得作為任何 gate 證據
   blocks: []
 notes:
-- P0 完成（M1 = Schema-Closed / L2）。claim_level.schema_closed=true，implementation_compliant 仍為 false：domain 實作尚未開始。
-- SR-003/MIG-01 為 partial：S0/S1 有 ledger，S2..S7 尚無。
-- DB-001/002/003/007/008 為 partial：僅 graph-engine in-memory 與 JSON file 兩 adapter，尚非 production-capable（ADR-048 決策為 hybrid 三 adapter）。
-- MCP inputSchema 由 registry 產生並與 request schema 結構同源；尚未對真實 MCP host 做語意等價驗證（屬 P8）。
-- system.* 4 op 形狀已由 ADR-047 核准；其約束閉合已納入 SCHEMA-01。
+- P0 完成 → L2 Schema-Closed（claim_level.schema_closed=true）。
+- P1 完成：六個 storage port + 17 欄位能力協商 + embedded/filesystem adapter + fail-closed router。B(sql)/C(hybrid) profile 為 declared-unavailable，故 DB-002 仍為 partial。
+- P2 部分完成：BM25、RRF/PPR/recency/語言加權、五策略規劃器、context budget（含 40.2 六組向量）、folding/eviction/paging、indexing FSM。未完成：HNSW ANN（P2-WP3）、embedding/reranker port（P2-WP5）、§7.2 graph 介面命名（P2-WP1）。
+- P3 尚未開始：38 語言 parser 移植、13 個 code operation、golden parity 皆未實作。
+- P2/P3 的演算法實作不改變任何 wire 語意；registry/schema 仍由 ukma-contract-check 把關。

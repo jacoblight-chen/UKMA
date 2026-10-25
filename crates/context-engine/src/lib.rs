@@ -1,12 +1,26 @@
-//! context-engine — Context budget (single algorithm), folding levels, eviction policies, paging.
+//! Context engine: the single budget algorithm, folding, eviction and paging.
 //!
-//! **STATUS: skeleton only.** No behaviour is implemented yet. Progress and
-//! evidence are tracked in `docs/implementation-status.yaml`; the plan is
-//! `docs/UKMA_v1.2.3_IMPLEMENTATION_PLAN.md`.
+//! `FO-001`..`FO-005`, `CT-001`..`CT-004` and the §40.2 deterministic budget
+//! vectors are covered by the tests in each module.
 //!
-//! Normative source: `docs/UKMA_v1.2.3_Full_Spec.md` §22, §10.2.
-//!
-//! Constraints that apply to this crate from day one:
-//! - MUST NOT depend on any database SDK or vendor backend crate (ADR-021).
-//! - MUST NOT define a second public API registry or error enum (ADR-034, ADR-035).
-//! - Capability gaps MUST be reported, never silently degraded (ADR-022, ADR-038).
+//! Nothing here mutates source artifacts: folding and eviction only ever touch
+//! working/episodic context (`PROP-05`).
+
+pub mod budget;
+pub mod eviction;
+pub mod folding;
+pub mod paging;
+
+pub use budget::{
+    allocate, b_eff, check_allocation, compression_thresholds, next_compression_stage, shares,
+    Allocation, BudgetError, BudgetResult, CompressionStage, Reserves, B_BASE_CAP, B_FLOOR,
+    DEPTH_FACTOR,
+};
+pub use eviction::{
+    Candidate, DeterministicPolicy, EvictionPolicy, RankedEvictions, ShadowRecord, ShadowRlPolicy,
+};
+pub use folding::{
+    classify, decide, trust_after_folding, FallbackReason, Feature, FeatureVector, FoldDecision,
+    FoldLevel, PreserveRule, FEATURE_COUNT, FOLD_HIGH, FOLD_LOW, FOLD_TRUST_KAPPA,
+};
+pub use paging::{checksum, page_in, page_out, OpenedPage, PageError, PageRecord};

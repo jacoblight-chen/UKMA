@@ -126,8 +126,7 @@ flowchart LR
 |---|---|---|---|---|---|
 | P0 | 契約閉環基礎與治理 | G0 + DOC-01..04, SCHEMA-01/02 | L2（Schema-Closed） | — | L |
 | P1 | Storage Ports + 兩個 Adapter | G2 + DB-001/002/003/007/008 | L3（storage 切片） | P0 | L |
-| P2 | Shared Core 引擎 | §7 全 Port | L3（core 切片） | P0, P1 | L |
-| P3 | Code Intelligence（13 ops） | G3 + CODE-001/002 | L3（code） | P1, P2 | XL |
+| P2 | Shared Core 引擎 | §7 全 Port | L3（core 切片） | P0, P1 | L || P3 | Code Intelligence（13 ops） | G3 + CODE-001/002 | L3（code） | P1, P2 | XL |
 | P4 | Document Intelligence（14 ops） | G4 + DOC-001/002 | L3（document） | P1, P2 | L |
 | P5 | Memory Domain Core | G5（部分）+ MEM-001..004 | L3（memory，core） | P1, P2 | XL |
 | P6 | Memory Advanced | G5 + MEM-005/006 + §29.4 memory 群 | L3（memory，full） | P5 | XL |
@@ -189,7 +188,7 @@ flowchart LR
 | **P2-WP4** | 融合排序 | RRF `k=60`、PPR `a=0.6 / max_iter=200 / L1<1e-6 / not_converged`、hub 抑制 `min(1,50/max(1,degree))`、recency `exp(-0.05*Δdays)`；最終 `score = RRF * importance^1.0 * recency^0.5 * trust^0.8 * novelty^0.2 * lang^0.6` | `retrieval-engine/fusion.rs` | RE-001（可單獨/部分/合併且報 partial）、RE-002、RE-003（raw RRF ≠ calibrated similarity） | L |
 | **P2-WP5** | Embedding / Reranker Port | profile registry；BGE-M3 1024d 為候選；降級不可偽裝 | `crates/embedding-engine` | 模型不可用 → `partial` 且保留 source refs | M |
 | **P2-WP6** | Indexing 作業 FSM | §7.5 `QUEUED→PARSING→EXTRACTING→RESOLVING→STAGING→COMMITTING→INDEXING→READY` + `FAILED/CANCELLED/STALE` | `crates/indexing-engine` | PROP-09（cancel/timeout 不刪已提交）、DB-006 | L |
-| **P2-WP7** | Context Assembly | §22.1 budget、§22.2 folding、§22.3 eviction、§22.4 paging；`B_eff(d)=min(C_usable, max(4096, floor(min(C_usable,131072)/4^d)))`；`C_usable<4096 → INSUFFICIENT_CONTEXT_BUDGET` | `crates/context-engine` | CT-001..004、FO-001..005、§40.2 六組 golden vectors（65536/d0→65536、d1→16384、d2→4096；131072/d1→32768；32768/d3→4096；4095→error） | XL |
+| **P2-WP7** | Context Assembly | §22.1 budget、§22.2 folding、§22.3 eviction、§22.4 paging；`B_eff(d)=min(C_usable, max(4096, floor(min(C_usable,131072)/4^d)))`；`C_usable<4096 → INSUFFICIENT_CONTEXT_BUDGET` | `crates/context-engine` | CT-001..004、FO-001..005、§40.2 六組 golden vectors（65536/d0→65536、d1→16384、d2→4096；131072/d1→32768；32768/d3→4096；4095→error）**全部通過（25 tests）** | ✅ done |
 
 **P2 出口條件**：§7 六個 Port 全可呼叫；`graph-engine` S1 測試不得回歸。
 
@@ -326,7 +325,7 @@ flowchart LR
 |---|---|---|---|
 | G0 Specification | contracts、schema、ADR、fixtures 完備 | P0 | 🟢 **已達**（69×2 schemas、35 event payloads、414 fixtures、ADR-021…048、CI gate） |
 | G1 Upstream baseline | 可重現編譯、測試、source lock | S0（已達） | 🟢 |
-| G2 Core | Graph/Storage Ports + capability + 2 adapters contract | P1, P2 | 🟡 S1 graph 已達、其餘缺 |
+| G2 Core | Graph/Storage Ports + capability + 2 adapters contract | P1, P2 | 🟡 **部分達標**（六 port + 能力協商 + 兩個 adapter + fail-closed router；HNSW/embedding port 未完成） |
 | G3 Code | Symbol/CallGraph/Retrieval parity | P3 | 🔴 |
 | G4 Document | MD + PDF/DOCX 指定範圍 + evidence parity | P4 | 🔴 |
 | G5 Memory | WM/EM/SM/PM、Folding、Consolidation、ACL | P5, P6 | 🔴 |
