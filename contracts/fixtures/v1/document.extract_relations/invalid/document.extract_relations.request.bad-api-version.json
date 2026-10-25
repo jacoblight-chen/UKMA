@@ -1,0 +1,30 @@
+{
+  "api_version": "2",
+  "operation": "ukma.document.extract_relations.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "document": {
+      "domain": "code",
+      "kind": "x",
+      "id": "x",
+      "revision": "x",
+      "scope": {
+        "tenant_id": "x",
+        "project_id": "x"
+      }
+    },
+    "target_scope": null,
+    "relation_kinds": [],
+    "extractor_profile": null
+  }
+}

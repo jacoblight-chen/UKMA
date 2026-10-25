@@ -1,0 +1,25 @@
+{
+  "api_version": "1",
+  "request_id": "x",
+  "trace_id": "x",
+  "status": "ok",
+  "warnings": [],
+  "partial_reasons": [],
+  "freshness": "current",
+  "data": {
+    "api_major": 1,
+    "operations_count": 0,
+    "limits": {
+      "max_page_size": 1,
+      "max_batch_size": 1,
+      "max_query_chars": 1,
+      "max_graph_depth": 1,
+      "max_graph_nodes": 1,
+      "max_payload_bytes": 1,
+      "max_deadline_ms": 1,
+      "max_vector_k": 1,
+      "max_context_tokens": 1
+    },
+    "adapters": []
+  }
+}

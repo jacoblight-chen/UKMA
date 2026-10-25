@@ -1,0 +1,19 @@
+{
+  "api_version": "1",
+  "operation": "ukma.traceability.find_design_gaps.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "scope": null
+  },
+  "unexpected_field": true
+}

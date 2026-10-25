@@ -1,5 +1,6 @@
-[workspace]
+﻿[workspace]
 members = [
+    "crates/ukma-contract-check",
     "apps/ukma-server",
     "crates/adapters/filesystem",
     "crates/adapters/postgres",

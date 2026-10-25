@@ -1,0 +1,28 @@
+{
+  "api_version": "1",
+  "operation": "ukma.memory.update_revision.v1",
+  "context": {
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "memory": {
+      "domain": "code",
+      "kind": "x",
+      "id": "x",
+      "revision": "x",
+      "scope": {
+        "tenant_id": "x",
+        "project_id": "x"
+      }
+    },
+    "patch": null,
+    "expected_etag": "x"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "api_version": "1",
+  "operation": "ukma.memory.begin_reconsolidation.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "fact": {
+      "domain": "code",
+      "kind": "x",
+      "id": "x",
+      "revision": "x",
+      "scope": {
+        "tenant_id": "x",
+        "project_id": "x"
+      }
+    },
+    "expected_etag": "x"
+  },
+  "unexpected_field": true
+}

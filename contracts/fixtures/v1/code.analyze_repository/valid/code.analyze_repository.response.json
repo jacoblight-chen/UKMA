@@ -1,0 +1,15 @@
+{
+  "api_version": "1",
+  "request_id": "x",
+  "trace_id": "x",
+  "status": "ok",
+  "warnings": [],
+  "partial_reasons": [],
+  "freshness": "current",
+  "data": {
+    "job_id": "x",
+    "job_kind": "x",
+    "status": "queued",
+    "submitted_at": "2026-10-25T00:00:00Z"
+  }
+}

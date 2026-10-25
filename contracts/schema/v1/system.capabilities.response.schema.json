@@ -149,6 +149,28 @@
           "error"
         ]
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "partial"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "partial_reasons": {
+            "minItems": 1
+          }
+        }
+      }
     }
   ]
 }

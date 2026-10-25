@@ -1,6 +1,12 @@
 //! UKMA v1.2.3 contract phase 1: shared preliminary wire types.
 //! These structs are not yet a fully closed domain API specification.
+//!
+//! Registry-derived bindings live in [`generated`], which is produced from
+//! `contracts/api/operation-registry.yaml` (the single source of truth, §41.1)
+//! and drift-checked by `ukma-contract-check`.
 use serde::{Deserialize, Serialize};
+
+pub mod generated;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]

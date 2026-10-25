@@ -1,212 +1,574 @@
-source_spec: UKMA v1.2.3 §31.5, §32.2–§35.2
+spec_version: 1.2.3
+api_major: 1
+source: docs/UKMA_v1.2.3_Full_Spec.md §31.5 (envelope) + §40.6 (registry fields)
+closure: closed
+rule: An event type not registered here MUST NOT be published (§40.6).
+envelope_schema: contracts/events/event-envelope.schema.json
+delivery: at-least-once; consumers deduplicate on (event_id, consumer_id)
 events:
 - event_type: code.analysis.accepted
   event_version: '1'
-  operations:
+  aggregate_kind: code_analysis
+  payload_schema_id: https://schemas.ukma.dev/v1/events/code.analysis.accepted.payload.schema.json
+  payload_schema_path: contracts/events/code.analysis.accepted/code.analysis.accepted.payload.schema.json
+  required_scopes:
+  - code:index
+  producer: CodeIndexService
+  consumers: &id001
+  - indexing
+  - traceability
+  ordering_key: repo_id
+  dedup_key: operation_id
+  privacy_class: internal
+  retention_policy: P2Y
+  produced_by:
   - code.analyze_repository
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: code.analysis.*
 - event_type: code.analysis.cancelled
   event_version: '1'
-  operations:
+  aggregate_kind: code_analysis
+  payload_schema_id: https://schemas.ukma.dev/v1/events/code.analysis.cancelled.payload.schema.json
+  payload_schema_path: contracts/events/code.analysis.cancelled/code.analysis.cancelled.payload.schema.json
+  required_scopes:
+  - code:index
+  producer: CodeIndexService
+  consumers: *id001
+  ordering_key: repo_id
+  dedup_key: operation_id
+  privacy_class: internal
+  retention_policy: P2Y
+  produced_by:
   - code.cancel_analysis_job
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: code.analysis.*
 - event_type: code.revision.stale
   event_version: '1'
-  operations:
+  aggregate_kind: source_revision
+  payload_schema_id: https://schemas.ukma.dev/v1/events/code.revision.stale.payload.schema.json
+  payload_schema_path: contracts/events/code.revision.stale/code.revision.stale.payload.schema.json
+  required_scopes:
+  - code:index_admin
+  producer: CodeIndexService
+  consumers: *id001
+  ordering_key: repo_id
+  dedup_key: aggregate_revision
+  privacy_class: internal
+  retention_policy: P2Y
+  produced_by:
   - code.invalidate_revision
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: code.revision.*
 - event_type: document.extraction.proposed
   event_version: '1'
-  operations:
+  aggregate_kind: requirement_candidate
+  payload_schema_id: https://schemas.ukma.dev/v1/events/document.extraction.proposed.payload.schema.json
+  payload_schema_path: contracts/events/document.extraction.proposed/document.extraction.proposed.payload.schema.json
+  required_scopes:
+  - document:analyze
+  producer: DocumentIndexService
+  consumers: &id002
+  - indexing
+  - traceability
+  ordering_key: document_id
+  dedup_key: operation_id
+  privacy_class: confidential
+  retention_policy: P2Y
+  produced_by:
   - document.extract_requirements
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: document.extraction.*
 - event_type: document.ingest.accepted
   event_version: '1'
-  operations:
+  aggregate_kind: document_ingest
+  payload_schema_id: https://schemas.ukma.dev/v1/events/document.ingest.accepted.payload.schema.json
+  payload_schema_path: contracts/events/document.ingest.accepted/document.ingest.accepted.payload.schema.json
+  required_scopes:
+  - document:index
+  producer: DocumentIndexService
+  consumers: *id002
+  ordering_key: document_id
+  dedup_key: operation_id
+  privacy_class: internal
+  retention_policy: P2Y
+  produced_by:
   - document.ingest
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: document.ingest.*
 - event_type: document.ingest.cancelled
   event_version: '1'
-  operations:
+  aggregate_kind: document_ingest
+  payload_schema_id: https://schemas.ukma.dev/v1/events/document.ingest.cancelled.payload.schema.json
+  payload_schema_path: contracts/events/document.ingest.cancelled/document.ingest.cancelled.payload.schema.json
+  required_scopes:
+  - document:index
+  producer: DocumentIndexService
+  consumers: *id002
+  ordering_key: document_id
+  dedup_key: operation_id
+  privacy_class: internal
+  retention_policy: P2Y
+  produced_by:
   - document.cancel_ingest_job
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: document.ingest.*
 - event_type: document.relation.proposed
   event_version: '1'
-  operations:
+  aggregate_kind: extracted_relation
+  payload_schema_id: https://schemas.ukma.dev/v1/events/document.relation.proposed.payload.schema.json
+  payload_schema_path: contracts/events/document.relation.proposed/document.relation.proposed.payload.schema.json
+  required_scopes:
+  - document:analyze
+  producer: DocumentIndexService
+  consumers: *id002
+  ordering_key: document_id
+  dedup_key: operation_id
+  privacy_class: confidential
+  retention_policy: P2Y
+  produced_by:
   - document.extract_relations
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: document.relation.*
+- event_type: document.requirement.reviewed
+  event_version: '1'
+  aggregate_kind: requirement_candidate
+  payload_schema_id: https://schemas.ukma.dev/v1/events/document.requirement.reviewed.payload.schema.json
+  payload_schema_path: contracts/events/document.requirement.reviewed/document.requirement.reviewed.payload.schema.json
+  required_scopes:
+  - document:review
+  producer: DocumentIndexService
+  consumers: *id002
+  ordering_key: document_id
+  dedup_key: aggregate_revision
+  privacy_class: confidential
+  retention_policy: P2Y
+  produced_by:
+  - document.review_requirement
+  family: document.requirement.*
 - event_type: document.revision.stale
   event_version: '1'
-  operations:
+  aggregate_kind: source_revision
+  payload_schema_id: https://schemas.ukma.dev/v1/events/document.revision.stale.payload.schema.json
+  payload_schema_path: contracts/events/document.revision.stale/document.revision.stale.payload.schema.json
+  required_scopes:
+  - document:index_admin
+  producer: DocumentIndexService
+  consumers: *id002
+  ordering_key: document_id
+  dedup_key: aggregate_revision
+  privacy_class: internal
+  retention_policy: P2Y
+  produced_by:
   - document.invalidate_revision
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: document.revision.*
+- event_type: index.projection.failed
+  event_version: '1'
+  aggregate_kind: index_projection
+  payload_schema_id: https://schemas.ukma.dev/v1/events/index.projection.failed.payload.schema.json
+  payload_schema_path: contracts/events/index.projection.failed/index.projection.failed.payload.schema.json
+  required_scopes: []
+  producer: IndexingProjectionWorker
+  consumers: &id003
+  - job_status
+  - telemetry
+  ordering_key: aggregate_ref_id
+  dedup_key: index_generation
+  privacy_class: internal
+  retention_policy: P1Y
+  produced_by: []
+  family: index.projection.*
+- event_type: index.projection.ready
+  event_version: '1'
+  aggregate_kind: index_projection
+  payload_schema_id: https://schemas.ukma.dev/v1/events/index.projection.ready.payload.schema.json
+  payload_schema_path: contracts/events/index.projection.ready/index.projection.ready.payload.schema.json
+  required_scopes: []
+  producer: IndexingProjectionWorker
+  consumers: *id003
+  ordering_key: aggregate_ref_id
+  dedup_key: index_generation
+  privacy_class: internal
+  retention_policy: P1Y
+  produced_by: []
+  family: index.projection.*
 - event_type: memory.consolidation.accepted
   event_version: '1'
-  operations:
+  aggregate_kind: consolidation_job
+  payload_schema_id: https://schemas.ukma.dev/v1/events/memory.consolidation.accepted.payload.schema.json
+  payload_schema_path: contracts/events/memory.consolidation.accepted/memory.consolidation.accepted.payload.schema.json
+  required_scopes:
+  - memory:consolidate
+  producer: MemoryService
+  consumers: &id004
+  - memory_projections
+  - audit
+  ordering_key: scope_id
+  dedup_key: operation_id
+  privacy_class: internal
+  retention_policy: P5Y
+  produced_by:
   - memory.consolidate
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: memory.consolidation.*
 - event_type: memory.deleted
   event_version: '1'
-  operations:
+  aggregate_kind: deletion_tombstone
+  payload_schema_id: https://schemas.ukma.dev/v1/events/memory.deleted.payload.schema.json
+  payload_schema_path: contracts/events/memory.deleted/memory.deleted.payload.schema.json
+  required_scopes:
+  - memory:forget
+  producer: MemoryService
+  consumers: *id004
+  ordering_key: memory_id
+  dedup_key: operation_id
+  privacy_class: confidential
+  retention_policy: P7Y
+  produced_by:
   - memory.forget
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: memory.*
 - event_type: memory.episode.committed
   event_version: '1'
-  operations:
+  aggregate_kind: episode
+  payload_schema_id: https://schemas.ukma.dev/v1/events/memory.episode.committed.payload.schema.json
+  payload_schema_path: contracts/events/memory.episode.committed/memory.episode.committed.payload.schema.json
+  required_scopes:
+  - memory:write
+  producer: MemoryService
+  consumers: *id004
+  ordering_key: session_id
+  dedup_key: operation_id
+  privacy_class: confidential
+  retention_policy: P5Y
+  produced_by:
   - memory.store_episode
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: memory.episode.*
 - event_type: memory.eviction.planned
   event_version: '1'
-  operations:
+  aggregate_kind: eviction_plan
+  payload_schema_id: https://schemas.ukma.dev/v1/events/memory.eviction.planned.payload.schema.json
+  payload_schema_path: contracts/events/memory.eviction.planned/memory.eviction.planned.payload.schema.json
+  required_scopes:
+  - memory:manage
+  producer: MemoryService
+  consumers: *id004
+  ordering_key: agent_id
+  dedup_key: operation_id
+  privacy_class: internal
+  retention_policy: P90D
+  produced_by:
   - memory.evaluate_eviction
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: memory.eviction.*
 - event_type: memory.fact.proposed
   event_version: '1'
-  operations:
+  aggregate_kind: semantic_fact
+  payload_schema_id: https://schemas.ukma.dev/v1/events/memory.fact.proposed.payload.schema.json
+  payload_schema_path: contracts/events/memory.fact.proposed/memory.fact.proposed.payload.schema.json
+  required_scopes:
+  - memory:write
+  producer: MemoryService
+  consumers: *id004
+  ordering_key: memory_id
+  dedup_key: operation_id
+  privacy_class: confidential
+  retention_policy: P5Y
+  produced_by:
   - memory.propose_fact
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: memory.fact.*
+- event_type: memory.fact.reviewed
+  event_version: '1'
+  aggregate_kind: semantic_fact
+  payload_schema_id: https://schemas.ukma.dev/v1/events/memory.fact.reviewed.payload.schema.json
+  payload_schema_path: contracts/events/memory.fact.reviewed/memory.fact.reviewed.payload.schema.json
+  required_scopes:
+  - memory:review
+  producer: MemoryService
+  consumers: *id004
+  ordering_key: memory_id
+  dedup_key: aggregate_revision
+  privacy_class: confidential
+  retention_policy: P5Y
+  produced_by:
+  - memory.verify_fact
+  family: memory.fact.*
 - event_type: memory.folded
   event_version: '1'
-  operations:
+  aggregate_kind: folded_result
+  payload_schema_id: https://schemas.ukma.dev/v1/events/memory.folded.payload.schema.json
+  payload_schema_path: contracts/events/memory.folded/memory.folded.payload.schema.json
+  required_scopes:
+  - memory:fold
+  producer: MemoryService
+  consumers: *id004
+  ordering_key: agent_id
+  dedup_key: operation_id
+  privacy_class: confidential
+  retention_policy: P5Y
+  produced_by:
   - memory.fold
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: memory.*
 - event_type: memory.paged_in
   event_version: '1'
-  operations:
+  aggregate_kind: page_record
+  payload_schema_id: https://schemas.ukma.dev/v1/events/memory.paged_in.payload.schema.json
+  payload_schema_path: contracts/events/memory.paged_in/memory.paged_in.payload.schema.json
+  required_scopes:
+  - memory:read
+  producer: MemoryService
+  consumers: *id004
+  ordering_key: memory_id
+  dedup_key: aggregate_revision
+  privacy_class: confidential
+  retention_policy: P5Y
+  produced_by:
   - memory.page_in
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: memory.*
 - event_type: memory.paged_out
   event_version: '1'
-  operations:
+  aggregate_kind: page_record
+  payload_schema_id: https://schemas.ukma.dev/v1/events/memory.paged_out.payload.schema.json
+  payload_schema_path: contracts/events/memory.paged_out/memory.paged_out.payload.schema.json
+  required_scopes:
+  - memory:write
+  producer: MemoryService
+  consumers: *id004
+  ordering_key: memory_id
+  dedup_key: aggregate_revision
+  privacy_class: confidential
+  retention_policy: P5Y
+  produced_by:
   - memory.page_out
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: memory.*
 - event_type: memory.procedure.candidate
   event_version: '1'
-  operations:
+  aggregate_kind: procedure
+  payload_schema_id: https://schemas.ukma.dev/v1/events/memory.procedure.candidate.payload.schema.json
+  payload_schema_path: contracts/events/memory.procedure.candidate/memory.procedure.candidate.payload.schema.json
+  required_scopes:
+  - memory:procedure_write
+  producer: MemoryService
+  consumers: *id004
+  ordering_key: procedure_id
+  dedup_key: operation_id
+  privacy_class: confidential
+  retention_policy: P5Y
+  produced_by:
   - memory.register_procedure_candidate
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: memory.procedure.*
 - event_type: memory.procedure.outcome
   event_version: '1'
-  operations:
+  aggregate_kind: procedure
+  payload_schema_id: https://schemas.ukma.dev/v1/events/memory.procedure.outcome.payload.schema.json
+  payload_schema_path: contracts/events/memory.procedure.outcome/memory.procedure.outcome.payload.schema.json
+  required_scopes:
+  - memory:procedure_write
+  producer: MemoryService
+  consumers: *id004
+  ordering_key: procedure_id
+  dedup_key: aggregate_revision
+  privacy_class: confidential
+  retention_policy: P5Y
+  produced_by:
   - memory.record_procedure_outcome
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: memory.procedure.*
+- event_type: memory.procedure.reviewed
+  event_version: '1'
+  aggregate_kind: procedure
+  payload_schema_id: https://schemas.ukma.dev/v1/events/memory.procedure.reviewed.payload.schema.json
+  payload_schema_path: contracts/events/memory.procedure.reviewed/memory.procedure.reviewed.payload.schema.json
+  required_scopes:
+  - memory:procedure_review
+  producer: MemoryService
+  consumers: *id004
+  ordering_key: procedure_id
+  dedup_key: aggregate_revision
+  privacy_class: confidential
+  retention_policy: P5Y
+  produced_by:
+  - memory.review_procedure
+  family: memory.procedure.*
 - event_type: memory.reconsolidation.committed
   event_version: '1'
-  operations:
+  aggregate_kind: memory_revision
+  payload_schema_id: https://schemas.ukma.dev/v1/events/memory.reconsolidation.committed.payload.schema.json
+  payload_schema_path: contracts/events/memory.reconsolidation.committed/memory.reconsolidation.committed.payload.schema.json
+  required_scopes:
+  - memory:write
+  producer: MemoryService
+  consumers: *id004
+  ordering_key: memory_id
+  dedup_key: aggregate_revision
+  privacy_class: confidential
+  retention_policy: P5Y
+  produced_by:
   - memory.commit_reconsolidation
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: memory.reconsolidation.*
 - event_type: memory.reconsolidation.opened
   event_version: '1'
-  operations:
+  aggregate_kind: reconsolidation_window
+  payload_schema_id: https://schemas.ukma.dev/v1/events/memory.reconsolidation.opened.payload.schema.json
+  payload_schema_path: contracts/events/memory.reconsolidation.opened/memory.reconsolidation.opened.payload.schema.json
+  required_scopes:
+  - memory:write
+  producer: MemoryService
+  consumers: *id004
+  ordering_key: memory_id
+  dedup_key: operation_id
+  privacy_class: confidential
+  retention_policy: P5Y
+  produced_by:
   - memory.begin_reconsolidation
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: memory.reconsolidation.*
 - event_type: memory.revision.committed
   event_version: '1'
-  operations:
+  aggregate_kind: memory_revision
+  payload_schema_id: https://schemas.ukma.dev/v1/events/memory.revision.committed.payload.schema.json
+  payload_schema_path: contracts/events/memory.revision.committed/memory.revision.committed.payload.schema.json
+  required_scopes:
+  - memory:write
+  producer: MemoryService
+  consumers: *id004
+  ordering_key: memory_id
+  dedup_key: aggregate_revision
+  privacy_class: confidential
+  retention_policy: P5Y
+  produced_by:
   - memory.update_revision
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: memory.revision.*
 - event_type: memory.scope.closed
   event_version: '1'
-  operations:
+  aggregate_kind: agent_scope
+  payload_schema_id: https://schemas.ukma.dev/v1/events/memory.scope.closed.payload.schema.json
+  payload_schema_path: contracts/events/memory.scope.closed/memory.scope.closed.payload.schema.json
+  required_scopes:
+  - memory:delegate
+  producer: MemoryService
+  consumers: *id004
+  ordering_key: agent_id
+  dedup_key: operation_id
+  privacy_class: confidential
+  retention_policy: P2Y
+  produced_by:
   - memory.close_agent_scope
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: memory.scope.*
 - event_type: memory.scope.opened
   event_version: '1'
-  operations:
+  aggregate_kind: agent_scope
+  payload_schema_id: https://schemas.ukma.dev/v1/events/memory.scope.opened.payload.schema.json
+  payload_schema_path: contracts/events/memory.scope.opened/memory.scope.opened.payload.schema.json
+  required_scopes:
+  - memory:delegate
+  producer: MemoryService
+  consumers: *id004
+  ordering_key: agent_id
+  dedup_key: operation_id
+  privacy_class: confidential
+  retention_policy: P2Y
+  produced_by:
   - memory.open_agent_scope
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: memory.scope.*
 - event_type: memory.working.removed
   event_version: '1'
-  operations:
+  aggregate_kind: working_block
+  payload_schema_id: https://schemas.ukma.dev/v1/events/memory.working.removed.payload.schema.json
+  payload_schema_path: contracts/events/memory.working.removed/memory.working.removed.payload.schema.json
+  required_scopes:
+  - memory:write
+  producer: MemoryService
+  consumers: *id004
+  ordering_key: session_id
+  dedup_key: aggregate_revision
+  privacy_class: confidential
+  retention_policy: P30D
+  produced_by:
   - memory.remove_working_block
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: memory.working.*
 - event_type: memory.working.updated
   event_version: '1'
-  operations:
+  aggregate_kind: working_block
+  payload_schema_id: https://schemas.ukma.dev/v1/events/memory.working.updated.payload.schema.json
+  payload_schema_path: contracts/events/memory.working.updated/memory.working.updated.payload.schema.json
+  required_scopes:
+  - memory:write
+  producer: MemoryService
+  consumers: *id004
+  ordering_key: session_id
+  dedup_key: aggregate_revision
+  privacy_class: confidential
+  retention_policy: P30D
+  produced_by:
   - memory.put_working_block
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
-- event_type: memory:procedure_review
+  family: memory.working.*
+- event_type: trace.link.accepted
   event_version: '1'
-  operations:
-  - memory.review_procedure
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  aggregate_kind: trace_link
+  payload_schema_id: https://schemas.ukma.dev/v1/events/trace.link.accepted.payload.schema.json
+  payload_schema_path: contracts/events/trace.link.accepted/trace.link.accepted.payload.schema.json
+  required_scopes:
+  - trace:approve
+  producer: TraceService
+  consumers: &id005
+  - graph_projection
+  - coverage
+  ordering_key: link_id
+  dedup_key: aggregate_revision
+  privacy_class: internal
+  retention_policy: P5Y
+  produced_by:
+  - traceability.accept_link
+  family: trace.link.*
 - event_type: trace.link.proposed
   event_version: '1'
-  operations:
+  aggregate_kind: trace_link
+  payload_schema_id: https://schemas.ukma.dev/v1/events/trace.link.proposed.payload.schema.json
+  payload_schema_path: contracts/events/trace.link.proposed/trace.link.proposed.payload.schema.json
+  required_scopes:
+  - trace:write
+  producer: TraceService
+  consumers: *id005
+  ordering_key: link_id
+  dedup_key: operation_id
+  privacy_class: internal
+  retention_policy: P5Y
+  produced_by:
   - traceability.propose_link
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: trace.link.*
 - event_type: trace.link.revoked
   event_version: '1'
-  operations:
+  aggregate_kind: trace_link
+  payload_schema_id: https://schemas.ukma.dev/v1/events/trace.link.revoked.payload.schema.json
+  payload_schema_path: contracts/events/trace.link.revoked/trace.link.revoked.payload.schema.json
+  required_scopes:
+  - trace:approve
+  producer: TraceService
+  consumers: *id005
+  ordering_key: link_id
+  dedup_key: aggregate_revision
+  privacy_class: internal
+  retention_policy: P5Y
+  produced_by:
   - traceability.revoke_link
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: trace.link.*
 - event_type: trace.link.validated
   event_version: '1'
-  operations:
+  aggregate_kind: trace_link
+  payload_schema_id: https://schemas.ukma.dev/v1/events/trace.link.validated.payload.schema.json
+  payload_schema_path: contracts/events/trace.link.validated/trace.link.validated.payload.schema.json
+  required_scopes:
+  - trace:verify
+  producer: TraceService
+  consumers: *id005
+  ordering_key: link_id
+  dedup_key: aggregate_revision
+  privacy_class: internal
+  retention_policy: P5Y
+  produced_by:
   - traceability.validate_link
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: trace.link.*
 - event_type: trace.revalidation.accepted
   event_version: '1'
-  operations:
+  aggregate_kind: revalidation_job
+  payload_schema_id: https://schemas.ukma.dev/v1/events/trace.revalidation.accepted.payload.schema.json
+  payload_schema_path: contracts/events/trace.revalidation.accepted/trace.revalidation.accepted.payload.schema.json
+  required_scopes:
+  - trace:verify
+  producer: TraceService
+  consumers: *id005
+  ordering_key: link_id
+  dedup_key: operation_id
+  privacy_class: internal
+  retention_policy: P5Y
+  produced_by:
   - traceability.revalidate_stale
-  payload_status: UNRESOLVED
-  payload_schema: null
-  source_section: 31.5 + domain operation table
+  family: trace.revalidation.*

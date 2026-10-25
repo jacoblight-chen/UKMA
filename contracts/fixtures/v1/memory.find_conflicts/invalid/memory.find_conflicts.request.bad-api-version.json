@@ -1,0 +1,28 @@
+{
+  "api_version": "2",
+  "operation": "ukma.memory.find_conflicts.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "fact": {
+      "domain": "code",
+      "kind": "x",
+      "id": "x",
+      "revision": "x",
+      "scope": {
+        "tenant_id": "x",
+        "project_id": "x"
+      }
+    },
+    "max_results": 0.0
+  }
+}

@@ -67,12 +67,14 @@
 
 | 階級 | 條件 | 目前 |
 |---|---|---|
-| **L1 Catalog-Defined** | 65 Domain + 4 System operation 在 §32–§35 / §36.4 唯一登記 | ✅ 已達（65 筆 registry） |
-| **L2 Schema-Closed** | 69 operation 全部具 machine-readable request/response JSON Schema Draft 2020-12（封閉 enum、`additionalProperties:false`、`$id`、`$defs`、limits、正反例 fixtures）且 CI `schema-validate` 通過 | ❌ **未達**（schemas 為 provisional） |
-| **L3 Implementation-Compliant** | 69 operation × 8 子案例測試實際執行通過；PROP-01..10、E2E-API-01..12 通過 | ❌ **未達**（無任何 domain 實作） |
+| **L1 Catalog-Defined** | 65 Domain + 4 System operation 在 §32–§35 / §36.4 唯一登記 | ✅ 已達（69 筆 registry，id 唯一） |
+| **L2 Schema-Closed** | 69 operation 全部具 machine-readable request/response JSON Schema Draft 2020-12（封閉 enum、`additionalProperties:false`、`$id`、`$defs`、limits、正反例 fixtures）且 CI `schema-validate` 通過 | ✅ **已達**（138 schemas + 414 fixtures + `ukma-contract-check` 4745 項檢查全通過） |
+| **L3 Implementation-Compliant** | 69 operation × 8 子案例測試實際執行通過；PROP-01..10、E2E-API-01..12 通過 | ❌ **未達**（domain 實作尚未開始；僅 graph-engine 切片） |
 | **L4 Production-Ready** | R1–R8 全滿足；≥2 個 production-capable backend profile 通過 Port Tests（且一個完全不載入 RocksDB）；效能基準與災難復原證據齊備 | ❌ **未達** |
 
 > **永久禁令**：在 L2 未完成前，不得聲稱「65/65 契約閉環」；在 L3 未完成前，不得聲稱任何 domain「已實作」；在 L4 未完成前，不得聲稱「production-ready / DB-portable」。
+>
+> **M1 里程碑已達成（2026-10-25）**：L2 Schema-Closed。可宣稱的措辭是「**69 個 operation 的機器可驗證契約已閉環（Schema-Closed）**」；**不可**宣稱任何 domain 已實作或 API 已可用。
 
 ---
 
@@ -322,7 +324,7 @@ flowchart LR
 
 | Gate | 必要條件 | 負責階段 | 目前 |
 |---|---|---|---|
-| G0 Specification | contracts、schema、ADR、fixtures 完備 | P0 | 🟡 部分（registry 有、schema provisional、ADR 缺） |
+| G0 Specification | contracts、schema、ADR、fixtures 完備 | P0 | 🟢 **已達**（69×2 schemas、35 event payloads、414 fixtures、ADR-021…048、CI gate） |
 | G1 Upstream baseline | 可重現編譯、測試、source lock | S0（已達） | 🟢 |
 | G2 Core | Graph/Storage Ports + capability + 2 adapters contract | P1, P2 | 🟡 S1 graph 已達、其餘缺 |
 | G3 Code | Symbol/CallGraph/Retrieval parity | P3 | 🔴 |
@@ -330,8 +332,8 @@ flowchart LR
 | G5 Memory | WM/EM/SM/PM、Folding、Consolidation、ACL | P5, P6 | 🔴 |
 | G6 Integration | Traceability/MCP/DSH plugin-only/E2E | P7, P8, P9 | 🔴 |
 | G7 Production | Security、Perf、DR、license audit | P10 | 🔴 |
-| DOC-01..04 | 65 ops 唯一、ErrorCode 封閉、單一 budget 演算法、狀態分離 | P0 | 🔴 |
-| SCHEMA-01/02 | 69×2 schemas + 事件 envelope/payload | P0 | 🔴 |
+| DOC-01..04 | 65 ops 唯一、ErrorCode 封閉、單一 budget 演算法、狀態分離 | P0 | 🟢 **已達**（checker 實際執行驗證） |
+| SCHEMA-01/02 | 69×2 schemas + 事件 envelope/payload | P0 | 🟢 **已達**（138 + 35 payload schemas） |
 | TEST-01 | CAPI/DAPI/MAPI/TAPI/SYS 實際通過 | P3–P8 | 🔴 |
 | DB-01 | ≥2 production backend（禁只用 in-memory） | P10 | 🔴 |
 | MIG-01 | 上游 SHA + golden fixtures + ledger | S0/S1 已達；S2..S7 缺 | 🟡 |

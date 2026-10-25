@@ -1,0 +1,22 @@
+{
+  "api_version": "1",
+  "operation": "ukma.document.ingest.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "source": null,
+    "parser_profile": "x",
+    "options": null,
+    "async": true
+  },
+  "unexpected_field": true
+}

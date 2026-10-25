@@ -1,0 +1,38 @@
+{
+  "api_version": "2",
+  "operation": "ukma.code.query_dependencies.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "query": {
+      "symbol": {
+        "domain": "code",
+        "kind": "x",
+        "id": "x",
+        "revision": "x",
+        "scope": {
+          "tenant_id": "x",
+          "project_id": "x"
+        }
+      },
+      "direction": "in",
+      "edge_kinds": [
+        "depends_on"
+      ],
+      "max_depth": 1,
+      "max_nodes": 1,
+      "page": {
+        "limit": 1
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "api_version": "1",
+  "request_id": "x",
+  "trace_id": "x",
+  "status": "ok",
+  "warnings": [],
+  "partial_reasons": [],
+  "freshness": "current",
+  "data": {
+    "ref": {
+      "domain": "code",
+      "kind": "x",
+      "id": "x",
+      "revision": "x",
+      "scope": {
+        "tenant_id": "x",
+        "project_id": "x"
+      }
+    },
+    "revision": "x",
+    "etag": "x",
+    "canonical_committed": false,
+    "projection_status": "pending",
+    "operation_id": "x"
+  }
+}

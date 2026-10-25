@@ -6,7 +6,7 @@ meta:
   last_updated: '2026-10-25'
 claim_level:
   catalog_defined: true
-  schema_closed: false
+  schema_closed: true
   implementation_compliant: false
   production_ready: false
 baseline:
@@ -33,6 +33,7 @@ baseline:
   - ukma-adapter-filesystem
   - ukma-adapter-sqlite
   - ukma-adapter-postgres
+  - ukma-contract-check
   crates_skeleton_only: 19
   apps_present:
   - ukma-server
@@ -42,8 +43,12 @@ baseline:
   system_schemas: 8
   crates_deprecated:
   - ukma-code-runtime
+  event_payload_schemas: 35
+  fixtures: 414 (69 ops x {2 valid, 4 invalid})
+  mcp_tools: 69
+  contract_check: cargo run -p ukma-contract-check => 4745 checks passed, 0 failed
 gates:
-  G0_specification: partial
+  G0_specification: passed
   G1_upstream_baseline: passed
   G2_core: partial
   G3_code: not_started
@@ -51,12 +56,12 @@ gates:
   G5_memory: not_started
   G6_integration: not_started
   G7_production: not_started
-  DOC-01: not_started
-  DOC-02: partial
-  DOC-03: not_started
-  DOC-04: not_started
-  SCHEMA-01: partial
-  SCHEMA-02: not_started
+  DOC-01: passed
+  DOC-02: passed
+  DOC-03: passed
+  DOC-04: passed
+  SCHEMA-01: passed
+  SCHEMA-02: passed
   TEST-01: not_started
   DB-01: not_started
   MIG-01: partial
@@ -64,35 +69,35 @@ gates:
 phases:
 - id: P0
   name: 契約閉環基礎與治理
-  status: not_started
+  status: done
   work_packages:
   - id: P0-WP1
-    status: not_started
-    evidence: null
+    status: done
+    evidence: registry rebuilt with all 15 §41.1 fields for 69 ops (unique ids, derived operation_uri/mcp_tool, idempotency coherence)
     blocked_reason: null
   - id: P0-WP2
-    status: in_progress
-    evidence: contracts/api/error-registry.yaml (37 closed codes) + scope-registry.yaml (24 scopes) done; event-registry 11-field expansion pending
+    status: done
+    evidence: error-registry (37 closed codes) + scope-registry (24 scopes) + event-registry (35 events x 11 §40.6 fields) + 35 closed payload schemas
     blocked_reason: null
   - id: P0-WP3
-    status: in_progress
-    evidence: shared.schema.json $defs 45 types added (was empty -> 21 dangling refs resolved, 138 schemas 0 dangling); 8 system schemas added; per-operation constraint closure pending
+    status: done
+    evidence: 138 operation schemas validated; shared $defs 45 types; status clauses (ok=>data, error=>error, partial=>partial_reasons) on all 69 responses; 414 positive/negative fixtures
     blocked_reason: null
   - id: P0-WP4
-    status: not_started
-    evidence: null
+    status: done
+    evidence: codegen from registry -> crates/ukma-contracts/src/generated (OperationId + 69 OperationSpec), contracts/mcp (69 tools + input schemas), sdk/typescript/ukma-operations.ts; drift enforced by checker
     blocked_reason: null
   - id: P0-WP5
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'ukma-contract-check (Rust): DOC-01..04, SCHEMA-01/02, fixtures, PROP-10 drift; CI workflow .github/workflows/contract-closure.yml'
     blocked_reason: null
   - id: P0-WP6
     status: done
     evidence: docs/adr/ADR-021..046 (27 files) + README index; ADR-031 renamed to ADR-031a; commit for WP6
     blocked_reason: null
   - id: P0-WP7
-    status: not_started
-    evidence: null
+    status: done
+    evidence: docs/migration/legacy-python-retirement.md; CI proves gates are Rust-only (no pytest/conftest in the gate path)
     blocked_reason: null
   - id: P0-WP8
     status: done
@@ -402,484 +407,484 @@ operations:
 - id: code.analyze_repository
   test_id: CAPI-01
   domain: code
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: code.get_analysis_job
   test_id: CAPI-02
   domain: code
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: code.cancel_analysis_job
   test_id: CAPI-03
   domain: code
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: code.get_symbol
   test_id: CAPI-04
   domain: code
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: code.find_symbols
   test_id: CAPI-05
   domain: code
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: code.find_references
   test_id: CAPI-06
   domain: code
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: code.query_callers
   test_id: CAPI-07
   domain: code
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: code.query_callees
   test_id: CAPI-08
   domain: code
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: code.query_dependencies
   test_id: CAPI-09
   domain: code
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: code.analyze_impact
   test_id: CAPI-10
   domain: code
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: code.get_edit_context
   test_id: CAPI-11
   domain: code
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: code.compare_revisions
   test_id: CAPI-12
   domain: code
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: code.invalidate_revision
   test_id: CAPI-13
   domain: code
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: document.ingest
   test_id: DAPI-01
   domain: document
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: document.get_ingest_job
   test_id: DAPI-02
   domain: document
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: document.cancel_ingest_job
   test_id: DAPI-03
   domain: document
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: document.get_document
   test_id: DAPI-04
   domain: document
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: document.parse_preview
   test_id: DAPI-05
   domain: document
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: document.search
   test_id: DAPI-06
   domain: document
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: document.extract_requirements
   test_id: DAPI-07
   domain: document
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: document.extract_relations
   test_id: DAPI-08
   domain: document
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: document.review_requirement
   test_id: DAPI-09
   domain: document
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: document.list_requirements
   test_id: DAPI-10
   domain: document
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: document.verify_consistency
   test_id: DAPI-11
   domain: document
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: document.compare_revisions
   test_id: DAPI-12
   domain: document
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: document.invalidate_revision
   test_id: DAPI-13
   domain: document
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: document.get_source_span
   test_id: DAPI-14
   domain: document
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.open_agent_scope
   test_id: MAPI-01
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.close_agent_scope
   test_id: MAPI-02
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.put_working_block
   test_id: MAPI-03
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.list_working_blocks
   test_id: MAPI-04
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.remove_working_block
   test_id: MAPI-05
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.store_episode
   test_id: MAPI-06
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.search
   test_id: MAPI-07
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.retrieve
   test_id: MAPI-08
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.update_revision
   test_id: MAPI-09
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.propose_fact
   test_id: MAPI-10
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.verify_fact
   test_id: MAPI-11
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.find_conflicts
   test_id: MAPI-12
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.fold
   test_id: MAPI-13
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.page_out
   test_id: MAPI-14
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.page_in
   test_id: MAPI-15
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.begin_reconsolidation
   test_id: MAPI-16
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.commit_reconsolidation
   test_id: MAPI-17
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.consolidate
   test_id: MAPI-18
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.get_consolidation_job
   test_id: MAPI-19
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.register_procedure_candidate
   test_id: MAPI-20
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.review_procedure
   test_id: MAPI-21
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.record_procedure_outcome
   test_id: MAPI-22
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.forget
   test_id: MAPI-23
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.evaluate_eviction
   test_id: MAPI-24
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: memory.get_budget
   test_id: MAPI-25
   domain: memory
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: traceability.propose_link
   test_id: TAPI-01
   domain: traceability
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: traceability.validate_link
   test_id: TAPI-02
   domain: traceability
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: traceability.accept_link
   test_id: TAPI-03
   domain: traceability
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: traceability.revoke_link
   test_id: TAPI-04
   domain: traceability
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: traceability.get_link
   test_id: TAPI-05
   domain: traceability
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: traceability.list_links
   test_id: TAPI-06
   domain: traceability
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: traceability.query_coverage
   test_id: TAPI-07
   domain: traceability
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: traceability.analyze_change_impact
   test_id: TAPI-08
   domain: traceability
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: traceability.find_design_gaps
   test_id: TAPI-09
   domain: traceability
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: traceability.compare_revisions
   test_id: TAPI-10
   domain: traceability
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: traceability.explain_with_evidence
   test_id: TAPI-11
   domain: traceability
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: traceability.revalidate_stale
   test_id: TAPI-12
   domain: traceability
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: traceability.get_revalidation_job
   test_id: TAPI-13
   domain: traceability
-  schema: provisional
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: system.capabilities
   test_id: SYS-01
   domain: system
-  schema: absent
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: system.get_operation
   test_id: SYS-02
   domain: system
-  schema: absent
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: system.get_job
   test_id: SYS-03
   domain: system
-  schema: absent
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 - id: system.cancel_job
   test_id: SYS-04
   domain: system
-  schema: absent
-  rust_types: absent
+  schema: validated
+  rust_types: generated
   impl: absent
   tests: absent
 tests:
@@ -893,7 +898,7 @@ tests:
     PROP-07: not_started
     PROP-08: not_started
     PROP-09: not_started
-    PROP-10: not_started
+    PROP-10: passing
   e2e:
     E2E-API-01: not_started
     E2E-API-02: not_started
@@ -911,8 +916,8 @@ tests:
     REP-001: not_started
     REP-002: partial
     REP-003: partial
-    ARC-001: not_started
-    ARC-002: not_started
+    ARC-001: passing
+    ARC-002: partial
     DB-001: partial
     DB-002: partial
     DB-003: partial
@@ -1015,6 +1020,8 @@ open_decisions:
   resolution: ADR-048：標 deprecated，P3 完成後移除；其 9 測試不得作為任何 gate 證據
   blocks: []
 notes:
+- P0 完成（M1 = Schema-Closed / L2）。claim_level.schema_closed=true，implementation_compliant 仍為 false：domain 實作尚未開始。
 - SR-003/MIG-01 為 partial：S0/S1 有 ledger，S2..S7 尚無。
-- DB-001/002/003/007/008 為 partial：僅 S1 graph in-memory 與 JSON file 兩 adapter，尚非 production-capable。
-- system.* 4 ops 的 schema 已建立（ADR-047 暫行形狀），但 closure_status 仍為 provisional，待形狀核准。
+- DB-001/002/003/007/008 為 partial：僅 graph-engine in-memory 與 JSON file 兩 adapter，尚非 production-capable（ADR-048 決策為 hybrid 三 adapter）。
+- MCP inputSchema 由 registry 產生並與 request schema 結構同源；尚未對真實 MCP host 做語意等價驗證（屬 P8）。
+- system.* 4 op 形狀已由 ADR-047 核准；其約束閉合已納入 SCHEMA-01。

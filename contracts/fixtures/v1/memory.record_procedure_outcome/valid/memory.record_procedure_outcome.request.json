@@ -1,0 +1,30 @@
+{
+  "api_version": "1",
+  "operation": "ukma.memory.record_procedure_outcome.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "procedure": {
+      "domain": "code",
+      "kind": "x",
+      "id": "x",
+      "revision": "x",
+      "scope": {
+        "tenant_id": "x",
+        "project_id": "x"
+      }
+    },
+    "success": false,
+    "evidence": [],
+    "expected_etag": "x"
+  }
+}

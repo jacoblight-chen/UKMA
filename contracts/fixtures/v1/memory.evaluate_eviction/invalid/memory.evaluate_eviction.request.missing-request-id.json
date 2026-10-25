@@ -1,0 +1,20 @@
+{
+  "api_version": "1",
+  "operation": "ukma.memory.evaluate_eviction.v1",
+  "context": {
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "agent_id": null,
+    "session_id": null,
+    "policy_id": null,
+    "dry_run": false
+  }
+}

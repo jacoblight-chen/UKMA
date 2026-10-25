@@ -1,0 +1,31 @@
+{
+  "api_version": "1",
+  "operation": "ukma.code.invalidate_revision.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "repository": {
+      "domain": "code",
+      "kind": "x",
+      "id": "x",
+      "revision": "x",
+      "scope": {
+        "tenant_id": "x",
+        "project_id": "x"
+      }
+    },
+    "revision": "x",
+    "reason": "x",
+    "expected_etag": "x"
+  },
+  "unexpected_field": true
+}

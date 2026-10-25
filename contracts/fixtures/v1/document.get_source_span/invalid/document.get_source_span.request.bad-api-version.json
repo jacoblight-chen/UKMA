@@ -1,0 +1,19 @@
+{
+  "api_version": "2",
+  "operation": "ukma.document.get_source_span.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "span": null,
+    "max_bytes": 0.0
+  }
+}

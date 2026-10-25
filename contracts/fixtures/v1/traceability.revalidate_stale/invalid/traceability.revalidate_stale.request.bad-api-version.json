@@ -1,0 +1,20 @@
+{
+  "api_version": "2",
+  "operation": "ukma.traceability.revalidate_stale.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "link_refs": [],
+    "policy_id": "x",
+    "async": true
+  }
+}

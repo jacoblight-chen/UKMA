@@ -1,0 +1,33 @@
+{
+  "api_version": "1",
+  "operation": "ukma.code.get_edit_context.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "query": {
+      "intent": "x",
+      "repository": {
+        "domain": "code",
+        "kind": "x",
+        "id": "x",
+        "revision": "x",
+        "scope": {
+          "tenant_id": "x",
+          "project_id": "x"
+        }
+      },
+      "revision": "x",
+      "target_refs": [],
+      "max_tokens": 1
+    }
+  }
+}

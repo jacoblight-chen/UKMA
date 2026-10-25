@@ -1,0 +1,20 @@
+{
+  "api_version": "2",
+  "operation": "ukma.document.verify_consistency.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "document_refs": [],
+    "compare_code": false,
+    "max_findings": 0.0
+  }
+}

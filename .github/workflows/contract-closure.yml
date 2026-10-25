@@ -1,0 +1,60 @@
+name: contract-closure
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract-closure:
+    name: Contract closure (G0 / SCHEMA-01 / SCHEMA-02 / PROP-10)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: cargo fmt --check
+        run: cargo fmt --all -- --check
+
+      - name: cargo check --workspace --all-targets
+        run: cargo check --workspace --all-targets
+
+      - name: cargo clippy -D warnings
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: cargo test --workspace --all-targets
+        run: cargo test --workspace --all-targets
+
+      # Machine-checked contract closure. Fails on: missing §41.1 fields, dangling
+      # $ref, non-closed schema, wrong fixture behaviour, unregistered error code /
+      # scope / event, or any registry <-> generated-bindings <-> MCP drift.
+      - name: contract-closure check (DOC-01..04, SCHEMA-01/02, PROP-10)
+        run: cargo run -p ukma-contract-check
+
+      # Codegen must be reproducible: regenerating from the registry must not
+      # change any committed artifact.
+      - name: codegen reproducibility
+        run: |
+          python3 scripts/gen_contracts.py
+          git diff --exit-code -- \
+            crates/ukma-contracts/src/generated \
+            contracts/mcp \
+            sdk/typescript
+
+      - name: gates are Rust-only
+        run: |
+          if find . -name 'conftest.py' -o -name 'pytest.ini' | head -n 1 | grep -q .; then
+            echo "Python test config found; gates must be Rust-only"
+            echo "see docs/migration/legacy-python-retirement.md"
+            exit 1
+          fi
+          echo "OK: no Python test harness in the gate path"

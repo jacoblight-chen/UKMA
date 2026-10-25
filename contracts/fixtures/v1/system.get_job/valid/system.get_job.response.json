@@ -1,0 +1,17 @@
+{
+  "api_version": "1",
+  "request_id": "x",
+  "trace_id": "x",
+  "status": "ok",
+  "warnings": [],
+  "partial_reasons": [],
+  "freshness": "current",
+  "data": {
+    "operation_id": "x",
+    "execution": "queued",
+    "commit": "not_started",
+    "projection": "not_required",
+    "diagnostics": [],
+    "updated_at": "2026-10-25T00:00:00Z"
+  }
+}

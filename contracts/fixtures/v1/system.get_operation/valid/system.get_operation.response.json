@@ -1,0 +1,23 @@
+{
+  "api_version": "1",
+  "request_id": "x",
+  "trace_id": "x",
+  "status": "ok",
+  "warnings": [],
+  "partial_reasons": [],
+  "freshness": "current",
+  "data": {
+    "operation_id": "x",
+    "api_major": 1,
+    "domain": "code",
+    "request_schema": "x",
+    "response_schema": "x",
+    "required_scopes": [],
+    "idempotency": "required",
+    "concurrency": "expected_etag",
+    "consistency_modes": [],
+    "error_codes": [],
+    "events": [],
+    "tests": []
+  }
+}

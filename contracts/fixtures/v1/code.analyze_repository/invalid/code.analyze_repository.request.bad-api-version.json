@@ -1,0 +1,36 @@
+{
+  "api_version": "2",
+  "operation": "ukma.code.analyze_repository.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "revision": {
+      "repository": {
+        "domain": "code",
+        "kind": "x",
+        "id": "x",
+        "revision": "x",
+        "scope": {
+          "tenant_id": "x",
+          "project_id": "x"
+        }
+      },
+      "vcs": "git",
+      "commit_sha": "0000000000000000000000000000000000000000",
+      "dirty_policy": "reject"
+    },
+    "parser_profile": "x",
+    "include_globs": [],
+    "exclude_globs": [],
+    "async": true
+  }
+}

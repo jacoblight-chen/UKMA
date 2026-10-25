@@ -1,0 +1,20 @@
+{
+  "api_version": "1",
+  "operation": "ukma.memory.commit_reconsolidation.v1",
+  "context": {
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "window_id": null,
+    "patch": null,
+    "evidence": [],
+    "expected_etag": "x"
+  }
+}

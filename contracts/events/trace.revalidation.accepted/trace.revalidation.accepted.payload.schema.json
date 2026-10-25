@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/events/trace.revalidation.accepted.payload.schema.json",
+  "title": "trace.revalidation.accepted payload (closed; no raw sensitive content)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "operation_id"
+  ],
+  "properties": {
+    "operation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "data_ref": {
+      "$ref": "../schema/v1/shared.schema.json#/$defs/Ref"
+    },
+    "index_generation": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "projection_type": {
+      "enum": [
+        "graph",
+        "vector",
+        "fulltext",
+        "metadata",
+        "trace"
+      ]
+    },
+    "redacted": {
+      "type": "object",
+      "additionalProperties": false,
+      "maxProperties": 8,
+      "properties": {
+        "summary": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "reason_code": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "maxProperties": 16
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "api_version": "1",
+  "operation": "ukma.code.analyze_impact.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "query": {
+      "changed": [],
+      "revision": "x",
+      "edge_kinds": [],
+      "max_depth": 1,
+      "max_nodes": 1,
+      "include_test_candidates": false
+    }
+  },
+  "unexpected_field": true
+}
