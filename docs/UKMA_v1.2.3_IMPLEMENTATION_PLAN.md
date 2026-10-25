@@ -200,9 +200,9 @@ flowchart LR
 |---|---|---|---|---|
 | **P3-WP1** | ParserPort + 語言集（**ADR-048 O-01：38 語言**） | `crates/code-intelligence/parser`；由 CodeGraph S2 逐語言移植（依 §4.2 slice 流程、ledger `S2-<lang>`）；清單：bash, c, clojure, cobol, cpp, csharp, css, dart, dockerfile, elixir, elm, erlang, fortran, go, groovy, haskell, hcl, java, julia, kotlin, lua, objc, ocaml, perl, php, python, r, ruby, rust, scala, solidity, swift, tcl, toml, typescript, verilog, yaml, zig | `ParsedContent{blocks, symbols, source_spans, diagnostics, parser_version, content_hash}`；解析失敗不得吞成空文件；38 語言各需 golden parity 報告 | XXL |
 | **P3-WP2** | Symbol/Edge 模型 | `Symbol`、`CodeEdge`（`resolution: static_exact \| static_possible \| unresolved`）、`CodeAnalysisManifest` | 動態呼叫不得偽稱 complete；`completeness: partial` 正確 | L |
-| **P3-WP3** | Ingestion 管線 | `Git Rev → File Discovery → Parse → Resolve → Graph Commit → Index Publish` + job FSM | `code.analyze_repository`（CAPI-01）等 job 三段狀態正交（§40.4） | L |
-| **P3-WP4** | 13 ops 實作 | `CodeIntelligencePort`（§37 簽名） | CAPI-01..13 各 8 子案例：`valid / invalid_schema / cross_scope / revision_conflict / idempotent_retry / capability_missing / generation_staleness / pagination` | XL |
-| **P3-WP5** | Impact / EditContext | `ImpactReport`（含 `unresolved_dynamic_calls`、`completeness`）、`EditContextResult`（`truncation`、`omitted_refs`） | CODE-002、CAPI-10/11、`CONTEXT_BUDGET_EXCEEDED` 負向 | L |
+| ~~**P3-WP3**~~ ✅ | Ingestion 管線 | `crates/code-intelligence/src/service.rs`：`submit_analysis`（accept + dedup）／`run_analysis`（Parse → Resolve → Commit → Publish）／`build_revision` + `index_parsed`（§32.3 version-scoped id）；job FSM 沿用 `indexing-engine`（§40.4 三段正交、commit 後不可取消、generation 指標含保留） | `tests/wp3_ingestion.rs` 6 tests：queued→ready 後才出現 manifest、skipped → `partial`、include/exclude glob、每 revision 獨立 generation、`required_generation` 嚴格讀取、跨 service 實例 id 穩定 | L |
+| ~~**P3-WP4**~~ ✅ | 13 ops 實作 | `CodeIntelligencePort`（§37 `async` 簽名）+ 同步核心 `CodeIntelligenceService`；`domain.rs` §32.1 canonical 請求/結果型別；`CodeAuthorizer`（scope + per-resource ACL） | `tests/capi_matrix.rs` 25 tests 覆蓋 CAPI-01..13：valid、invalid_schema、FORBIDDEN、CROSS_SCOPE_DENIED、IDEMPOTENCY_CONFLICT、CAPABILITY_UNAVAILABLE、SOURCE_UNAVAILABLE（含 dirty policy）、JOB_NOT_FOUND／JOB_NOT_CANCELLABLE、CURSOR_EXPIRED、RESOURCE_LIMIT、INDEX_STALE、ETAG_MISMATCH、CONTEXT_BUDGET_EXCEEDED、SOURCE_REVISION_MISMATCH、pagination；§37 async port 亦以 `block_on` 實測 | XL |
+| ~~**P3-WP5**~~ ✅ | Impact / EditContext | `analyze_impact`（有界反向 BFS、`paths`、`test_candidates`、`unresolved_dynamic_calls`、possible 動態呼叫 → `partial`）、`get_edit_context`（`truncation`、`omitted_refs`、4 char/token 估算、per-path ACL） | `capi10_*`／`capi11_*` tests：impact 不宣稱 complete、`SOURCE_REVISION_MISMATCH`、`CONTEXT_BUDGET_EXCEEDED` 負向、ACL 拒絕不洩漏內容 | L |
 | **P3-WP6** | Golden parity | 對鎖定 SHA 的 baseline 產生 `fixtures/expected_graphs/*` | CODE-001（symbols/refs/call edges 同 baseline 或 ADR 核准差異） | M |
 
 ---
@@ -326,7 +326,7 @@ flowchart LR
 | G0 Specification | contracts、schema、ADR、fixtures 完備 | P0 | 🟢 **已達**（69×2 schemas、35 event payloads、414 fixtures、ADR-021…048、CI gate） |
 | G1 Upstream baseline | 可重現編譯、測試、source lock | S0（已達） | 🟢 |
 | G2 Core | Graph/Storage Ports + capability + 2 adapters contract | P1, P2 | 🟡 **部分達標**（六 port + 能力協商 + 兩個 adapter + fail-closed router；HNSW/embedding port 未完成） |
-| G3 Code | Symbol/CallGraph/Retrieval parity | P3 | 🔴 |
+| G3 Code | Symbol/CallGraph/Retrieval parity | P3 | 🟡 **部分達標**（13 ops + ingestion + impact/edit-context 已實作並測試；parity 僅 `rust` 1/38 語言，其餘 37 語言未移植） |
 | G4 Document | MD + PDF/DOCX 指定範圍 + evidence parity | P4 | 🔴 |
 | G5 Memory | WM/EM/SM/PM、Folding、Consolidation、ACL | P5, P6 | 🔴 |
 | G6 Integration | Traceability/MCP/DSH plugin-only/E2E | P7, P8, P9 | 🔴 |

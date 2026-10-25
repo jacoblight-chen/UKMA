@@ -11,7 +11,9 @@
 //! - the registry lists exactly the languages the locked upstream baseline has
 //!   parsers for (ADR-048 O-01).
 
+pub mod domain;
 pub mod parsers;
+pub mod service;
 
 use serde::{Deserialize, Serialize};
 
@@ -35,6 +37,84 @@ pub enum CodeError {
         /// Why it is invalid.
         reason: String,
     },
+    /// The resource does not exist in the bound revision.
+    NotFound {
+        /// Human readable resource.
+        resource: String,
+    },
+    /// The requested revision index is stale (superseded or invalidated).
+    IndexStale {
+        /// Revision that is no longer fresh.
+        revision: String,
+    },
+    /// The revision index is not published yet.
+    IndexNotReady {
+        /// Revision that is still being built.
+        revision: String,
+    },
+    /// Unknown job id.
+    JobNotFound {
+        /// Job id.
+        job_id: String,
+    },
+    /// Cancellation arrived after the commit point (?40.4).
+    JobNotCancellable {
+        /// Job id.
+        job_id: String,
+    },
+    /// The page cursor is no longer valid.
+    CursorExpired {
+        /// Offending cursor.
+        cursor: String,
+    },
+    /// A traversal or impact analysis hit a hard resource limit.
+    ResourceLimit {
+        /// Safe detail.
+        detail: String,
+    },
+    /// The request names a different tenant/project than the resource.
+    CrossScopeDenied {
+        /// Scope the request asked for.
+        requested: String,
+        /// Scope that owns the resource.
+        actual: String,
+    },
+    /// The caller does not hold a required scope.
+    Forbidden {
+        /// Missing scope.
+        required_scope: String,
+    },
+    /// Optimistic concurrency mismatch.
+    EtagMismatch {
+        /// Etag the caller expected.
+        expected: String,
+        /// Current etag.
+        actual: String,
+    },
+    /// The revision's source is not available.
+    SourceUnavailable {
+        /// Revision.
+        revision: String,
+    },
+    /// The requested and actual source revisions differ.
+    SourceRevisionMismatch {
+        /// Requested revision.
+        requested: String,
+        /// Revision the index was built from.
+        actual: String,
+    },
+    /// The edit-context budget cannot hold the request.
+    ContextBudgetExceeded {
+        /// Tokens required.
+        required: u32,
+        /// Tokens available.
+        budget: u32,
+    },
+    /// An idempotency key was reused with different arguments.
+    IdempotencyConflict {
+        /// The reused key.
+        key: String,
+    },
 }
 
 impl CodeError {
@@ -44,6 +124,20 @@ impl CodeError {
             CodeError::CapabilityUnavailable { .. } => "CAPABILITY_UNAVAILABLE",
             CodeError::SourceParseFailed { .. } => "SOURCE_PARSE_FAILED",
             CodeError::InvalidArgument { .. } => "INVALID_ARGUMENT",
+            CodeError::NotFound { .. } => "NOT_FOUND",
+            CodeError::IndexStale { .. } => "INDEX_STALE",
+            CodeError::IndexNotReady { .. } => "INDEX_NOT_READY",
+            CodeError::JobNotFound { .. } => "JOB_NOT_FOUND",
+            CodeError::JobNotCancellable { .. } => "JOB_NOT_CANCELLABLE",
+            CodeError::CursorExpired { .. } => "CURSOR_EXPIRED",
+            CodeError::ResourceLimit { .. } => "RESOURCE_LIMIT",
+            CodeError::CrossScopeDenied { .. } => "CROSS_SCOPE_DENIED",
+            CodeError::Forbidden { .. } => "FORBIDDEN",
+            CodeError::EtagMismatch { .. } => "ETAG_MISMATCH",
+            CodeError::SourceUnavailable { .. } => "SOURCE_UNAVAILABLE",
+            CodeError::SourceRevisionMismatch { .. } => "SOURCE_REVISION_MISMATCH",
+            CodeError::ContextBudgetExceeded { .. } => "CONTEXT_BUDGET_EXCEEDED",
+            CodeError::IdempotencyConflict { .. } => "IDEMPOTENCY_CONFLICT",
         }
     }
 }
@@ -56,6 +150,42 @@ impl std::fmt::Display for CodeError {
             }
             CodeError::SourceParseFailed { message } => write!(f, "parse failed: {message}"),
             CodeError::InvalidArgument { field, reason } => write!(f, "{field}: {reason}"),
+            CodeError::NotFound { resource } => write!(f, "{resource} not found"),
+            CodeError::IndexStale { revision } => write!(f, "index for {revision} is stale"),
+            CodeError::IndexNotReady { revision } => write!(f, "index for {revision} is not ready"),
+            CodeError::JobNotFound { job_id } => write!(f, "job {job_id} not found"),
+            CodeError::JobNotCancellable { job_id } => {
+                write!(f, "job {job_id} cannot be cancelled after the commit point")
+            }
+            CodeError::CursorExpired { cursor } => write!(f, "cursor {cursor} expired"),
+            CodeError::ResourceLimit { detail } => write!(f, "resource limit: {detail}"),
+            CodeError::CrossScopeDenied { requested, actual } => {
+                write!(f, "scope {requested} cannot read {actual}")
+            }
+            CodeError::Forbidden { required_scope } => {
+                write!(f, "missing scope {required_scope}")
+            }
+            CodeError::EtagMismatch { expected, actual } => {
+                write!(f, "etag mismatch: expected {expected}, found {actual}")
+            }
+            CodeError::SourceUnavailable { revision } => {
+                write!(f, "source for revision {revision} is unavailable")
+            }
+            CodeError::SourceRevisionMismatch { requested, actual } => {
+                write!(
+                    f,
+                    "requested revision {requested} but the index is {actual}"
+                )
+            }
+            CodeError::ContextBudgetExceeded { required, budget } => {
+                write!(f, "context budget exceeded: need {required}, have {budget}")
+            }
+            CodeError::IdempotencyConflict { key } => {
+                write!(
+                    f,
+                    "idempotency key {key} was reused with different arguments"
+                )
+            }
         }
     }
 }
@@ -158,12 +288,18 @@ pub struct Symbol {
     pub language: String,
     /// Resolution state.
     pub resolution: Resolution,
+    /// Declaration signature (part of the ?32.3 identity).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signature: Option<String>,
+    /// Declared visibility, when the language has one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub visibility: Option<String>,
     /// Evidence ids backing the claim.
     pub evidence_ids: Vec<String>,
 }
 
 /// Edge kind (§32.1 `CodeEdge.kind`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CodeEdgeKind {
     /// Function call.
@@ -193,7 +329,7 @@ pub enum EdgeResolution {
 }
 
 /// A code edge (§32.1 `CodeEdge`).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CodeEdge {
     /// Source symbol id.
     pub source: String,
@@ -203,6 +339,9 @@ pub struct CodeEdge {
     pub kind: CodeEdgeKind,
     /// Resolution state.
     pub resolution: EdgeResolution,
+    /// Confidence in `0.0..=1.0`, when the extractor can estimate it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<f64>,
     /// Evidence ids.
     pub evidence_ids: Vec<String>,
 }
@@ -456,7 +595,7 @@ impl LanguageRegistry {
 }
 
 /// Parsed content (§7.1 `ParsedContent`).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ParsedSource {
     /// Language of the source.
     pub language: String,
@@ -604,6 +743,7 @@ mod tests {
             target: Some("b".into()),
             kind: CodeEdgeKind::Calls,
             resolution: EdgeResolution::StaticPossible,
+            confidence: None,
             evidence_ids: vec!["e1".into()],
         };
         assert!(!possible.is_certain());
@@ -613,6 +753,7 @@ mod tests {
             target: None,
             kind: CodeEdgeKind::Calls,
             resolution: EdgeResolution::Unresolved,
+            confidence: None,
             evidence_ids: vec![],
         };
         assert!(!unresolved.is_certain());
@@ -622,6 +763,7 @@ mod tests {
             target: Some("b".into()),
             kind: CodeEdgeKind::Calls,
             resolution: EdgeResolution::StaticExact,
+            confidence: None,
             evidence_ids: vec!["e1".into()],
         };
         assert!(exact.is_certain());

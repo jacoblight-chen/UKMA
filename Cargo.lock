@@ -213,12 +213,14 @@ checksum = "1c133bc6a41be0d194c306b5506d15e6feeea7b1d6604bd3f8310dfb2ca96486"
 name = "code-intelligence"
 version = "0.1.0"
 dependencies = [
+ "indexing-engine",
  "serde",
  "serde_json",
  "serde_yaml",
  "sha2",
  "tree-sitter",
  "tree-sitter-rust",
+ "ukma-contracts",
 ]
 
 [[package]]

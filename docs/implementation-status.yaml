@@ -185,16 +185,16 @@ phases:
     evidence: 'code-intelligence types from 32.1: Symbol/SymbolKind(12)/Resolution(3), CodeEdge/CodeEdgeKind(6)/EdgeResolution(3) with is_certain() refusing to promote static_possible, CodeLocation span validation, CodeAnalysisManifest completeness()=partial when anything is skipped; 8 tests'
     blocked_reason: null
   - id: P3-WP3
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'code-intelligence/src/service.rs ingestion pipeline: submit_analysis (accept + (tenant,repo,commit,parser_profile,options_hash) dedup + idempotency) -> run_analysis (Parsing -> Extracting -> Resolving -> Staging -> Committing -> Indexing -> Ready, failures fail the job instead of returning empty data) -> commit inserts the revision index, publishes a new generation and only then exposes the authoritative CodeAnalysisManifest via result_ref. Job FSM/orthogonality/commit-then-cancel refusal reused from indexing-engine (40.4). Sources come from a SourceSnapshotPort (InMemorySources dev adapter); unported files are skipped and make completeness=partial. 6 tests in tests/wp3_ingestion.rs.'
     blocked_reason: null
   - id: P3-WP4
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'All 13 code operations implemented in code-intelligence (domain.rs canonical 32.1 request/result types + service.rs): CAPI-01 analyze_repository, 02 get_analysis_job, 03 cancel_analysis_job, 04 get_symbol, 05 find_symbols, 06 find_references, 07 query_callers, 08 query_callees, 09 query_dependencies, 10 analyze_impact, 11 get_edit_context, 12 compare_revisions, 13 invalidate_revision. The section 37 port surface exposes the 13 async signatures and is exercised through a block_on executor. 25 tests in tests/capi_matrix.rs cover valid/invalid_schema/FORBIDDEN/CROSS_SCOPE_DENIED/IDEMPOTENCY_CONFLICT/CAPABILITY_UNAVAILABLE/SOURCE_UNAVAILABLE/JOB_NOT_FOUND/JOB_NOT_CANCELLABLE/CURSOR_EXPIRED/RESOURCE_LIMIT/INDEX_STALE/ETAG_MISMATCH/CONTEXT_BUDGET_EXCEEDED/SOURCE_REVISION_MISMATCH/pagination.'
     blocked_reason: null
   - id: P3-WP5
-    status: not_started
-    evidence: null
+    status: done
+    evidence: 'ImpactReport (bounded reverse BFS over non-containment edges, one edge path per impacted symbol, test_candidates by path/name heuristic, unresolved_dynamic_calls counted only for truly unresolved call edges, completeness=partial whenever a possible/static_possible call or a depth truncation is present) and EditContextResult (per-symbol source blocks from the retained snapshot, 4 chars/token estimator, truncation + omitted_refs, CONTEXT_BUDGET_EXCEEDED when even one block does not fit, per-path ACL via CodeAuthorizer). Tests: capi10_* (2), capi11_* (3).'
     blocked_reason: null
   - id: P3-WP6
     status: in_progress

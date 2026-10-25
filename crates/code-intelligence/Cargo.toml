@@ -9,6 +9,8 @@ description = "Code Intelligence domain types, parser port (§32.1) and the 38-l
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 sha2 = "0.10"
+indexing-engine = { path = "../indexing-engine" }
+ukma-contracts = { path = "../ukma-contracts" }
 # Pinned to the locked upstream baseline (S2-rust), so the parse substrate is the
 # same grammar version CodeGraph used.
 tree-sitter = { version = "=0.25.10", optional = true }

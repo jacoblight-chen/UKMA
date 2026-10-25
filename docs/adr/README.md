@@ -36,6 +36,7 @@
 | [ADR-046](./ADR-046.md) | ADR 編號治理與衝突裁決記錄 | ACCEPTED | §18 / §39 / §40.1 |
 | [ADR-047](./ADR-047.md) | System API Minimal Contract（4 個 system operation 的 wire 形狀） | ACCEPTED | §36.4 |
 | [ADR-048](./ADR-048.md) | 實作範圍與 Profile 決策（語言集 / PDF-OCR / DB Profile / Embedding / legacy runtime） | ACCEPTED | §8.1 / §9.1 / §25.2 / §28.2 |
+| [ADR-049](./ADR-049.md) | Code Intelligence 服務實作決策（同步核心 + §37 async port、derived projection、version-scoped id、FSM 對照、impact completeness） | ACCEPTED | §7.1 / §32.1 / §32.3 / §37 / §40.4 |
 
 ## 編號衝突與對照（摘要）
 

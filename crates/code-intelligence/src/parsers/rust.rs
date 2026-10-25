@@ -104,6 +104,18 @@ fn field_name<'a>(source: &'a str, node: Node<'_>) -> Option<&'a str> {
         .map(|child| text(source, child))
 }
 
+/// Declaration header text (`fn name(args) -> ret`) used as the symbol signature.
+fn signature_of(source: &str, node: Node<'_>) -> Option<String> {
+    let body = node.child_by_field_name("body")?;
+    let header = source.get(node.start_byte()..body.start_byte())?;
+    let collapsed = header.split_whitespace().collect::<Vec<_>>().join(" ");
+    if collapsed.is_empty() {
+        None
+    } else {
+        Some(collapsed)
+    }
+}
+
 fn item_kind(kind: &str) -> Option<SymbolKind> {
     Some(match kind {
         "mod_item" => SymbolKind::Module,
@@ -176,6 +188,10 @@ impl<'a> Extractor<'a> {
         node: Node<'_>,
         language: &str,
     ) -> String {
+        let signature = match kind {
+            SymbolKind::Function | SymbolKind::Method => signature_of(self.source, node),
+            _ => None,
+        };
         let id = self.symbol_id(&qualified);
         if self.symbols.iter().any(|symbol| symbol.id == id) {
             return id;
@@ -195,6 +211,8 @@ impl<'a> Extractor<'a> {
             language: language.to_string(),
             // Symbol existence is proven by the CST; references are not.
             resolution: Resolution::Resolved,
+            signature,
+            visibility: None,
             evidence_ids: vec![format!("ev:{}:{}", self.path, line_of(node, true))],
         });
         id
@@ -311,6 +329,7 @@ impl<'a> Extractor<'a> {
                 kind: CodeEdgeKind::Defines,
                 // containment is proven by the CST itself
                 resolution: EdgeResolution::StaticExact,
+                confidence: None,
                 evidence_ids: evidence(line),
             });
         }
@@ -320,6 +339,7 @@ impl<'a> Extractor<'a> {
                 target: None,
                 kind: CodeEdgeKind::Imports,
                 resolution: EdgeResolution::Unresolved,
+                confidence: None,
                 evidence_ids: evidence(line),
             });
         }
@@ -352,6 +372,7 @@ impl<'a> Extractor<'a> {
                 target,
                 kind: CodeEdgeKind::Calls,
                 resolution,
+                confidence: None,
                 evidence_ids: evidence(line),
             });
         }
