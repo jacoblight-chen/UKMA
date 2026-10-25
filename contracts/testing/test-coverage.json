@@ -33,8 +33,22 @@
     {
       "id": "REP-003",
       "source": "17.1",
-      "disposition": "gap",
-      "reason": "licences are recorded per slice in the migration ledger, but there is no automated LICENSE/NOTICE/third-party asset audit"
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/ukma-integration/tests/release_evidence.rs",
+          "test": "the_licence_and_notice_files_exist_and_name_the_upstream_attribution"
+        },
+        {
+          "file": "crates/ukma-integration/tests/release_evidence.rs",
+          "test": "the_inventory_covers_the_whole_dependency_tree"
+        },
+        {
+          "file": "crates/ukma-integration/tests/release_evidence.rs",
+          "test": "every_recorded_decision_follows_the_policy"
+        }
+      ],
+      "note": "LICENSE and NOTICE exist, the third-party inventory is derived from cargo metadata and covers Cargo.lock exactly, and every licence decision is re-derived by the gate (no copyleft-only dependency can pass)"
     },
     {
       "id": "ARC-001",
@@ -80,9 +94,17 @@
         {
           "file": "crates/ukma-integration/tests/coverage_matrix.rs",
           "test": "db002_two_independent_graph_stores_pass_the_same_contract"
+        },
+        {
+          "file": "crates/ukma-integration/tests/port_parity.rs",
+          "test": "profile_a_serves_every_port_it_declares"
+        },
+        {
+          "file": "crates/ukma-integration/tests/port_parity.rs",
+          "test": "the_committed_parity_report_matches_the_adapters"
         }
       ],
-      "note": "InMemoryGraphStore and FileGraphStore satisfy the same CRUD/identity/isolation assertions"
+      "note": "the graph port runs on two independent stores and profile A passes one shared contract over all six ports; profiles B and C are declared unavailable with reasons rather than claimed"
     },
     {
       "id": "DB-003",
@@ -182,15 +204,19 @@
       "disposition": "covered",
       "evidence": [
         {
-          "file": "crates/ukma-integration/tests/e2e_api.rs",
-          "test": "e2e_api_11_a_store_copy_preserves_logical_ids_revisions_and_scope"
+          "file": "crates/ukma-integration/tests/cutover_drill.rs",
+          "test": "the_nine_step_cutover_moves_real_data_and_keeps_identity"
+        },
+        {
+          "file": "crates/ukma-integration/tests/cutover_drill.rs",
+          "test": "a_failed_export_can_be_rolled_back_and_replayed"
         },
         {
           "file": "crates/ukma-integration/tests/property_matrix.rs",
           "test": "prop_04_repeated_mutations_converge_on_one_canonical_version"
         }
       ],
-      "note": "single-writer fencing, replay and cutover are exercised; rollback is only modelled by retained generations"
+      "note": "the nine-state cutover moves records, generation manifests and unacked outbox events; rollback and replay are exercised and a stale fence cannot write"
     },
     {
       "id": "CODE-001",
@@ -387,8 +413,22 @@
     {
       "id": "OPS-001",
       "source": "17.1",
-      "disposition": "gap",
-      "reason": "no backup/restore or re-index drill: the embedded adapter's flush/reload is tested, but there is no restore or index rebuild exercise"
+      "disposition": "covered",
+      "evidence": [
+        {
+          "file": "crates/ukma-integration/tests/disaster_recovery.rs",
+          "test": "a_full_backup_restore_and_reindex_recovers_the_deployment"
+        },
+        {
+          "file": "crates/ukma-integration/tests/disaster_recovery.rs",
+          "test": "a_corrupt_store_is_a_typed_failure_and_the_backup_still_restores_it"
+        },
+        {
+          "file": "crates/ukma-integration/tests/disaster_recovery.rs",
+          "test": "rollback_reads_the_retained_generation_and_refuses_the_unpublished_one"
+        }
+      ],
+      "note": "backup/restore, re-index from canonical data plus outbox replay and rollback to a retained generation are exercised on real files; there is no scheduler behind the drill"
     },
     {
       "id": "FM-001",
@@ -519,8 +559,14 @@
     {
       "id": "FM-010",
       "source": "29.4",
-      "disposition": "gap",
-      "reason": "no 1M episode benchmark harness or reproducible report exists yet"
+      "disposition": "partial",
+      "evidence": [
+        {
+          "file": "crates/ukma-bench/src/main.rs",
+          "test": "a_short_run_produces_a_complete_report"
+        }
+      ],
+      "note": "crates/ukma-bench produces reproducible latency/throughput reports (docs/performance/baseline.json, scale-probe-20k.json), but 1M episodes is not reachable: lexical search is O(n) and capped at 10_000 candidates (RESOURCE_LIMIT), so an ANN index or partitioning is required first"
     },
     {
       "id": "FO-001",
@@ -944,5 +990,6 @@
       "disposition": "gap",
       "reason": "no RocksDB or SQL adapter is implemented: the postgres/qdrant/neo4j/sqlite adapters declare themselves unavailable, so the same contract cannot run on a second live backend"
     }
-  ]
+  ],
+  "p10_update": "P10 closed REP-003, OPS-001 and widened DB-002/DB-010; FM-010 moved from gap to partial (see docs/adr/ADR-056.md)"
 }

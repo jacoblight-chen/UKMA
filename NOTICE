@@ -1,0 +1,27 @@
+UKMA
+Copyright 2025-2026 the UKMA authors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+--------------------------------------------------------------------------
+Third-party attributions
+--------------------------------------------------------------------------
+
+This product includes software developed by
+Andrey Vasilevsky <anvanster@gmail.com> (https://github.com/codegraph-ai/codegraph),
+licensed under the Apache License, Version 2.0. The CodeGraph source this
+workspace references is locked at commit
+590c2ca7dd7b37bd1d41caf45fac535b6522f969 and recorded in
+docs/migration/upstream-lock.yaml; the Graph Engine port keeps the upstream
+copyright notice and SPDX-License-Identifier headers on every migrated file.
+
+The workspace vendors no third-party source. Every external crate used to
+build it is listed, with its declared licence and the compliance decision, in
+contracts/testing/third-party-inventory.json (generated from
+`cargo metadata --locked --format-version 1`; audit narrative in
+docs/migration/license-audit.md, gate in
+crates/ukma-integration/tests/release_evidence.rs).
+
+No GPL, AGPL, SSPL, BUSL, Elastic or Commons-Clause dependency is used. The one
+file-level copyleft licence (MPL-2.0) offered as an option by some crates is not
+elected where a permissive alternative exists.

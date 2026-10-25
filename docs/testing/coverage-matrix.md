@@ -1,4 +1,4 @@
-# 測試覆蓋矩陣（P9）
+# 測試覆蓋矩陣（P9，P10 收尾更新）
 
 **規格版本**：1.2.3　**機器可讀來源**：`contracts/testing/test-coverage.json`
 **驗證方式**：`crates/ukma-integration/tests/coverage_matrix.rs`
@@ -12,17 +12,14 @@
 | `partial` | 有實際測試覆蓋核心語意，但有具體未覆蓋面（見 note） |
 | `gap` | 尚無測試；必須寫明原因，不得省略 |
 
-**合計 69 項，100% 已分類**：`covered` 59、`partial` 5、`gap` 5。
+**合計 69 項，100% 已分類**：`covered` **61**、`partial` **6**、`gap` **2**（P10 收尾後）。
 （「100% disposition」指每一項都有處置，**不等於**全部通過。）
 
 ## 缺口（不得宣稱完成）
 
 | ID | 原因 |
 |---|---|
-| REP-003 | 無自動化 LICENSE/NOTICE/第三方資產審計（授權逐 slice 記於 migration ledger） |
-| OPS-001 | 無 backup/restore 或 re-index 演練；僅 flush/reload 有測試 |
 | FM-006 | 無 canonical schema 版本/migration（snapshot 只拒絕未知 format 號） |
-| FM-010 | 無 1M episode benchmark harness 與可重現報告 |
 | SR-004 | 無 RocksDB／SQL adapter（postgres/qdrant/neo4j/sqlite 宣告 unavailable），無法在第二個活後端跑同一契約 |
 
 ## 部分覆蓋（有測試，但有已知未覆蓋面）
@@ -34,6 +31,18 @@
 | FO-005 | 跨語 gate 有測試，但多語 fold 保留原文命題無專屬測試 |
 | ML-002 | analyzer id 有記錄、BM25 有測試，但無 ICU/CJK analyzer 可重現性測試（未引入 ICU） |
 | SR-001 | memory hold 阻止自身刪除有測試，但未證明 code/document 來源不受 memory TTL/RL 影響 |
+| FM-010 | `ukma-bench` 與兩份可重現報告已存在，但 1M episodes 未達標：詞彙檢索 O(n) 且受 `MAX_CANDIDATES=10_000` 限制（回 `RESOURCE_LIMIT`），需 ANN 索引或分區 |
+
+## 已由 P10 收尾的項目（ADR-056）
+
+| ID | 由 | 到 | 依據 |
+|---|---|---|---|
+| REP-003 | gap | **covered** | `LICENSE` ＋ `NOTICE` ＋ `contracts/testing/third-party-inventory.json` ＋ `release_evidence.rs`（6 tests） |
+| OPS-001 | gap | **covered** | `disaster_recovery.rs`（3 tests：backup / restore / re-index / rollback） |
+| FM-010 | gap | **partial** | `crates/ukma-bench` ＋ `docs/performance/baseline.json`、`scale-probe-20k.json` |
+| DB-002 | covered | covered（範圍擴大） | `port_parity.rs`：profile A 六個 port 跑同一份契約 |
+| DB-010 | covered | covered（範圍擴大） | `cutover_drill.rs`：九步 cutover ＋ fencing ＋ rollback |
+
 
 ## E2E-API-01..12（§38.1）
 

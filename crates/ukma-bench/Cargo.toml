@@ -1,0 +1,16 @@
+[package]
+name = "ukma-bench"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+description = "Reproducible workload harness: latency percentiles, throughput and index size (P10-WP3, FM-010)."
+
+[[bin]]
+name = "ukma-bench"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = "1"
+ukma-contracts = { path = "../ukma-contracts" }
+ukma-mcp = { path = "../ukma-mcp" }

@@ -7,6 +7,7 @@ publish = false
 description = "Routes workloads to compatible storage ports; fails closed on missing capability (§28.2, ADR-038)"
 
 [dependencies]
+serde_json = "1"
 storage-ports = { path = "../storage-ports" }
 ukma-contracts = { path = "../ukma-contracts" }
 graph-engine = { path = "../graph-engine" }

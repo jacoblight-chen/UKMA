@@ -7,6 +7,8 @@
 //!   minimum production profile, otherwise startup fails;
 //! - unavailable adapters are never silently substituted.
 
+pub mod cutover;
+
 use std::sync::Arc;
 
 use storage_ports::capabilities::{AdapterCapabilities, CapabilityProbe};

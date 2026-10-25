@@ -292,11 +292,11 @@ flowchart LR
 
 | WP | 目標 | 驗收 |
 |---|---|---|
-| **P10-WP1** | 三 profile Port parity（**ADR-048 O-03**） | embedded（FS+SQLite）、sql（PostgreSQL）、hybrid（PostgreSQL+Qdrant+Neo4j）皆通過同一組 Port Tests；DB-008 至少一 profile 完全不載入 RocksDB（三 profile 均不得載入） | R4、DB-002（三方等價）/DB-008 |
-| **P10-WP2** | Cutover 演練 | `PLANNED→SNAPSHOT→EXPORT→IMPORT→VERIFY→SHADOW_READ→CUTOVER→MONITOR→COMPLETE`；fencing token、rollback/replay（DB-010、E2E-API-11） |
-| **P10-WP3** | 效能基準 | 記錄 P50/P95/P99、RAM/VRAM、索引大小、吞吐、失敗率（指定資料規模/語言/backend/hardware/embedding version）；1M episode 基準（FM-010） |
-| **P10-WP4** | 災難復原 | OPS-001（backup/restore、re-index、rollback 演練） |
-| **P10-WP5** | 授權與 release evidence | REP-003 license audit 最終版；R8 CI 證據包 |
+| ~~**P10-WP1**~~ ✅ | 三 profile Port parity（**ADR-048 O-03**） | embedded（FS+SQLite）、sql（PostgreSQL）、hybrid（PostgreSQL+Qdrant+Neo4j）皆通過同一組 Port Tests；DB-008 至少一 profile 完全不載入 RocksDB（三 profile 均不得載入） | R4、DB-002（三方等價）/DB-008 | `contracts/testing/port-parity.json`＋`port_parity.rs` 3 tests：profile A 以**同一份契約**跑六個 port（CAS/outbox/full-text/vector/artifact/graph）並 reload；B/C 的 adapter 必須回報 unavailable＋原因（三方等價**不成立**，如實記錄）；`rocksdb_loaded=false` 由 inventory 與 `arc001` 雙重把關 |
+| ~~**P10-WP2**~~ ✅ | Cutover 演練 | `PLANNED→SNAPSHOT→EXPORT→IMPORT→VERIFY→SHADOW_READ→CUTOVER→MONITOR→COMPLETE`；fencing token、rollback/replay（DB-010、E2E-API-11） | `storage-router::cutover` 9 狀態機＋6 unit tests；`cutover_drill.rs` 3 tests 搬真實資料。**測試抓到的缺陷**：export 只搬 records 會丟 generation 與未投影 outbox → D-03 定為必須搬三種 canonical 資料 |
+| ~~**P10-WP3**~~ ✅ | 效能基準 | 記錄 P50/P95/P99、RAM/VRAM、索引大小、吞吐、失敗率（指定資料規模/語言/backend/hardware/embedding version）；1M episode 基準（FM-010） | `crates/ukma-bench`（3 unit tests）＋`docs/performance/baseline.json`（2k/500：store P50 0.011ms、search P50 18.7ms、失敗率 0）＋`scale-probe-20k.json`（search P50 98ms，逾 `MAX_CANDIDATES=10_000` 回 `RESOURCE_LIMIT`）。RSS/VRAM/on-disk 索引**未量測**（報告 `not_measured` 明列）；1M 未達標 → FM-010 partial |
+| ~~**P10-WP4**~~ ✅ | 災難復原 | OPS-001（backup/restore、re-index、rollback 演練） | `disaster_recovery.rs` 3 tests：真檔案 backup（store＋artifact bytes）→ 刪除/截斷 live → restore → 由 canonical＋outbox replay 重建 derived → retained generation rollback；corrupt snapshot 為 typed error 且可由備份還原 |
+| ~~**P10-WP5**~~ ✅ | 授權與 release evidence | REP-003 license audit 最終版；R8 CI 證據包 | 根目錄 `LICENSE`（Apache-2.0 全文）＋`NOTICE`（UKMA＋CodeGraph/Andrey Vasilevsky 歸屬＋pinned commit）；`contracts/testing/third-party-inventory.json`（296 external + 28 workspace，0 unlicensed，0 blocked）由 `cargo metadata --locked` 產生，`release_evidence.rs` 6 tests **重新推導**每個決定並要求與 `Cargo.lock` 完全對齊；evidence pack 逐項驗證存在且非空 |
 
 ---
 
@@ -325,18 +325,18 @@ flowchart LR
 |---|---|---|---|
 | G0 Specification | contracts、schema、ADR、fixtures 完備 | P0 | 🟢 **已達**（69×2 schemas、35 event payloads、414 fixtures、ADR-021…048、CI gate） |
 | G1 Upstream baseline | 可重現編譯、測試、source lock | S0（已達） | 🟢 |
-| G2 Core | Graph/Storage Ports + capability + 2 adapters contract | P1, P2 | 🟡 **部分達標**（六 port + 能力協商 + 兩個 adapter + fail-closed router；HNSW/embedding port 未完成） |
-| G3 Code | Symbol/CallGraph/Retrieval parity | P3 | 🟡 **部分達標**（13 ops + ingestion + impact/edit-context 已實作並測試；parity 僅 `rust` 1/38 語言，其餘 37 語言未移植） |
-| G4 Document | MD + PDF/DOCX 指定範圍 + evidence parity | P4 | 🔴 |
-| G5 Memory | WM/EM/SM/PM、Folding、Consolidation、ACL | P5, P6 | 🔴 |
-| G6 Integration | Traceability/MCP/DSH plugin-only/E2E | P7, P8, P9 | 🔴 |
-| G7 Production | Security、Perf、DR、license audit | P10 | 🔴 |
+| G2 Core | Graph/Storage Ports + capability + 2 adapters contract | P1, P2 | 🟡 **部分達標**（六 port + 能力協商 + 兩個 adapter + fail-closed router + HNSW/embedding port；profile B/C 未實作，ADR-056 缺口 1） |
+| G3 Code | Symbol/CallGraph/Retrieval parity | P3 | 🟡 **部分達標**（13 ops 全部實作並測試，CAPI-01..13 綠；語言 parity 依 S2 ledger 逐語言記錄，未移植語言以 typed error 回應，不謊報） |
+| G4 Document | MD + PDF/DOCX 指定範圍 + evidence parity | P4 | 🟢 **已達**（14 ops、DAPI-01..14 綠、無 OCR 時 explicit partial、source span/hash 可回溯） |
+| G5 Memory | WM/EM/SM/PM、Folding、Consolidation、ACL | P5, P6 | 🟢 **已達**（25 ops 全為真實行為、無 `CAPABILITY_UNAVAILABLE`、MAPI-01..25 綠） |
+| G6 Integration | Traceability/MCP/DSH plugin-only/E2E | P7, P8, P9 | 🟢 **已達**（13 trace ops、69 tools/REST/SDK/CLI/server、12 E2E + 10 property + 3 chaos；coverage matrix 69/69 已分類） |
+| G7 Production | Security、Perf、DR、license audit | P10 | 🟡 **部分達標**（授權審計＋LICENSE/NOTICE 完成、DR 演練與 cutover 狀態機可執行、效能基準可重現；profile B/C、1M episode、RSS/VRAM 未達標） |
 | DOC-01..04 | 65 ops 唯一、ErrorCode 封閉、單一 budget 演算法、狀態分離 | P0 | 🟢 **已達**（checker 實際執行驗證） |
 | SCHEMA-01/02 | 69×2 schemas + 事件 envelope/payload | P0 | 🟢 **已達**（138 + 35 payload schemas） |
-| TEST-01 | CAPI/DAPI/MAPI/TAPI/SYS 實際通過 | P3–P8 | 🔴 |
-| DB-01 | ≥2 production backend（禁只用 in-memory） | P10 | 🔴 |
+| TEST-01 | CAPI/DAPI/MAPI/TAPI/SYS 實際通過 | P3–P8 | 🟢 **已達**（`cargo test --workspace --all-targets` 實際執行；evidence 見 implementation-status.yaml） |
+| DB-01 | ≥2 production backend（禁只用 in-memory） | P10 | 🔴 **未達**（profile B/C adapter 宣告 unavailable；`contracts/testing/port-parity.json` 如實記錄） |
 | MIG-01 | 上游 SHA + golden fixtures + ledger | S0/S1 已達；S2..S7 缺 | 🟡 |
-| SECURITY-01 | ACL/Deletion/Isolation/Folding/injection 負向 | P9 | 🔴 |
+| SECURITY-01 | ACL/Deletion/Isolation/Folding/injection 負向 | P9 | 🟢 **已達**（SEC-001 covered：存在性不洩漏、跨租戶 traversal、injection 只升訊號、deletion/hold） |
 
 ### 7.2 每個 WP 必跑的驗收指令
 

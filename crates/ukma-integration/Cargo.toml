@@ -17,5 +17,10 @@ traceability-engine = { path = "../traceability-engine" }
 graph-engine = { path = "../graph-engine" }
 indexing-engine = { path = "../indexing-engine" }
 storage-ports = { path = "../storage-ports" }
+storage-router = { path = "../storage-router" }
 ukma-adapter-embedded = { path = "../adapters/embedded" }
 ukma-adapter-filesystem = { path = "../adapters/filesystem" }
+ukma-adapter-postgres = { path = "../adapters/postgres" }
+ukma-adapter-qdrant = { path = "../adapters/qdrant" }
+ukma-adapter-neo4j = { path = "../adapters/neo4j" }
+ukma-adapter-sqlite = { path = "../adapters/sqlite" }

@@ -1,0 +1,55 @@
+{
+  "audit": "P10-WP3 reproducible workload baseline (FM-010)",
+  "command": "cargo run --release -p ukma-bench -- --episodes 20000 --queries 100",
+  "hardware": {
+    "arch": "x86_64",
+    "cpu_count": 20,
+    "note": "single process, single thread workload; RAM/VRAM are not measured by this harness",
+    "os": "windows"
+  },
+  "index": {
+    "bytes": null,
+    "note": "the in-memory profile does not expose an on-disk index size",
+    "records": 20000
+  },
+  "not_measured": [
+    "process RSS / VRAM",
+    "a second backend (profiles B and C are declared unavailable)",
+    "1M episode scale (this harness is parameterised, see docs/performance/baseline.md)"
+  ],
+  "profile": "release",
+  "results": {
+    "canonical_records": 20000,
+    "failure_codes": {
+      "RESOURCE_LIMIT": 100
+    },
+    "failure_rate": 0.004975124378109453,
+    "search": {
+      "count": 100,
+      "max_ms": 110.4356,
+      "mean_ms": 98.57254999999999,
+      "p50_ms": 98.4463,
+      "p95_ms": 103.47409999999999,
+      "p99_ms": 108.0105
+    },
+    "search_throughput_ops_per_sec": 10.144185908031695,
+    "store": {
+      "count": 20000,
+      "max_ms": 0.23399999999999999,
+      "mean_ms": 0.012175295000000521,
+      "p50_ms": 0.0108,
+      "p95_ms": 0.0156,
+      "p99_ms": 0.0457
+    },
+    "store_throughput_ops_per_sec": 71514.05626654433
+  },
+  "spec_version": "1.2.3",
+  "workload": {
+    "analyzer": "none (BM25 lexical search)",
+    "backend": "embedded profile A (in memory), no embedding model",
+    "embedding_version": null,
+    "episodes": 20000,
+    "language": "en",
+    "queries": 100
+  }
+}

@@ -1888,6 +1888,7 @@ name = "storage-router"
 version = "0.1.0"
 dependencies = [
  "graph-engine",
+ "serde_json",
  "storage-ports",
  "ukma-contracts",
 ]
@@ -2557,6 +2558,15 @@ name = "ukma-adapter-sqlite"
 version = "0.1.0"
 
 [[package]]
+name = "ukma-bench"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "ukma-contracts",
+ "ukma-mcp",
+]
+
+[[package]]
 name = "ukma-cli"
 version = "0.1.0"
 dependencies = [
@@ -2604,9 +2614,14 @@ dependencies = [
  "memory-domain",
  "serde_json",
  "storage-ports",
+ "storage-router",
  "traceability-engine",
  "ukma-adapter-embedded",
  "ukma-adapter-filesystem",
+ "ukma-adapter-neo4j",
+ "ukma-adapter-postgres",
+ "ukma-adapter-qdrant",
+ "ukma-adapter-sqlite",
  "ukma-contracts",
  "ukma-mcp",
 ]

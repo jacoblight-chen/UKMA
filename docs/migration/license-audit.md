@@ -56,3 +56,72 @@ and the UKMA NOTICE/README. The upstream `NOTICE` text is recorded verbatim in
   copyleft-via-linking risk** (the one MPL-2.0 package is file-level).
 - No license blockers for S1. S1+ PRs are checked by `.github/pull_request_template.md`
   (license section) + reviewer (CODEOWNERS).
+
+---
+
+## 4. P10 final audit (UKMA workspace, executed 2026-10-25)
+
+This section closes REP-003. It audits **the UKMA workspace itself** (the section
+above audits the upstream reference project), and it is enforced by a test rather
+than by this prose.
+
+### 4.1 Artefacts
+
+| Artefact | Purpose |
+|---|---|
+| `LICENSE` | Apache License 2.0, full canonical text (root) |
+| `NOTICE` | UKMA copyright + CodeGraph/Andrey Vasilevsky attribution + pinned commit + pointer to the inventory |
+| `contracts/testing/third-party-inventory.json` | machine-readable inventory of every package |
+| `crates/ukma-integration/tests/release_evidence.rs` | the gate (6 tests) |
+
+### 4.2 Method
+
+```
+cargo metadata --locked --format-version 1     # exit 0
+```
+
+All workspace members and every external/transitive package are recorded with the
+declared licence string. The **decision is re-derived by the gate**, not trusted
+from the file: a licence string is parsed as a disjunction (`OR`, `AND`, and the
+legacy `MIT/Apache-2.0` slash form) and allowed when at least one option is in the
+allowed list:
+
+`MIT`, `Apache-2.0`, `Apache-2.0 WITH LLVM-exception`, `BSD-2-Clause`,
+`BSD-3-Clause`, `ISC`, `0BSD`, `Zlib`, `Unicode-3.0`, `CC0-1.0`, `MIT-0`,
+`BSL-1.0`, `CDLA-Permissive-2.0`, `Unlicense`, `MPL-2.0` (file-level copyleft,
+dependency use only).
+
+Blocked families: `GPL-2.0`, `GPL-3.0`, `AGPL`, `SSPL`, `BUSL`, `Elastic-2.0`,
+`Commons-Clause` — allowed **only** when a permissive alternative is elected, and
+the elected option is recorded in the entry's `reason`.
+
+### 4.3 Result
+
+| Measurement | Value |
+|---|---|
+| External / transitive packages | **296** |
+| Workspace packages | **28** |
+| Packages without a declared licence | **0** |
+| Blocked licences | **0** |
+| Backend SDK packages (rocksdb, sqlx, qdrant-client, neo4j, …) | **0** |
+
+Two packages offer `MIT OR Apache-2.0 OR LGPL-2.1-or-later`; the permissive option
+is elected, so the LGPL option is never taken. No package is copyleft-only.
+
+### 4.4 Gate behaviour
+
+- Adding a dependency without refreshing the inventory fails
+  `the_inventory_covers_the_whole_dependency_tree` (it compares against `Cargo.lock`
+  in both directions: missing **and** stale entries).
+- Adding a copyleft-only dependency fails `every_recorded_decision_follows_the_policy`
+  and `no_copyleft_or_backend_sdk_reaches_the_build` permanently.
+- `NOTICE` is checked against `docs/migration/upstream-lock.yaml`, so the upstream
+  attribution cannot drift from the pinned commit.
+
+### 4.5 Remaining limitation
+
+The inventory records **declared** licence metadata from the resolved crates; it does
+not read each package's `LICENSE` files. A package that declares a licence but ships
+different terms would not be caught here. This is recorded as a limitation, not a
+pass.
+

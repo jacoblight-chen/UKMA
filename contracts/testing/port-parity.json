@@ -1,0 +1,49 @@
+{
+  "spec_version": "1.2.3",
+  "audit": "P10-WP1 three-profile port parity (ADR-048 O-03, DB-002, DB-008)",
+  "command": "cargo test -p ukma-integration --test port_parity",
+  "rocksdb_loaded": false,
+  "profiles": [
+    {
+      "id": "A",
+      "name": "embedded",
+      "status": "available",
+      "adapters": {
+        "MetadataPort": "ukma-adapter-embedded",
+        "OutboxPort": "ukma-adapter-embedded",
+        "FullTextPort": "ukma-adapter-embedded (derived, in memory)",
+        "VectorPort": "ukma-adapter-embedded (derived, in memory)",
+        "ArtifactPort": "ukma-adapter-filesystem",
+        "GraphPort": "graph-engine FileGraphStore"
+      },
+      "ports": {
+        "MetadataPort": "available",
+        "OutboxPort": "available",
+        "FullTextPort": "available",
+        "VectorPort": "available",
+        "ArtifactPort": "available",
+        "GraphPort": "available"
+      },
+      "evidence": "profile_a_serves_every_port_it_declares runs one shared contract over metadata CAS + revisioned read + typed key equality, the durable outbox, full text, vector profile isolation and immutable artifacts, and reloads the store to prove durability at flush",
+      "limits": [
+        "single process, single writer; no cross-process locking",
+        "full text and vector are derived projections: they are rebuilt from canonical data plus outbox replay",
+        "durability is obtained at flush(), not per mutation"
+      ]
+    },
+    {
+      "id": "B",
+      "name": "sql",
+      "status": "unavailable",
+      "reason": "ukma-adapter-postgres declares itself unavailable: no client dependency, no DDL, no connection handling. Profile B cannot be exercised until a PostgreSQL server exists and the adapter passes the same port contract",
+      "servers_required": ["PostgreSQL"]
+    },
+    {
+      "id": "C",
+      "name": "hybrid",
+      "status": "unavailable",
+      "reason": "ukma-adapter-qdrant and ukma-adapter-neo4j declare themselves unavailable: no client dependency and no vector or graph port contract tests yet. Profile C cannot be exercised until both servers exist",
+      "servers_required": ["PostgreSQL", "Qdrant", "Neo4j"]
+    }
+  ]
+}

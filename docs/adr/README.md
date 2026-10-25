@@ -43,6 +43,7 @@
 | [ADR-053](./ADR-053.md) | Traceability 實作決策（P7）：TraceState 僅流程狀態＋三維有效性、11 條狀態轉移與終態、accepted 後 evidence immutable、coverage 的 unknown/denominator=0 語意、有界 impact、revalidation 永不自動 accept | ACCEPTED | §35.1 / §35.2 / §40.3 / §29.4 |
 | [ADR-054](./ADR-054.md) | Gateway 實作決策（P8）：registry-driven manifest/dispatch/rest、ScopeResolver 注入、前置條件不正規化、未宣告碼降級、§40.7 NOT_FOUND 落地、JobIndex 租戶隔離、SDK generic typed、alias inert | ACCEPTED | §31.2 / §31.4 / §31.5 / §36.4 / §40.7 |
 | [ADR-055](./ADR-055.md) | 跨域整合、安全與 Chaos（P9）：public-API E2E、PROP matrix、機器可讀覆蓋矩陣（69 項全分類）、依賴圖與兩個 graph store 同一契約、崩潰重播單一 READY generation | ACCEPTED | §17.1 / §29.4 / §38.1 / §38.2 / §40.7 |
+| [ADR-056](./ADR-056.md) | Production readiness 實作決策（P10）：three-profile parity report（僅 A 可用）、nine-state cutover 狀態機＋fencing/rollback、可重現效能基準（RSS/VRAM 未量測）、DR 演練、LICENSE/NOTICE 與 Cargo.lock 對齊的授權清單 | ACCEPTED | §17.1 / §28.2 / §28.3 / §29.4 / §38.3 |
 
 ## 編號衝突與對照（摘要）
 
