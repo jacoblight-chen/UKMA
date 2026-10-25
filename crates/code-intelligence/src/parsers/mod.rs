@@ -6,6 +6,7 @@
 //! the baseline version.
 
 pub mod engine;
+pub mod grammars;
 pub mod spec;
 
 #[cfg(feature = "parser-rust")]
