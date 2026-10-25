@@ -1,9 +1,14 @@
-[package]
+﻿[package]
 name = "storage-ports"
 version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 publish = false
-description = "Six storage ports (Graph/Vector/FullText/Metadata/Artifact/Outbox) + capability negotiation."
+description = "Six storage ports + capability negotiation (禮6.2/禮6.3, ADR-021/022/038)"
 
 [dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+ukma-contracts = { path = "../ukma-contracts" }
+graph-engine = { path = "../graph-engine" }

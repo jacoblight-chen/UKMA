@@ -1,9 +1,10 @@
-[package]
+﻿[package]
 name = "ukma-adapter-postgres"
 version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 publish = false
-description = "PostgreSQL metadata/graph/fulltext/outbox adapter (production candidate)."
+description = "PostgreSQL adapter placeholder: declares itself unavailable until a real backend is wired (ADR-038)"
 
 [dependencies]
+storage-ports = { path = "../../storage-ports" }

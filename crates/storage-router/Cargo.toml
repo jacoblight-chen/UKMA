@@ -1,9 +1,12 @@
-[package]
+﻿[package]
 name = "storage-router"
 version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 publish = false
-description = "Routes workloads to compatible ports; fails fast on missing required capability."
+description = "Routes workloads to compatible storage ports; fails closed on missing capability (§28.2, ADR-038)"
 
 [dependencies]
+storage-ports = { path = "../storage-ports" }
+ukma-contracts = { path = "../ukma-contracts" }
+graph-engine = { path = "../graph-engine" }

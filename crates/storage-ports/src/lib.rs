@@ -1,12 +1,31 @@
-//! storage-ports — Six storage ports (Graph/Vector/FullText/Metadata/Artifact/Outbox) + capability negotiation.
+//! UKMA storage ports (§6.2) and adapter capability negotiation (§6.3).
 //!
-//! **STATUS: skeleton only.** No behaviour is implemented yet. Progress and
-//! evidence are tracked in `docs/implementation-status.yaml`; the plan is
-//! `docs/UKMA_v1.2.3_IMPLEMENTATION_PLAN.md`.
+//! **Scope of this crate:** contracts only — no database dependency, no vendor
+//! SDK (ADR-021). Adapters live in `crates/adapters/*`.
 //!
-//! Normative source: `docs/UKMA_v1.2.3_Full_Spec.md` §6.2, §6.3.
+//! Six ports, one contract each:
+//! - [`GraphPort`] — re-exported from `graph_engine::GraphStore` so there is
+//!   exactly one graph contract in the workspace (ADR-022).
+//! - [`ArtifactPort`] — immutable, content-addressed (`sha256:<hex>`).
+//! - [`MetadataPort`] — CAS, manifests (atomic generation pointer) and
+//!   single-writer fencing.
+//! - [`FullTextPort`] — fielded BM25 search, analyzer-versioned.
+//! - [`OutboxPort`] — durable at-least-once with `(event_id, consumer)` dedup.
+//! - [`VectorPort`] — profile-isolated k-NN; dimension/metric mismatches are
+//!   rejected with `MODEL_PROFILE_MISMATCH` (DB-004, PROP-07).
 //!
-//! Constraints that apply to this crate from day one:
-//! - MUST NOT depend on any database SDK or vendor backend crate (ADR-021).
-//! - MUST NOT define a second public API registry or error enum (ADR-034, ADR-035).
-//! - Capability gaps MUST be reported, never silently degraded (ADR-022, ADR-038).
+//! Capability negotiation is fail-closed: an adapter lacking a capability the
+//! minimum profile requires must refuse to start (§6.3, §40.5, ADR-038).
+
+pub mod capabilities;
+pub mod error;
+pub mod ports;
+pub mod testing;
+
+pub use capabilities::{AdapterCapabilities, BackendKind, CapabilityProbe, TransactionScope};
+pub use error::{io_error, PortResult, StorageError};
+pub use ports::{
+    validate_scope, ArtifactPort, ArtifactRecord, EmbeddingProfile, FullTextDoc, FullTextHit,
+    FullTextPort, GraphPort, MetadataEntry, MetadataPort, Metric, OutboxEvent, OutboxPort,
+    Retention, VectorHit, VectorItem, VectorPort,
+};
