@@ -61,6 +61,22 @@ resolutions. Cross-file name resolution, macro expansion and type/lifetime infer
 are **not** covered, so call edges stay `static_possible` or `unresolved` and are
 never `static_exact`.
 
+## Remaining languages (23)
+
+**16 with a baseline grammar, not ported yet.** These need per-grammar work: several
+of them expose no `name` field (the name is a plain child, or nested under a
+`sig`/`statement` node), and S-expression/macro languages (clojure, elixir,
+haskell) have no declaration node kinds at all — their forms are `list_lit`/`call`
+nodes whose head symbol decides the meaning. A kind-map spec would extract almost
+nothing for them, so they must not be flipped to `Ported` until a form/head
+mechanism exists:
+
+`clojure, css, elixir, elm, erlang, fortran, groovy, haskell, hcl, julia, lua, objc, ocaml, toml, verilog, yaml`
+
+**7 without any grammar in the locked baseline** (`cobol, dart, dockerfile, perl,
+r, tcl, zig`): ADR-049 O-08 allows a pinned, non-baseline grammar crate with the
+deviation recorded in that language's ledger slice. None has been added yet.
+
 ## What must happen before a row flips to `ported`
 
 1. Add the grammar dependency (or a native extractor) and record the decision in the
