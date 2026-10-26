@@ -20,6 +20,45 @@
       },
       "args": [],
       "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug ukma-server",
+      "cargo": {
+        "args": [
+          "build",
+          "-p",
+          "ukma-server"
+        ],
+        "filter": {
+          "name": "ukma-server",
+          "kind": "binary"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      // 调试 ukma-code-runtime 的测试：构建所有测试二进制后启动 lib 测试。
+      // 只跑单个测试时，把 args 改为 ["测试名", "--exact"]
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug ukma-code-runtime tests",
+      "cargo": {
+        "args": [
+          "test",
+          "-p",
+          "ukma-code-runtime",
+          "--no-run"
+        ]
+      },
+      "filter": {
+        "name": "ukma_code_runtime*",
+        "kind": "binary"
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
     }
   ]
 }
