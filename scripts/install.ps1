@@ -204,12 +204,21 @@ else {
         $expected = ''
         try {
             $sha = Invoke-WebRequest -UseBasicParsing -Uri "$url.sha256"
-            $expected = ($sha.Content -split '\s+')[0].Trim().ToLowerInvariant()
+            # `Content` arrives as a byte array when the server sends no charset,
+            # and `-split` on bytes yields byte values ("49"), not the digest.
+            $raw = $sha.Content
+            if ($raw -is [byte[]]) {
+                $raw = [System.Text.Encoding]::UTF8.GetString($raw)
+            }
+            $expected = ([string]$raw -split '\s+')[0].Trim().ToLowerInvariant()
         }
         catch {
             Write-Host '  (no SHA-256 published for this release; skipping verification)'
         }
         if ($expected -ne '') {
+            if ($expected -notmatch '^[0-9a-f]{64}$') {
+                throw "the published SHA-256 for $asset is not a 64-character digest: $expected"
+            }
             $actual = (Get-FileHash -Path $zip -Algorithm SHA256).Hash.ToLowerInvariant()
             if ($expected -ne $actual) {
                 throw "SHA-256 mismatch: expected $expected, got $actual"
