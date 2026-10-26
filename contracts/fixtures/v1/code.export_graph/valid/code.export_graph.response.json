@@ -1,0 +1,16 @@
+{
+  "api_version": "1",
+  "request_id": "x",
+  "trace_id": "x",
+  "status": "ok",
+  "data": {
+    "content": "x",
+    "edge_count": 0,
+    "format": "x",
+    "node_count": 0,
+    "truncated": true
+  },
+  "warnings": [],
+  "partial_reasons": [],
+  "freshness": "current"
+}

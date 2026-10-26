@@ -1,0 +1,23 @@
+{
+  "api_version": "1",
+  "operation": "ukma.code.find_importers.v1",
+  "context": {
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "repository_id": "x",
+    "revision": "x",
+    "module_name": "collections",
+    "match_mode": "contains",
+    "page": {
+      "limit": 50
+    }
+  }
+}

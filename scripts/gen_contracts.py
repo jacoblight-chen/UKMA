@@ -289,7 +289,7 @@ def generate_rust(ops):
 
 def main() -> None:
     ops = REG["operations"]
-    assert len(ops) == 112, len(ops)
+    assert len(ops) == 125, len(ops)
 
     GEN_DIR.mkdir(parents=True, exist_ok=True)
     (GEN_DIR / "operations.rs").write_text(generate_rust(ops), encoding="utf-8")

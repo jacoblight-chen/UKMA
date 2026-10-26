@@ -622,3 +622,177 @@ fn richer_heuristics_failure_unknown_revision() {
         .expect_err("an unknown revision must be rejected");
     assert_eq!(missing.code(), "NOT_FOUND");
 }
+
+// -- security_orchestrated_scan + security_codeql_warmup (5-path) ---------
+
+/// Positive: `security_orchestrated_scan` rolls up the detector suite.
+#[test]
+fn orchestrated_scan_rolls_up_the_detector_suite() {
+    let svc = ProService::new();
+    index_rich(&svc);
+    let report = svc
+        .security_orchestrated_scan(&read_ctx(), REV_A, &["native".to_string()], None, None)
+        .expect("orchestrated scan must succeed");
+    assert_eq!(report["analyzer"], "orchestrated");
+    assert_eq!(report["engines"][0]["name"], "codegraph");
+    assert!(
+        report["engines"][0]["findings_pre_merge"].as_u64().unwrap() > 0,
+        "raw detector output is non-empty"
+    );
+    assert!(report["total"].as_u64().unwrap() > 0, "findings rolled up");
+    assert!(
+        !report["agreement_distribution"]
+            .as_object()
+            .unwrap()
+            .is_empty(),
+        "agreement distribution is populated"
+    );
+    // The `codegraph` engine alias is accepted and produces the same rollup.
+    let alias = svc
+        .security_orchestrated_scan(&read_ctx(), REV_A, &["codegraph".to_string()], None, None)
+        .expect("alias engine must succeed");
+    assert_eq!(alias["total"], report["total"], "alias == native");
+}
+
+/// Positive: the severity gate and path filter narrow the rollup.
+#[test]
+fn orchestrated_scan_applies_severity_and_path_filters() {
+    let svc = ProService::new();
+    index_rich(&svc);
+    let all = svc
+        .security_orchestrated_scan(&read_ctx(), REV_A, &["native".to_string()], None, None)
+        .expect("scan must succeed");
+    let all_total = all["total"].as_u64().unwrap();
+    let critical = svc
+        .security_orchestrated_scan(
+            &read_ctx(),
+            REV_A,
+            &["native".to_string()],
+            Some("critical"),
+            None,
+        )
+        .expect("scan must succeed");
+    assert!(
+        critical["total"].as_u64().unwrap() <= all_total,
+        "the severity gate can only narrow"
+    );
+    let no_match = svc
+        .security_orchestrated_scan(
+            &read_ctx(),
+            REV_A,
+            &["native".to_string()],
+            None,
+            Some("does_not_exist"),
+        )
+        .expect("scan must succeed");
+    assert_eq!(
+        no_match["total"].as_u64().unwrap(),
+        0,
+        "a non-matching path filter yields zero"
+    );
+}
+
+/// Negative (control): a clean corpus produces no rollup findings.
+#[test]
+fn orchestrated_scan_is_silent_on_clean() {
+    let svc = ProService::new();
+    index_clean(&svc);
+    let report = svc
+        .security_orchestrated_scan(&read_ctx(), REV_A, &["native".to_string()], None, None)
+        .expect("scan must succeed");
+    assert_eq!(
+        report["total"].as_u64().unwrap(),
+        0,
+        "clean corpus is clean"
+    );
+}
+
+/// Authorization: both operations require `code:read`.
+#[test]
+fn orchestrated_and_warmup_require_the_read_scope() {
+    let svc = ProService::new();
+    index_rich(&svc);
+    let e1 = svc
+        .security_orchestrated_scan(&no_scope_ctx(), REV_A, &["native".to_string()], None, None)
+        .expect_err("a read-less caller must be rejected");
+    assert_eq!(e1.code(), "FORBIDDEN");
+    let e2 = svc
+        .security_codeql_warmup(&no_scope_ctx(), REV_A)
+        .expect_err("a read-less caller must be rejected");
+    assert_eq!(e2.code(), "FORBIDDEN");
+}
+
+/// Version: the reports are bound to the requested revision; the warmup
+/// shape reflects only the indexed corpus.
+#[test]
+fn orchestrated_and_warmup_are_bound_to_the_revision() {
+    let svc = ProService::new();
+    index_rich(&svc);
+    let report = svc
+        .security_orchestrated_scan(&read_ctx(), REV_A, &["native".to_string()], None, None)
+        .expect("scan must succeed");
+    assert_eq!(report["revision"], REV_A);
+    let warm = svc
+        .security_codeql_warmup(&read_ctx(), REV_A)
+        .expect("warmup must succeed");
+    assert_eq!(warm["revision"], REV_A);
+    assert_eq!(warm["ready"], true);
+    assert_eq!(warm["file_count"], 1);
+    assert!(warm["line_count"].as_u64().unwrap() > 0);
+}
+
+/// Failure: unknown revision -> not-found; unknown engine / severity ->
+/// invalid-argument.
+#[test]
+fn orchestrated_and_warmup_failure_paths() {
+    let svc = ProService::new();
+    index_rich(&svc);
+    let missing = svc
+        .security_orchestrated_scan(
+            &read_ctx(),
+            "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+            &["native".to_string()],
+            None,
+            None,
+        )
+        .expect_err("an unknown revision must be rejected");
+    assert_eq!(missing.code(), "NOT_FOUND");
+    let bad_engine = svc
+        .security_orchestrated_scan(&read_ctx(), REV_A, &["garbage".to_string()], None, None)
+        .expect_err("an unknown engine must be rejected");
+    assert_eq!(bad_engine.code(), "INVALID_ARGUMENT");
+    let bad_severity = svc
+        .security_orchestrated_scan(
+            &read_ctx(),
+            REV_A,
+            &["native".to_string()],
+            Some("bogus"),
+            None,
+        )
+        .expect_err("an unknown severity must be rejected");
+    assert_eq!(bad_severity.code(), "INVALID_ARGUMENT");
+    let warm_missing = svc
+        .security_codeql_warmup(&read_ctx(), "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef")
+        .expect_err("an unknown revision must be rejected");
+    assert_eq!(warm_missing.code(), "NOT_FOUND");
+}
+
+/// Positive: `security_codeql_warmup` reports the corpus shape.
+#[test]
+fn codeql_warmup_reports_the_corpus_shape() {
+    let svc = ProService::new();
+    index_rich(&svc);
+    let warm = svc
+        .security_codeql_warmup(&read_ctx(), REV_A)
+        .expect("warmup must succeed");
+    assert_eq!(warm["analyzer"], "codeql");
+    assert_eq!(warm["engine"], "native");
+    assert!(
+        warm["languages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|l| l == "rs"),
+        "the `rs` extension is reported"
+    );
+}

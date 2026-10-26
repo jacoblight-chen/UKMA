@@ -700,6 +700,143 @@ impl ProService {
         }))
     }
 
+    /// `security_orchestrated_scan`: run the detector suite across the
+    /// requested engines and roll up the findings (CodeGraph
+    /// `security_orchestrated_scan` parity). UKMA has one built-in engine,
+    /// `native` (the heuristic detector suite, reported as analyzer
+    /// `codegraph`); `codegraph` is accepted as an alias for it.
+    pub fn security_orchestrated_scan(
+        &self,
+        ctx: &RequestContext,
+        revision: &str,
+        engines: &[String],
+        severity: Option<&str>,
+        path_filter: Option<&str>,
+    ) -> CodeResult<serde_json::Value> {
+        let corpus = self.corpus(ctx, revision)?;
+        let scanner = self.scanner(&corpus, self.config(ctx));
+        let allowed = ["native", "codegraph"];
+        for engine in engines {
+            if !allowed.contains(&engine.as_str()) {
+                return Err(CodeError::InvalidArgument {
+                    field: "engines",
+                    reason: format!("unknown engine `{engine}` (expected `native` or `codegraph`)"),
+                });
+            }
+        }
+        let min_severity = match severity {
+            Some(raw) => Some(match raw {
+                "info" => Severity::Info,
+                "warning" => Severity::Warning,
+                "error" => Severity::Error,
+                "critical" => Severity::Critical,
+                other => {
+                    return Err(CodeError::InvalidArgument {
+                        field: "severity",
+                        reason: format!("unknown severity `{other}`"),
+                    })
+                }
+            }),
+            None => None,
+        };
+        // The raw detector output (pre-merge, pre-suppression).
+        let mut raw = Vec::new();
+        raw.extend(Self::detect_control_flow(&scanner));
+        raw.extend(Self::detect_data_flow(&scanner));
+        raw.extend(Self::detect_injection(&scanner));
+        raw.extend(Self::detect_crypto(&scanner));
+        raw.extend(Self::detect_misconfig(&scanner));
+        raw.extend(Self::detect_secrets_entropy(&scanner));
+        raw.extend(Self::detect_unchecked_returns(&scanner));
+        raw.extend(Self::detect_resource_leaks(&corpus));
+        raw.extend(Self::detect_input_validation(&scanner));
+        raw.extend(Self::detect_error_exposure(&scanner));
+        raw.extend(Self::detect_search_path(&scanner));
+        raw.extend(Self::detect_iac(&corpus));
+        raw.extend(Self::detect_licenses(&corpus));
+        let findings_pre_merge = raw.len();
+        let merged = filter_suppressed(raw, &corpus.files);
+        let findings: Vec<Finding> = merged
+            .into_iter()
+            .filter(|f| {
+                if let Some(min) = &min_severity {
+                    f.severity >= *min
+                } else {
+                    true
+                }
+            })
+            .filter(|f| match path_filter {
+                Some(needle) if !needle.is_empty() => f.file.contains(needle),
+                _ => true,
+            })
+            .collect();
+        let actionable = findings
+            .iter()
+            .filter(|f| {
+                matches!(
+                    f.severity,
+                    Severity::Warning | Severity::Error | Severity::Critical
+                )
+            })
+            .count();
+        let mut agreement: BTreeMap<String, u64> = BTreeMap::new();
+        for finding in &findings {
+            *agreement.entry(finding.rule.clone()).or_insert(0) += 1;
+        }
+        let reachability = findings
+            .iter()
+            .map(|f| f.file.as_str())
+            .collect::<std::collections::BTreeSet<_>>()
+            .len();
+        Ok(serde_json::json!({
+            "operation": "security_orchestrated_scan",
+            "revision": revision,
+            "analyzer": "orchestrated",
+            "engines": [{ "name": "codegraph", "findings_pre_merge": findings_pre_merge }],
+            "total": findings.len(),
+            "actionable": actionable,
+            "findings": findings,
+            "agreement_distribution": agreement,
+            "reachability": reachability,
+            "path_filter": path_filter,
+            "severity": severity,
+        }))
+    }
+
+    /// `security_codeql_warmup`: pre-build the analysis corpus for a revision
+    /// (the UKMA-native equivalent of warming a CodeQL database) and report
+    /// its shape and readiness.
+    pub fn security_codeql_warmup(
+        &self,
+        ctx: &RequestContext,
+        revision: &str,
+    ) -> CodeResult<serde_json::Value> {
+        let corpus = self.corpus(ctx, revision)?;
+        let line_count: u64 = corpus
+            .files
+            .values()
+            .map(|content| content.lines().count() as u64)
+            .sum();
+        let languages: Vec<String> = corpus
+            .files
+            .keys()
+            .filter_map(|path| path.rsplit_once('.').map(|(_, ext)| ext.to_string()))
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        Ok(serde_json::json!({
+            "operation": "security_codeql_warmup",
+            "revision": revision,
+            "ready": true,
+            "analyzer": "codeql",
+            "engine": "native",
+            "file_count": corpus.files.len(),
+            "symbol_count": corpus.symbols.len(),
+            "line_count": line_count,
+            "languages": languages,
+        }))
+    }
+
     // -- detectors ---------------------------------------------------------
 
     fn detect_control_flow(scanner: &ProScanner) -> Vec<Finding> {

@@ -1,4 +1,4 @@
-//! Handlers for the 108 domain operations and the 4 system operations.
+//! Handlers for the 120 domain operations and the 5 system operations.
 //!
 //! Each handler is a thin adapter: decode the input into the canonical request
 //! type, call the domain service with the trusted context, encode the response.
@@ -618,9 +618,11 @@ fn register_code(
     use code_intelligence::domain::{
         AiContextQuery, AnalyzeRepository, CancelJob, CircularDepsQuery, CodeRevisionDiff,
         ComplexityQuery, CuratedContextQuery, DeadImportsQuery, EditContextQuery, EntryPointsQuery,
-        ErrorSearchQuery, GetJob, GetSymbol, HotPathsQuery, ImpactQuery, IndexFiles,
-        InvalidateCodeRevision, ModuleSummaryQuery, PatternSearchQuery, PrContextQuery,
+        ErrorSearchQuery, ExportGraphQuery, FindImplementorsQuery, FindImportersQuery,
+        GetDetailedSymbolQuery, GetJob, GetSymbol, HotPathsQuery, ImpactQuery, IndexDirectory,
+        IndexFiles, InvalidateCodeRevision, ModuleSummaryQuery, PatternSearchQuery, PrContextQuery,
         ReferenceQuery, RelatedTestsQuery, SignatureQuery, SymbolQuery, TraversalQuery,
+        TraverseQuery,
     };
 
     {
@@ -817,6 +819,48 @@ fn register_code(
         pr_context,
         PrContextQuery
     );
+    bind!(
+        gateway,
+        "code.find_implementors",
+        service,
+        find_implementors,
+        FindImplementorsQuery
+    );
+    bind!(
+        gateway,
+        "code.traverse",
+        service,
+        traverse_graph,
+        TraverseQuery
+    );
+    bind!(
+        gateway,
+        "code.get_detailed_symbol",
+        service,
+        get_detailed_symbol,
+        GetDetailedSymbolQuery
+    );
+    bind!(
+        gateway,
+        "code.index_directory",
+        service,
+        index_directory,
+        IndexDirectory
+    );
+    bind!(
+        gateway,
+        "code.export_graph",
+        service,
+        export_graph,
+        ExportGraphQuery
+    );
+    bind!(
+        gateway,
+        "code.find_importers",
+        service,
+        find_importers,
+        FindImportersQuery
+    );
     Ok(())
 }
 
@@ -830,8 +874,8 @@ fn register_document(
     use document_intelligence::domain::{
         CancelJob, DocumentIngest, DocumentRevisionDiff, ExtractRelations, ExtractRequirements,
         GenerateArchitectureDoc, GetDocument, GetJob, GetSourceSpan, InvalidateDocumentRevision,
-        ListDocSources, ListRequirements, ParsePreview, ReviewRequirement, SearchDocument,
-        VerifyConsistency,
+        ListDocSources, ListRequirements, ParsePreview, RemoveDocSource, ReviewRequirement,
+        SearchDocument, VerifyConsistency,
     };
 
     {
@@ -951,6 +995,13 @@ fn register_document(
         generate_architecture_doc,
         GenerateArchitectureDoc
     );
+    bind!(
+        gateway,
+        "document.remove_source",
+        service,
+        remove_source,
+        RemoveDocSource
+    );
     Ok(())
 }
 
@@ -964,9 +1015,10 @@ fn register_memory(
     use memory_domain::domain::{
         BeginReconsolidation, CloseAgentScope, CommitReconsolidation, Consolidate,
         EvaluateEviction, FindConflicts, FoldMemory, ForgetMemory, GetMemoryBudget, GetMemoryJob,
-        ListWorkingBlocks, OpenAgentScope, PageIn, PageOut, ProposeFact, PutWorkingBlock,
-        RecordProcedureOutcome, RegisterProcedure, RemoveWorkingBlock, RetrieveMemory,
-        ReviewProcedure, SearchMemory, StoreEpisode, UpdateMemory, VerifyFact,
+        GetMemoryStats, ListMemoryQuery, ListWorkingBlocks, MemoryContextQuery, OpenAgentScope,
+        PageIn, PageOut, ProposeFact, PutWorkingBlock, RecordProcedureOutcome, RegisterProcedure,
+        RemoveWorkingBlock, RetrieveMemory, ReviewProcedure, SearchMemory, StoreEpisode,
+        UpdateMemory, VerifyFact,
     };
 
     bind!(
@@ -1129,6 +1181,28 @@ fn register_memory(
         get_budget,
         GetMemoryBudget
     );
+    // Parity operations (CodeGraph gap closure).
+    bind!(
+        gateway,
+        "memory.context",
+        service,
+        memory_context,
+        MemoryContextQuery
+    );
+    bind!(
+        gateway,
+        "memory.list",
+        service,
+        list_memory,
+        ListMemoryQuery
+    );
+    bind!(
+        gateway,
+        "memory.stats",
+        service,
+        memory_stats,
+        GetMemoryStats
+    );
     Ok(())
 }
 
@@ -1251,6 +1325,22 @@ fn register_trace(
 // -- system -----------------------------------------------------------------
 
 fn register_system(gateway: &mut Gateway, jobs: &JobIndex) -> Result<(), String> {
+    {
+        let metrics = gateway.metrics().clone();
+        gateway.register(
+            "system.metrics",
+            Arc::new(move |_ctx: &OpContext, _input: &Value| {
+                let per_operation = metrics.snapshot();
+                let total_success: u64 = per_operation.iter().map(|entry| entry.success).sum();
+                let total_failure: u64 = per_operation.iter().map(|entry| entry.failure).sum();
+                Ok(GatewayOutcome::data(serde_json::json!({
+                    "total_success": total_success,
+                    "total_failure": total_failure,
+                    "per_operation": per_operation,
+                })))
+            }),
+        )?;
+    }
     gateway.register(
         "system.capabilities",
         Arc::new(move |_ctx: &OpContext, _input: &Value| {
@@ -1554,6 +1644,49 @@ fn register_pro(
         "pro.security_export_sarif",
         service,
         security_export_sarif,
+        "revision"
+    );
+    // `pro.security_orchestrated_scan` — multi-field (manual binding).
+    {
+        let service = Arc::clone(service);
+        gateway.register(
+            "pro.security_orchestrated_scan",
+            Arc::new(move |ctx: &OpContext, input: &Value| {
+                let request_context = ctx.to_request_context();
+                let revision = input
+                    .get("revision")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| GatewayError::invalid_schema("revision is required"))?;
+                let engines: Vec<String> = input
+                    .get("engines")
+                    .and_then(Value::as_array)
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(Value::as_str)
+                            .map(str::to_string)
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                let severity = input.get("severity").and_then(Value::as_str);
+                let path_filter = input.get("path_filter").and_then(Value::as_str);
+                service
+                    .security_orchestrated_scan(
+                        &request_context,
+                        revision,
+                        &engines,
+                        severity,
+                        path_filter,
+                    )
+                    .map_err(from_domain)
+                    .map(|payload| GatewayOutcome::data(serde_json::json!({ "report": payload })))
+            }),
+        )?;
+    }
+    bind_pro!(
+        gateway,
+        "pro.security_codeql_warmup",
+        service,
+        security_codeql_warmup,
         "revision"
     );
     Ok(())

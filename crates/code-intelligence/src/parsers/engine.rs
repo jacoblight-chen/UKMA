@@ -210,7 +210,7 @@ struct Extractor<'a> {
     spec: &'static LanguageSpec,
     symbols: Vec<Symbol>,
     defines: Vec<(String, String, u32)>,
-    imports: Vec<(String, u32)>,
+    imports: Vec<(String, u32, Option<String>)>,
     calls: Vec<(String, String, u32)>,
     edges: Vec<CodeEdge>,
     diagnostics: Vec<CodeDiagnostic>,
@@ -453,8 +453,12 @@ impl<'a> Extractor<'a> {
             return;
         } else if self.spec.is_import(kind) {
             if let Some(parent_id) = parent {
-                self.imports
-                    .push((parent_id.to_string(), line_of(node, true)));
+                let raw = text(self.source, node);
+                self.imports.push((
+                    parent_id.to_string(),
+                    line_of(node, true),
+                    extract_import_path(raw),
+                ));
             }
         } else if self.spec.is_call(kind) {
             if let Some(parent_id) = parent {
@@ -557,9 +561,10 @@ impl<'a> Extractor<'a> {
                 resolution: EdgeResolution::StaticExact,
                 confidence: None,
                 evidence_ids: evidence(line),
+                import_path: None,
             });
         }
-        for (parent, line) in std::mem::take(&mut self.imports) {
+        for (parent, line, import_path) in std::mem::take(&mut self.imports) {
             self.edges.push(CodeEdge {
                 source: parent,
                 target: None,
@@ -567,6 +572,7 @@ impl<'a> Extractor<'a> {
                 resolution: EdgeResolution::Unresolved,
                 confidence: None,
                 evidence_ids: evidence(line),
+                import_path,
             });
         }
         for (parent, simple, line) in std::mem::take(&mut self.calls) {
@@ -599,6 +605,7 @@ impl<'a> Extractor<'a> {
                 resolution,
                 confidence: None,
                 evidence_ids: evidence(line),
+                import_path: None,
             });
         }
     }
@@ -716,6 +723,153 @@ impl TreeSitterParser {
             edges: extractor.edges,
             diagnostics: extractor.diagnostics,
         })
+    }
+}
+
+/// Best-effort module name of an import declaration (ledger S9 deviation:
+/// a text heuristic — quoted specifier, `#include <...>`, or the
+/// declaration with its leading import keyword(s) stripped).
+fn extract_import_path(raw: &str) -> Option<String> {
+    let text = raw.trim();
+    if let Some(quoted) = quoted(text) {
+        if !quoted.is_empty() {
+            return Some(quoted.to_string());
+        }
+    }
+    if let Some(angled) = text.find('<').and_then(|start| {
+        text[start..]
+            .find('>')
+            .map(|end| &text[start + 1..start + end])
+    }) {
+        if !angled.is_empty() {
+            return Some(angled.to_string());
+        }
+    }
+    let mut rest = text;
+    loop {
+        let lowered = rest.to_ascii_lowercase();
+        let keyword = [
+            "#include ",
+            "pub use ",
+            "use ",
+            "import ",
+            "require ",
+            "include ",
+            "use",
+            "import",
+            "require",
+            "include",
+        ]
+        .iter()
+        .find(|keyword| lowered.starts_with(**keyword));
+        let Some(keyword) = keyword else {
+            break;
+        };
+        rest = rest[keyword.len()..].trim_start();
+    }
+    let cut = rest
+        .find(['{', '('])
+        .map(|position| rest.get(..position).unwrap_or(rest));
+    let path = (cut.unwrap_or(rest)).trim().trim_end_matches(';').trim();
+    if path.is_empty() {
+        None
+    } else {
+        Some(path.to_string())
+    }
+}
+
+fn quoted(text: &str) -> Option<&str> {
+    for quote in ['"', '\''] {
+        if let Some(start) = text.find(quote) {
+            if let Some(end) = text[start + 1..].find(quote) {
+                return Some(&text[start + 1..start + 1 + end]);
+            }
+        }
+    }
+    None
+}
+
+#[cfg(test)]
+mod extract_import_path_tests {
+    use super::extract_import_path;
+
+    #[test]
+    fn extracts_rust_use_paths() {
+        assert_eq!(
+            extract_import_path("use std::collections::BTreeMap;"),
+            Some("std::collections::BTreeMap".to_string())
+        );
+        assert_eq!(
+            extract_import_path("use Foo\\Bar;"),
+            Some("Foo\\Bar".to_string())
+        );
+    }
+
+    #[test]
+    fn extracts_quoted_specifiers() {
+        assert_eq!(
+            extract_import_path("import \"fmt\""),
+            Some("fmt".to_string())
+        );
+        assert_eq!(
+            extract_import_path("import { readFile } from \"fs\";"),
+            Some("fs".to_string())
+        );
+        assert_eq!(
+            extract_import_path("require \"json\""),
+            Some("json".to_string())
+        );
+        assert_eq!(
+            extract_import_path("import \"./Other.sol\";"),
+            Some("./Other.sol".to_string())
+        );
+    }
+
+    #[test]
+    fn extracts_angled_includes() {
+        assert_eq!(
+            extract_import_path("#include <stdio.h>"),
+            Some("stdio.h".to_string())
+        );
+    }
+
+    #[test]
+    fn extracts_unquoted_module_paths() {
+        assert_eq!(
+            extract_import_path("import java.util.List;"),
+            Some("java.util.List".to_string())
+        );
+        assert_eq!(
+            extract_import_path("import Data.List"),
+            Some("Data.List".to_string())
+        );
+        assert_eq!(
+            extract_import_path("import kotlin.math.abs"),
+            Some("kotlin.math.abs".to_string())
+        );
+        assert_eq!(
+            extract_import_path("import scala.collection.mutable"),
+            Some("scala.collection.mutable".to_string())
+        );
+        assert_eq!(
+            extract_import_path("import Foundation"),
+            Some("Foundation".to_string())
+        );
+        assert_eq!(extract_import_path("import Enum"), Some("Enum".to_string()));
+    }
+
+    #[test]
+    fn strips_keyword_only_declarations() {
+        assert_eq!(
+            extract_import_path("use strict;"),
+            Some("strict".to_string())
+        );
+    }
+
+    #[test]
+    fn empty_or_bare_keyword_is_none() {
+        assert_eq!(extract_import_path(""), None);
+        assert_eq!(extract_import_path("import;"), None);
     }
 }
 

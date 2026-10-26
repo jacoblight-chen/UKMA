@@ -1,0 +1,16 @@
+{
+  "api_version": "1",
+  "request_id": "x",
+  "trace_id": "x",
+  "status": "ok",
+  "data": {
+    "by_kind": [],
+    "by_verification": [],
+    "folded": 0,
+    "total": 0,
+    "working_blocks": 0
+  },
+  "warnings": [],
+  "partial_reasons": [],
+  "freshness": "current"
+}

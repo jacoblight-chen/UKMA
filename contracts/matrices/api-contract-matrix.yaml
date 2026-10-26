@@ -1866,3 +1866,255 @@ operations:
   - cross_scope
   - revision_consistency
 
+- operation_id: pro.security_orchestrated_scan
+  test_id: PRO-28
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, INVALID_ARGUMENT, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+- operation_id: pro.security_codeql_warmup
+  test_id: PRO-29
+  domain: pro
+  source_section: '36.5'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read` Pro operation target'
+  errors_explicit: NOT_FOUND, FORBIDDEN
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+
+
+# Phase 8 gap closure (CodeGraph parity).
+- operation_id: code.find_implementors
+  test_id: CAPI-28
+  domain: code
+  source_section: '32.2'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read`, 需要 revision 索引'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, CAPABILITY_UNAVAILABLE
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+- operation_id: code.traverse
+  test_id: CAPI-29
+  domain: code
+  source_section: '32.2'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read`, 有界自由遍歷'
+  errors_explicit: NOT_FOUND, INDEX_STALE, RESOURCE_LIMIT
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+- operation_id: code.get_detailed_symbol
+  test_id: CAPI-30
+  domain: code
+  source_section: '32.2'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read`, 單一符號綜合檢視'
+  errors_explicit: NOT_FOUND, SOURCE_UNAVAILABLE, CAPABILITY_UNAVAILABLE
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+- operation_id: code.index_directory
+  test_id: CAPI-31
+  domain: code
+  source_section: '32.2'
+  auth_scopes_explicit:
+  - code:index
+  auth_source_text: '`code:index`, 前綴目錄索引'
+  errors_explicit: NOT_FOUND, CAPABILITY_UNAVAILABLE, RESOURCE_LIMIT, IDEMPOTENCY_CONFLICT
+  events:
+  - code.index.partial_committed
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+- operation_id: code.export_graph
+  test_id: CAPI-32
+  domain: code
+  source_section: '32.2'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read`, 圖匯出 csv/dot/json/triples'
+  errors_explicit: NOT_FOUND, INDEX_STALE, RESOURCE_LIMIT
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+- operation_id: code.find_importers
+  test_id: CAPI-33
+  domain: code
+  source_section: '32.2'
+  auth_scopes_explicit:
+  - code:read
+  auth_source_text: '`code:read`, 反向匯入查詢'
+  errors_explicit: INVALID_SCHEMA, FORBIDDEN, INTERNAL, NOT_FOUND, INDEX_STALE, CURSOR_EXPIRED
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+- operation_id: document.remove_source
+  test_id: DAPI-17
+  domain: document
+  source_section: '33'
+  auth_scopes_explicit:
+  - document:index_admin
+  auth_source_text: '`document:index_admin`, 墓碑刪除'
+  errors_explicit: NOT_FOUND, ALREADY_DELETED, DELETION_BLOCKED, IDEMPOTENCY_CONFLICT
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+- operation_id: memory.context
+  test_id: MAPI-26
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:read
+  auth_source_text: '`memory:read`, 路徑/符號相關脈絡'
+  errors_explicit: INVALID_ARGUMENT, NOT_FOUND
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+- operation_id: memory.list
+  test_id: MAPI-27
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:read
+  auth_source_text: '`memory:read`, 游標分頁清單'
+  errors_explicit: INVALID_ARGUMENT, CURSOR_EXPIRED
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+- operation_id: memory.stats
+  test_id: MAPI-28
+  domain: memory
+  source_section: '34.2'
+  auth_scopes_explicit:
+  - memory:read
+  auth_source_text: '`memory:read`, 依類型與驗證狀態統計'
+  errors_explicit: 基本四碼
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency
+- operation_id: system.metrics
+  test_id: SYS-05
+  domain: system
+  source_section: '31.4'
+  auth_scopes_explicit:
+  - system:read
+  auth_source_text: '`system:read`, 操作計數器'
+  errors_explicit: 基本四碼
+  events: []
+  state_contract: UNRESOLVED_OPERATION_SPECIFIC
+  storage_owner: UNRESOLVED_OPERATION_SPECIFIC
+  schema_status: PROVISIONAL
+  required_tests:
+  - positive
+  - invalid_input
+  - unauthenticated
+  - forbidden
+  - cross_scope
+  - revision_consistency

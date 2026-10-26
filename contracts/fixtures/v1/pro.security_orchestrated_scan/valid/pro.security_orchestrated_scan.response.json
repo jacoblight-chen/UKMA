@@ -1,0 +1,22 @@
+{
+  "api_version": "1",
+  "request_id": "x",
+  "trace_id": "x",
+  "status": "ok",
+  "data": {
+    "report": {
+      "analyzer": "orchestrated",
+      "engines": [
+        {
+          "name": "codegraph",
+          "findings_pre_merge": 0
+        }
+      ],
+      "total": 0,
+      "findings": []
+    }
+  },
+  "warnings": [],
+  "partial_reasons": [],
+  "freshness": "current"
+}

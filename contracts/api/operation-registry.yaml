@@ -3,13 +3,13 @@ api_major: 1
 status: SCHEMA_CLOSURE_IN_PROGRESS
 source_file: docs/UKMA_v1.2.3_Full_Spec.md
 counts:
-  code: 27
-  document: 16
-  memory: 25
+  code: 33
+  document: 17
+  memory: 28
   traceability: 13
-  system: 4
-  pro: 27
-  total: 112
+  system: 5
+  pro: 29
+  total: 125
 field_contract: §41.1 — every operation MUST carry all 15 fields
 operations:
 - operation_id: code.analyze_repository
@@ -3600,3 +3600,417 @@ operations:
   server_method: POST /api/v1/pro/security_export_sarif
   declaration_section: '36.5'
 
+- operation_id: pro.security_orchestrated_scan
+  api_major: 1
+  domain: pro
+  request_schema: https://schemas.ukma.dev/v1/pro.security_orchestrated_scan.request.schema.json
+  response_schema: https://schemas.ukma.dev/v1/pro.security_orchestrated_scan.response.schema.json
+  required_scopes:
+  - code:read
+  preconditions:
+  - repository_revision_exists
+  - authorized_scope
+  state_machine: read_only
+  consistency_modes:
+  - eventual
+  - read_your_writes
+  - snapshot
+  - strict_generation
+  idempotency: not_required
+  concurrency: immutable_snapshot
+  error_codes:
+  - INVALID_SCHEMA
+  - UNAUTHENTICATED
+  - FORBIDDEN
+  - INTERNAL
+  - SOURCE_UNAVAILABLE
+  - NOT_FOUND
+  events: []
+  storage_ports: []
+  tests:
+  - PRO-28
+  operation_uri: ukma.pro.security_orchestrated_scan.v1
+  mcp_tool: ukma_pro_security_orchestrated_scan_v1
+  server_method: POST /api/v1/pro/security_orchestrated_scan
+  declaration_section: '36.5'
+
+- operation_id: pro.security_codeql_warmup
+  api_major: 1
+  domain: pro
+  request_schema: https://schemas.ukma.dev/v1/pro.security_codeql_warmup.request.schema.json
+  response_schema: https://schemas.ukma.dev/v1/pro.security_codeql_warmup.response.schema.json
+  required_scopes:
+  - code:read
+  preconditions:
+  - repository_revision_exists
+  - authorized_scope
+  state_machine: read_only
+  consistency_modes:
+  - eventual
+  - read_your_writes
+  - snapshot
+  - strict_generation
+  idempotency: not_required
+  concurrency: immutable_snapshot
+  error_codes:
+  - INVALID_SCHEMA
+  - UNAUTHENTICATED
+  - FORBIDDEN
+  - INTERNAL
+  - SOURCE_UNAVAILABLE
+  - NOT_FOUND
+  events: []
+  storage_ports: []
+  tests:
+  - PRO-29
+  operation_uri: ukma.pro.security_codeql_warmup.v1
+  mcp_tool: ukma_pro_security_codeql_warmup_v1
+  server_method: POST /api/v1/pro/security_codeql_warmup
+  declaration_section: '36.5'
+
+- operation_id: code.find_implementors
+  api_major: 1
+  domain: code
+  request_schema: https://schemas.ukma.dev/v1/code.find_implementors.request.schema.json
+  response_schema: https://schemas.ukma.dev/v1/code.find_implementors.response.schema.json
+  required_scopes:
+  - code:read
+  preconditions:
+  - revision_exact
+  - authorized_scope
+  state_machine: read_only
+  consistency_modes: *id001
+  idempotency: not_required
+  concurrency: immutable_snapshot
+  error_codes:
+  - INVALID_SCHEMA
+  - UNAUTHENTICATED
+  - FORBIDDEN
+  - INTERNAL
+  - NOT_FOUND
+  - SOURCE_UNAVAILABLE
+  - CAPABILITY_UNAVAILABLE
+  events: []
+  storage_ports:
+  - ArtifactStore
+  - MetadataStore
+  - GraphStore
+  tests:
+  - CAPI-28
+  operation_uri: ukma.code.find_implementors.v1
+  mcp_tool: ukma_code_find_implementors_v1
+  server_method: POST /api/v1/code/find_implementors
+  declaration_section: '32.2'
+- operation_id: code.traverse
+  api_major: 1
+  domain: code
+  request_schema: https://schemas.ukma.dev/v1/code.traverse.request.schema.json
+  response_schema: https://schemas.ukma.dev/v1/code.traverse.response.schema.json
+  required_scopes:
+  - code:read
+  preconditions:
+  - revision_exact
+  - authorized_scope
+  state_machine: read_only
+  consistency_modes: *id001
+  idempotency: not_required
+  concurrency: immutable_snapshot
+  error_codes:
+  - INVALID_SCHEMA
+  - UNAUTHENTICATED
+  - FORBIDDEN
+  - INTERNAL
+  - NOT_FOUND
+  - INDEX_STALE
+  - RESOURCE_LIMIT
+  events: []
+  storage_ports:
+  - ArtifactStore
+  - MetadataStore
+  - GraphStore
+  tests:
+  - CAPI-29
+  operation_uri: ukma.code.traverse.v1
+  mcp_tool: ukma_code_traverse_v1
+  server_method: POST /api/v1/code/traverse
+  declaration_section: '32.2'
+- operation_id: code.get_detailed_symbol
+  api_major: 1
+  domain: code
+  request_schema: https://schemas.ukma.dev/v1/code.get_detailed_symbol.request.schema.json
+  response_schema: https://schemas.ukma.dev/v1/code.get_detailed_symbol.response.schema.json
+  required_scopes:
+  - code:read
+  preconditions:
+  - revision_exact
+  - authorized_scope
+  state_machine: read_only
+  consistency_modes: *id001
+  idempotency: not_required
+  concurrency: immutable_snapshot
+  error_codes:
+  - INVALID_SCHEMA
+  - UNAUTHENTICATED
+  - FORBIDDEN
+  - INTERNAL
+  - NOT_FOUND
+  - SOURCE_UNAVAILABLE
+  - CAPABILITY_UNAVAILABLE
+  events: []
+  storage_ports:
+  - ArtifactStore
+  - MetadataStore
+  - GraphStore
+  tests:
+  - CAPI-30
+  operation_uri: ukma.code.get_detailed_symbol.v1
+  mcp_tool: ukma_code_get_detailed_symbol_v1
+  server_method: POST /api/v1/code/get_detailed_symbol
+  declaration_section: '32.2'
+- operation_id: code.index_directory
+  api_major: 1
+  domain: code
+  request_schema: https://schemas.ukma.dev/v1/code.index_directory.request.schema.json
+  response_schema: https://schemas.ukma.dev/v1/code.index_directory.response.schema.json
+  required_scopes:
+  - code:index
+  preconditions:
+  - revision_exact
+  - parser_profile_available
+  - authorized_scope
+  state_machine: create
+  consistency_modes: *id001
+  idempotency: required
+  concurrency: not_applicable
+  error_codes:
+  - INVALID_SCHEMA
+  - UNAUTHENTICATED
+  - FORBIDDEN
+  - INTERNAL
+  - NOT_FOUND
+  - CAPABILITY_UNAVAILABLE
+  - RESOURCE_LIMIT
+  - IDEMPOTENCY_CONFLICT
+  events:
+  - code.index.partial_committed
+  storage_ports:
+  - ArtifactStore
+  - MetadataStore
+  - GraphStore
+  tests:
+  - CAPI-31
+  operation_uri: ukma.code.index_directory.v1
+  mcp_tool: ukma_code_index_directory_v1
+  server_method: POST /api/v1/code/index_directory
+  declaration_section: '32.2'
+- operation_id: code.export_graph
+  api_major: 1
+  domain: code
+  request_schema: https://schemas.ukma.dev/v1/code.export_graph.request.schema.json
+  response_schema: https://schemas.ukma.dev/v1/code.export_graph.response.schema.json
+  required_scopes:
+  - code:read
+  preconditions:
+  - revision_exact
+  - authorized_scope
+  state_machine: read_only
+  consistency_modes: *id001
+  idempotency: not_required
+  concurrency: immutable_snapshot
+  error_codes:
+  - INVALID_SCHEMA
+  - UNAUTHENTICATED
+  - FORBIDDEN
+  - INTERNAL
+  - NOT_FOUND
+  - INDEX_STALE
+  - RESOURCE_LIMIT
+  events: []
+  storage_ports:
+  - ArtifactStore
+  - MetadataStore
+  - GraphStore
+  tests:
+  - CAPI-32
+  operation_uri: ukma.code.export_graph.v1
+  mcp_tool: ukma_code_export_graph_v1
+  server_method: POST /api/v1/code/export_graph
+  declaration_section: '32.2'
+- operation_id: code.find_importers
+  api_major: 1
+  domain: code
+  request_schema: https://schemas.ukma.dev/v1/code.find_importers.request.schema.json
+  response_schema: https://schemas.ukma.dev/v1/code.find_importers.response.schema.json
+  required_scopes:
+  - code:read
+  preconditions:
+  - revision_exact
+  - authorized_scope
+  state_machine: read_only
+  consistency_modes: *id001
+  idempotency: not_required
+  concurrency: immutable_snapshot
+  error_codes:
+  - INVALID_SCHEMA
+  - UNAUTHENTICATED
+  - FORBIDDEN
+  - INTERNAL
+  - NOT_FOUND
+  - INDEX_STALE
+  - CURSOR_EXPIRED
+  events: []
+  storage_ports:
+  - ArtifactStore
+  - MetadataStore
+  - GraphStore
+  tests:
+  - CAPI-33
+  operation_uri: ukma.code.find_importers.v1
+  mcp_tool: ukma_code_find_importers_v1
+  server_method: POST /api/v1/code/find_importers
+  declaration_section: '32.2'
+- operation_id: document.remove_source
+  api_major: 1
+  domain: document
+  request_schema: https://schemas.ukma.dev/v1/document.remove_source.request.schema.json
+  response_schema: https://schemas.ukma.dev/v1/document.remove_source.response.schema.json
+  required_scopes:
+  - document:index_admin
+  preconditions:
+  - authorized_scope
+  state_machine: delete_tombstone
+  consistency_modes: *id001
+  idempotency: required
+  concurrency: not_applicable
+  error_codes:
+  - INVALID_SCHEMA
+  - UNAUTHENTICATED
+  - FORBIDDEN
+  - INTERNAL
+  - NOT_FOUND
+  - ALREADY_DELETED
+  - DELETION_BLOCKED
+  - IDEMPOTENCY_CONFLICT
+  events: []
+  storage_ports:
+  - ArtifactStore
+  - MetadataStore
+  tests:
+  - DAPI-17
+  operation_uri: ukma.document.remove_source.v1
+  mcp_tool: ukma_document_remove_source_v1
+  server_method: POST /api/v1/document/remove_source
+  declaration_section: '33'
+- operation_id: memory.context
+  api_major: 1
+  domain: memory
+  request_schema: https://schemas.ukma.dev/v1/memory.context.request.schema.json
+  response_schema: https://schemas.ukma.dev/v1/memory.context.response.schema.json
+  required_scopes:
+  - memory:read
+  preconditions:
+  - authorized_scope
+  state_machine: read_only
+  consistency_modes: *id001
+  idempotency: not_required
+  concurrency: immutable_snapshot
+  error_codes:
+  - INVALID_SCHEMA
+  - UNAUTHENTICATED
+  - FORBIDDEN
+  - INTERNAL
+  - INVALID_ARGUMENT
+  - NOT_FOUND
+  events: []
+  storage_ports:
+  - MetadataStore
+  tests:
+  - MAPI-26
+  operation_uri: ukma.memory.context.v1
+  mcp_tool: ukma_memory_context_v1
+  server_method: POST /api/v1/memory/context
+  declaration_section: '34.2'
+- operation_id: memory.list
+  api_major: 1
+  domain: memory
+  request_schema: https://schemas.ukma.dev/v1/memory.list.request.schema.json
+  response_schema: https://schemas.ukma.dev/v1/memory.list.response.schema.json
+  required_scopes:
+  - memory:read
+  preconditions:
+  - authorized_scope
+  state_machine: read_only
+  consistency_modes: *id001
+  idempotency: not_required
+  concurrency: immutable_snapshot
+  error_codes:
+  - INVALID_SCHEMA
+  - UNAUTHENTICATED
+  - FORBIDDEN
+  - INTERNAL
+  - INVALID_ARGUMENT
+  - CURSOR_EXPIRED
+  events: []
+  storage_ports:
+  - MetadataStore
+  tests:
+  - MAPI-27
+  operation_uri: ukma.memory.list.v1
+  mcp_tool: ukma_memory_list_v1
+  server_method: POST /api/v1/memory/list
+  declaration_section: '34.2'
+- operation_id: memory.stats
+  api_major: 1
+  domain: memory
+  request_schema: https://schemas.ukma.dev/v1/memory.stats.request.schema.json
+  response_schema: https://schemas.ukma.dev/v1/memory.stats.response.schema.json
+  required_scopes:
+  - memory:read
+  preconditions:
+  - authorized_scope
+  state_machine: read_only
+  consistency_modes: *id001
+  idempotency: not_required
+  concurrency: immutable_snapshot
+  error_codes:
+  - INVALID_SCHEMA
+  - UNAUTHENTICATED
+  - FORBIDDEN
+  - INTERNAL
+  events: []
+  storage_ports:
+  - MetadataStore
+  tests:
+  - MAPI-28
+  operation_uri: ukma.memory.stats.v1
+  mcp_tool: ukma_memory_stats_v1
+  server_method: POST /api/v1/memory/stats
+  declaration_section: '34.2'
+- operation_id: system.metrics
+  api_major: 1
+  domain: system
+  request_schema: https://schemas.ukma.dev/v1/system.metrics.request.schema.json
+  response_schema: https://schemas.ukma.dev/v1/system.metrics.response.schema.json
+  required_scopes:
+  - system:read
+  preconditions:
+  - gateway_initialized
+  state_machine: read_only
+  consistency_modes: *id001
+  idempotency: not_required
+  concurrency: immutable_snapshot
+  error_codes:
+  - INVALID_SCHEMA
+  - UNAUTHENTICATED
+  - FORBIDDEN
+  - INTERNAL
+  - CAPABILITY_UNAVAILABLE
+  events: []
+  storage_ports:
+  - MetadataStore
+  tests:
+  - SYS-05
+  operation_uri: ukma.system.metrics.v1
+  mcp_tool: ukma_system_metrics_v1
+  server_method: POST /api/v1/system/metrics
+  declaration_section: '31.4'

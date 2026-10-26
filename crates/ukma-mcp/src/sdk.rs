@@ -258,7 +258,10 @@ mod tests {
             capabilities["domain_operations"],
             crate::manifest::DOMAIN_OPERATION_COUNT
         );
-        assert_eq!(capabilities["system_operations"], 4);
+        assert_eq!(
+            capabilities["system_operations"],
+            crate::manifest::SYSTEM_OPERATION_COUNT
+        );
     }
 
     #[test]

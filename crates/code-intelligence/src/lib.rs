@@ -228,6 +228,27 @@ pub enum SymbolKind {
     Other,
 }
 
+impl SymbolKind {
+    /// Map to the graph-engine node type used by `code.export_graph`.
+    pub fn as_graph_node_type(self) -> graph_engine::types::NodeType {
+        use graph_engine::types::NodeType;
+        match self {
+            SymbolKind::Module => NodeType::Module,
+            SymbolKind::Class => NodeType::Class,
+            SymbolKind::Struct => NodeType::Class,
+            SymbolKind::Trait => NodeType::Interface,
+            SymbolKind::Interface => NodeType::Interface,
+            SymbolKind::Function => NodeType::Function,
+            SymbolKind::Method => NodeType::Function,
+            SymbolKind::Field => NodeType::Variable,
+            SymbolKind::Variable => NodeType::Variable,
+            SymbolKind::Constant => NodeType::Variable,
+            SymbolKind::Enum => NodeType::Type,
+            SymbolKind::Other => NodeType::Generic,
+        }
+    }
+}
+
 /// How confident the resolver is (§32.1 `Symbol.resolution`).
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -354,6 +375,24 @@ pub struct CodeEdge {
     pub confidence: Option<f64>,
     /// Evidence ids.
     pub evidence_ids: Vec<String>,
+    /// Module path of an `imports` declaration (ledger S9 deviation).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub import_path: Option<String>,
+}
+
+impl CodeEdgeKind {
+    /// Map to the graph-engine edge type used by `code.export_graph`.
+    pub fn as_graph_edge_type(self) -> graph_engine::types::EdgeType {
+        use graph_engine::types::EdgeType;
+        match self {
+            CodeEdgeKind::Calls => EdgeType::Calls,
+            CodeEdgeKind::Imports => EdgeType::Imports,
+            CodeEdgeKind::DependsOn => EdgeType::Uses,
+            CodeEdgeKind::Implements => EdgeType::Implements,
+            CodeEdgeKind::References => EdgeType::References,
+            CodeEdgeKind::Defines => EdgeType::Defines,
+        }
+    }
 }
 
 impl CodeEdge {
@@ -800,6 +839,7 @@ mod tests {
             resolution: EdgeResolution::StaticPossible,
             confidence: None,
             evidence_ids: vec!["e1".into()],
+            import_path: None,
         };
         assert!(!possible.is_certain());
 
@@ -810,6 +850,7 @@ mod tests {
             resolution: EdgeResolution::Unresolved,
             confidence: None,
             evidence_ids: vec![],
+            import_path: None,
         };
         assert!(!unresolved.is_certain());
 
@@ -820,6 +861,7 @@ mod tests {
             resolution: EdgeResolution::StaticExact,
             confidence: None,
             evidence_ids: vec!["e1".into()],
+            import_path: None,
         };
         assert!(exact.is_certain());
     }

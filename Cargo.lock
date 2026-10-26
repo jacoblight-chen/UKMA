@@ -397,6 +397,7 @@ dependencies = [
  "arborium-cobol",
  "bca-tree-sitter-tcl",
  "embedding-engine",
+ "graph-engine",
  "indexing-engine",
  "regex",
  "retrieval-engine",
@@ -786,7 +787,9 @@ name = "embedding-engine"
 version = "0.1.0"
 dependencies = [
  "ort",
+ "regex",
  "serde",
+ "serde_json",
  "storage-ports",
 ]
 

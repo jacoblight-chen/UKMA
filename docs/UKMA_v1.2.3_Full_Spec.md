@@ -1705,7 +1705,8 @@ UKMA 提供 27 個 **CodeGraph Pro 相容 operations**（domain `pro`），作�
 
 ## 36.6 Embedding Model、ONNX 機制與 Memory Gate
 
-- **`--embedding-model`**：CLI 接受具名模型（`static-256`、`bge-small` 384d、`jina-code-v2` 768d、`granite-97m` 384d）。預設為 `static-256`（無外部權重、可離線）。ONNX 為**真實 runtime**（feature `onnx`，`ort` `load-dynamic` 於運行時載入 ONNX Runtime、開啟模型、推論、正規化 embedding）；UKMA **不自帶** ONNX Runtime 庫與模型權重（由部署側提供）。
+- **`--embedding-model`**：CLI 接受具名模型（`static` 256d（CodeGraph 相容別名 `static-code`、`model2vec`）、`bge-small` 384d、`jina-code-v2` 768d、`granite-97m` 384d、`qwen3-embedding-0.6b-int8` 1024d INT8、`bge-m3-int8` 1024d INT8）。預設為 static 通道（無外部權重、可離線）。INT8 模型為 ONNX INT8 量化權重，同樣由部署側提供；未 provision 時與其餘 ONNX 模型一樣 degrade 至 static fallback。ONNX 為**真實 runtime**（feature `onnx`，`ort` `load-dynamic` 於運行時載入 ONNX Runtime、開啟模型、推論、正規化 embedding）；UKMA **不自帶** ONNX Runtime 庫與模型權重（由部署側提供）。
+- **model2vec 靜態模型（static 通道）**：feature `onnx` 啟用時，若部署側已 provision model2vec 查表目錄（預設 `~/.codegraph/static_models/jina-code-static-256`，或 `CODEGRAPH_STATIC_MODEL` 指定的目錄；兩者皆為 CodeGraph 相容慣例，非 UKMA 自有語意），static 通道載入**真實**靜態模型（`config.json` + `tokenizer.json` + `model.safetensors`；per-token embedding 查表 × 權重平均 + L2 正規化，無神經推論；支援 F32/F64/F16 張量與 Unigram/BPE 分詞）；目錄缺失或載入失敗（含維度不符）時 degrade 至決定性 static fallback，不得宣稱靜態模型已啟用。
 - **ONNX 模型不可用時**：語意通道 degrade 至 static fallback，不得宣稱 ONNX 模型已啟用。
 - **`CODEGRAPH_SKIP_MEMORY_CHECK`**：ONNX 模型 ~1.5GB RAM gate 開關。未設定時，ONNX 模型啟動前探測可用記憶體；不足時 degrade 至 `GraphOnly`。設定該變數可略過 gate（用於已知記憶體充足的部署）。此為 CodeGraph 相容行為，非 UKMA 自有語意。
 - **JetBrains plugin**：提供**完整、可建置結構**（startup activity、tool window、action、薄 REST client，皆註冊於 `plugin.xml`）；Gradle/IntelliJ build **未在本倉庫驗收 gate 執行**（需 IntelliJ SDK），不得宣稱可分發 .zip 已完成。

@@ -2,6 +2,7 @@
 //!
 //! Modes (CodeGraph-style single binary):
 //! - `ukma --mcp [--index-cwd <path>]` — serve the MCP stdio protocol
+//! - `ukma --lsp [--index-cwd <path>]` — serve the LSP stdio protocol
 //! - `ukma --run-tool <name> [--tool-args json] [--index-cwd <path>]` —
 //!   run one tool and exit
 //! - `ukma <command>` — the command-line client (health, tools, call, ...)
@@ -240,6 +241,10 @@ fn main() {
             "ukma: embedding model `{model}` -> mode {:?}",
             parsed.backend_mode()
         );
+    }
+
+    if parsed.lsp {
+        std::process::exit(ukma_mcp::run_lsp(&gateway));
     }
 
     if parsed.mcp {

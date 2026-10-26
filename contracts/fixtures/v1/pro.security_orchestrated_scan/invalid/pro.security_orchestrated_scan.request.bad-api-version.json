@@ -1,0 +1,21 @@
+{
+  "api_version": "2",
+  "operation": "ukma.pro.security_orchestrated_scan.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "revision": "x",
+    "engines": [
+      "native"
+    ]
+  }
+}

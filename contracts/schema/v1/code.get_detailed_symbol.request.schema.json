@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/code.get_detailed_symbol.request.schema.json",
+  "title": "code.get_detailed_symbol Request (Phase 4 typed candidate)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "operation",
+    "context",
+    "input"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "1"
+    },
+    "operation": {
+      "const": "ukma.code.get_detailed_symbol.v1"
+    },
+    "context": {
+      "$ref": "shared.schema.json#/$defs/RequestContext"
+    },
+    "input": {
+      "$ref": "wire.schema.json#/$defs/GetDetailedSymbolQuery"
+    }
+  }
+}

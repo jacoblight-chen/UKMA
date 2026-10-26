@@ -23,5 +23,6 @@ pub use vuln::{
     ecosystem_for, DependencyRef, OfflineVulnerabilitySource, OsVulnerability, VulnerabilitySource,
 };
 pub use wire::{
-    ProCompareSymbolsRequest, ProFileRequest, ProQueryRequest, ProReport, ProRevisionRequest,
+    ProCompareSymbolsRequest, ProFileRequest, ProOrchestratedScanRequest, ProQueryRequest,
+    ProReport, ProRevisionRequest,
 };

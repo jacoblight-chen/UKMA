@@ -1000,6 +1000,16 @@ pub enum DocumentError {
         /// The reused key.
         key: String,
     },
+    /// The document source was already deleted (the tombstone exists).
+    AlreadyDeleted {
+        /// Document id.
+        document_id: String,
+    },
+    /// A running job prevents deleting this document source.
+    DeletionBlocked {
+        /// Document id.
+        document_id: String,
+    },
     /// A consistency check exceeded its finding budget.
     ResourceLimit {
         /// Detail.
@@ -1030,6 +1040,8 @@ impl DocumentError {
             DocumentError::RequirementStateConflict { .. } => "LINK_STATE_CONFLICT",
             DocumentError::ModelUnavailable { .. } => "MODEL_UNAVAILABLE",
             DocumentError::IdempotencyConflict { .. } => "IDEMPOTENCY_CONFLICT",
+            DocumentError::AlreadyDeleted { .. } => "ALREADY_DELETED",
+            DocumentError::DeletionBlocked { .. } => "DELETION_BLOCKED",
             DocumentError::ResourceLimit { .. } => "RESOURCE_LIMIT",
         }
     }
@@ -1085,6 +1097,15 @@ impl std::fmt::Display for DocumentError {
                     "idempotency key {key} was reused with different arguments"
                 )
             }
+            DocumentError::AlreadyDeleted { document_id } => {
+                write!(f, "document {document_id} was already deleted")
+            }
+            DocumentError::DeletionBlocked { document_id } => {
+                write!(
+                    f,
+                    "document {document_id} cannot be deleted while a job is running"
+                )
+            }
             DocumentError::ResourceLimit { detail } => write!(f, "resource limit: {detail}"),
         }
     }
@@ -1105,6 +1126,28 @@ pub type Result<T> = std::result::Result<T, DocumentError>;
 pub struct ListDocSources {
     /// Page.
     pub page: PageRequest,
+}
+
+/// Request: remove an ingested document source (`remove_doc_source` parity,
+/// DAPI-15).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RemoveDocSource {
+    /// Document id to remove.
+    pub document_id: String,
+}
+
+/// Receipt for a removed document source (DAPI-15).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DocDeletionReceipt {
+    /// The removed document.
+    pub document_id: String,
+    /// Blocks removed by this call.
+    pub removed_blocks: u32,
+    /// True when this call performed the deletion; false when the call
+    /// replayed a previously recorded idempotent deletion.
+    pub deleted: bool,
 }
 
 /// One ingested document source.

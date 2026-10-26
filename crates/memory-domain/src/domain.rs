@@ -1588,6 +1588,144 @@ impl From<context_engine::BudgetError> for MemoryError {
 /// Result alias.
 pub type Result<T> = std::result::Result<T, MemoryError>;
 
+// ---------------------------------------------------------------------------
+// Phase 8 gap closure: MAPI-26..28 (context, list, stats)
+// ---------------------------------------------------------------------------
+
+/// `memory.context` request: memories relevant to a code path or symbol.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MemoryContextQuery {
+    /// Code path to match (case-insensitive), e.g. `crates/memory-domain/src/service.rs`.
+    pub path: Option<String>,
+    /// Canonical symbol id to match (case-insensitive).
+    pub symbol_id: Option<String>,
+    /// Minimum ranking trust, in `[0,1]`.
+    pub min_trust: Option<f64>,
+    /// Maximum number of matches: `0` defaults to 20, maximum 100.
+    pub limit: u32,
+}
+
+impl Default for MemoryContextQuery {
+    fn default() -> Self {
+        Self {
+            path: None,
+            symbol_id: None,
+            min_trust: None,
+            limit: 20,
+        }
+    }
+}
+
+/// One `memory.context` match.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MemoryContextMatch {
+    /// Address of the record.
+    pub reference: Ref,
+    /// Store the record lives in.
+    pub kind: MemoryKind,
+    /// Ranking trust of the record.
+    pub trust: f64,
+    /// Head summary.
+    pub summary: String,
+    /// Which query terms matched: `path`, `symbol` or `path+symbol`.
+    pub matched_on: String,
+}
+
+/// `memory.context` result, ranked by trust (desc) then id (asc).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MemoryContextResult {
+    /// Matches within the limit.
+    pub matches: Vec<MemoryContextMatch>,
+    /// How many records matched before the limit.
+    pub total: u32,
+}
+
+/// `memory.list` request: live records, optionally per store, cursor-paged.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ListMemoryQuery {
+    /// Stores to list; empty means all stores.
+    pub kinds: Vec<MemoryKind>,
+    /// Cursor page.
+    pub page: PageRequest,
+}
+
+/// One entry of the `memory.list` page.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MemoryListItem {
+    /// Address of the record.
+    pub reference: Ref,
+    /// Store the record lives in.
+    pub kind: MemoryKind,
+    /// Verification state token.
+    pub state: String,
+    /// Ranking trust of the record.
+    pub trust: f64,
+    /// Head summary.
+    pub summary: String,
+    /// Head revision number.
+    pub version: String,
+    /// Estimated token count of the body.
+    pub token_count: u32,
+}
+
+/// `memory.list` result.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MemoryListPage {
+    /// The page of records, ordered by id.
+    pub items: Vec<MemoryListItem>,
+    /// Cursor for the next page.
+    pub next_cursor: Option<String>,
+    /// How many records matched the filter.
+    pub total: u64,
+}
+
+/// `memory.stats` request (empty payload).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GetMemoryStats;
+
+/// One store breakdown of `memory.stats`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MemoryKindCount {
+    /// The store.
+    pub kind: MemoryKind,
+    /// Live records in the store.
+    pub count: u64,
+}
+
+/// One verification-state breakdown of `memory.stats`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MemoryVerificationCount {
+    /// The verification state.
+    pub state: VerificationState,
+    /// Live records in the state.
+    pub count: u64,
+}
+
+/// `memory.stats` result: visible, live records only.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MemoryStats {
+    /// Live records visible to the caller.
+    pub total: u64,
+    /// Per-store breakdown (all four stores, in fixed order).
+    pub by_kind: Vec<MemoryKindCount>,
+    /// Per-verification-state breakdown (all four states, in fixed order).
+    pub by_verification: Vec<MemoryVerificationCount>,
+    /// Records at fold level 1 or higher.
+    pub folded: u64,
+    /// Working memory blocks in the caller's sandbox.
+    pub working_blocks: u64,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

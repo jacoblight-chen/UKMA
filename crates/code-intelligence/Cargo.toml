@@ -15,6 +15,7 @@ regex = "1"
 retrieval-engine = { path = "../retrieval-engine" }
 indexing-engine = { path = "../indexing-engine" }
 embedding-engine = { path = "../embedding-engine" }
+graph-engine = { path = "../graph-engine" }
 ukma-contracts = { path = "../ukma-contracts" }
 # Pinned to the locked upstream baseline (S2-rust), so the parse substrate is the
 # same grammar version CodeGraph used.

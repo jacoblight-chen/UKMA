@@ -20,14 +20,15 @@ use ukma_contracts::{RequestContext, ScopeRef};
 
 use crate::domain::{
     ArchitectureDoc, BlockKind, CancelJob, ChangeReceipt, ConsistencyCategory, ConsistencyFinding,
-    ConsistencyReport, DocChange, DocChangeKind, DocCompleteness, DocDiff, DocSourceSummary,
-    DocumentBlock, DocumentError, DocumentIngest, DocumentManifest, DocumentRevisionDiff,
-    DocumentSource, DocumentView, ExtractRelations, ExtractRequirements, ExtractedRelation,
-    GenerateArchitectureDoc, GetDocument, GetJob, GetSourceSpan, InvalidateDocumentRevision,
-    JobHandle, JobView, ListDocSources, ListRequirements, MediaFormat, NormativeStrength, Page,
-    ParseDiagnostic, ParsePreview, ParseStatus, RequirementCandidate, RequirementReviewResult,
-    RequirementStatus, Result, ReviewDecision, ReviewRequirement, SearchDocument, SearchHit,
-    Severity, SourceSpanView, Span, ValidationState, VerifyConsistency,
+    ConsistencyReport, DocChange, DocChangeKind, DocCompleteness, DocDeletionReceipt, DocDiff,
+    DocSourceSummary, DocumentBlock, DocumentError, DocumentIngest, DocumentManifest,
+    DocumentRevisionDiff, DocumentSource, DocumentView, ExtractRelations, ExtractRequirements,
+    ExtractedRelation, GenerateArchitectureDoc, GetDocument, GetJob, GetSourceSpan,
+    InvalidateDocumentRevision, JobHandle, JobView, ListDocSources, ListRequirements, MediaFormat,
+    NormativeStrength, Page, ParseDiagnostic, ParsePreview, ParseStatus, RemoveDocSource,
+    RequirementCandidate, RequirementReviewResult, RequirementStatus, Result, ReviewDecision,
+    ReviewRequirement, SearchDocument, SearchHit, Severity, SourceSpanView, Span, ValidationState,
+    VerifyConsistency,
 };
 use crate::parsers::{Anchor, DocLink, DocumentParserPort, ParseLimits};
 
@@ -224,6 +225,8 @@ impl DocIndex {
 #[derive(Debug, Default)]
 struct ServiceState {
     documents: BTreeMap<String, DocIndex>,
+    /// Durable tombstones for removed document sources (DAPI-15).
+    removed: BTreeMap<String, RemovedDoc>,
     jobs: JobManager,
     job_documents: BTreeMap<String, String>,
     job_scopes: BTreeMap<String, ScopeRef>,
@@ -232,6 +235,17 @@ struct ServiceState {
     idempotency: BTreeMap<String, (String, String)>,
     generation: GenerationPointer,
     sequence: u64,
+}
+
+/// A durable tombstone for a removed document source (DAPI-15): it keeps the
+/// deletion observable (repeated removals are `ALREADY_DELETED`) and the
+/// idempotent replayable.
+#[derive(Debug, Clone)]
+struct RemovedDoc {
+    /// Scope that owned the document.
+    scope: ScopeRef,
+    /// Blocks that were removed.
+    block_count: u32,
 }
 
 impl ServiceState {
@@ -1401,6 +1415,142 @@ impl DocumentService {
         }
         items.sort_by(|left, right| left.document_id.cmp(&right.document_id));
         Page::of(items, &request.page)
+    }
+
+    /// `document.remove_source` (DAPI-15): remove an ingested document
+    /// source. Durable tombstone semantics (mirrors `memory.forget`):
+    /// - the removal is idempotent per idempotency key (replay returns the
+    ///   recorded receipt with `deleted = false`);
+    /// - a repeated removal without the key is `ALREADY_DELETED`;
+    /// - a queued/running job on the document is `DELETION_BLOCKED`.
+    pub fn remove_source(
+        &self,
+        ctx: &RequestContext,
+        request: &RemoveDocSource,
+    ) -> Result<DocDeletionReceipt> {
+        self.authorizer.require_scope(ctx, SCOPE_INDEX_ADMIN)?;
+        if request.document_id.trim().is_empty() {
+            return Err(DocumentError::InvalidArgument {
+                field: "document_id",
+                reason: "must be non-empty".into(),
+            });
+        }
+        let mut hasher = Sha256::new();
+        hasher.update(b"remove_source|");
+        hasher.update(request.document_id.as_bytes());
+        let fingerprint: String = hasher
+            .finalize()
+            .iter()
+            .take(12)
+            .map(|byte| format!("{byte:02x}"))
+            .collect();
+        let mut state = self.lock();
+
+        // Idempotent replay: same key + same fingerprint -> the tombstone is
+        // the source of truth for the receipt.
+        if let Some(key) = &ctx.idempotency_key {
+            match state.idempotency.get(key) {
+                Some((stored, _)) if stored == &fingerprint => {
+                    let tombstone = state.removed.get(&request.document_id).ok_or_else(|| {
+                        DocumentError::NotFound {
+                            resource: format!("document {}", request.document_id),
+                        }
+                    })?;
+                    if tombstone.scope.tenant_id != ctx.scope.tenant_id
+                        || tombstone.scope.project_id != ctx.scope.project_id
+                    {
+                        return Err(DocumentError::NotFound {
+                            resource: format!("document {}", request.document_id),
+                        });
+                    }
+                    return Ok(DocDeletionReceipt {
+                        document_id: request.document_id.clone(),
+                        removed_blocks: tombstone.block_count,
+                        deleted: false,
+                    });
+                }
+                Some(_) => return Err(DocumentError::IdempotencyConflict { key: key.clone() }),
+                None => {}
+            }
+        }
+
+        // A tombstoned document: the cross-scope check preserves tenant
+        // isolation (cross-scope callers see NOT_FOUND, never the tombstone).
+        if let Some(tombstone) = state.removed.get(&request.document_id) {
+            if tombstone.scope.tenant_id != ctx.scope.tenant_id
+                || tombstone.scope.project_id != ctx.scope.project_id
+            {
+                return Err(DocumentError::NotFound {
+                    resource: format!("document {}", request.document_id),
+                });
+            }
+            return Err(DocumentError::AlreadyDeleted {
+                document_id: request.document_id.clone(),
+            });
+        }
+        let index =
+            state
+                .documents
+                .get(&request.document_id)
+                .ok_or_else(|| DocumentError::NotFound {
+                    resource: format!("document {}", request.document_id),
+                })?;
+        if index.scope.tenant_id != ctx.scope.tenant_id
+            || index.scope.project_id != ctx.scope.project_id
+        {
+            // Cross-scope: existence is never leaked.
+            return Err(DocumentError::NotFound {
+                resource: format!("document {}", request.document_id),
+            });
+        }
+        // A queued/running re-ingest of the same artifact blocks the removal
+        // (its commit would resurrect the document).
+        let artifact_ref = index.source.artifact_ref.clone();
+        let blocked = state.job_requests.iter().any(|(job_id, request)| {
+            if request.source.artifact_ref != artifact_ref {
+                return false;
+            }
+            state
+                .jobs
+                .get(job_id)
+                .map(|job| {
+                    matches!(
+                        job.stage,
+                        Stage::Queued
+                            | Stage::Parsing
+                            | Stage::Extracting
+                            | Stage::Resolving
+                            | Stage::Staging
+                            | Stage::Committing
+                            | Stage::Indexing
+                    )
+                })
+                .unwrap_or(false)
+        });
+        if blocked {
+            return Err(DocumentError::DeletionBlocked {
+                document_id: request.document_id.clone(),
+            });
+        }
+
+        let block_count = index.blocks.len() as u32;
+        let scope = index.scope.clone();
+        state.documents.remove(&request.document_id);
+        state.sequence += 1;
+        state.removed.insert(
+            request.document_id.clone(),
+            RemovedDoc { scope, block_count },
+        );
+        if let Some(key) = &ctx.idempotency_key {
+            state
+                .idempotency
+                .insert(key.clone(), (fingerprint, String::new()));
+        }
+        Ok(DocDeletionReceipt {
+            document_id: request.document_id.clone(),
+            removed_blocks: block_count,
+            deleted: true,
+        })
     }
 
     /// `document.generate_architecture_doc`: renders the markdown document

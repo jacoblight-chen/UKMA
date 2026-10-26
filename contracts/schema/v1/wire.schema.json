@@ -775,6 +775,13 @@
           },
           "type": "array"
         },
+        "import_path": {
+          "description": "Module path of an `imports` declaration (ledger S9 deviation).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "kind": {
           "allOf": [
             {
@@ -1924,6 +1931,64 @@
         }
       ]
     },
+    "DetailedSymbol": {
+      "description": "Result of `code.get_detailed_symbol` (CAPI-16): the symbol plus its complexity and direct call relationships.",
+      "properties": {
+        "callee_count": {
+          "description": "Total direct callee count.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "callees": {
+          "description": "Symbols this one calls (direct `calls` outgoing edges).",
+          "items": {
+            "$ref": "#/$defs/SymbolRef"
+          },
+          "type": "array"
+        },
+        "caller_count": {
+          "description": "Total direct caller count.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "callers": {
+          "description": "Symbols that call this one (direct `calls` incoming edges).",
+          "items": {
+            "$ref": "#/$defs/SymbolRef"
+          },
+          "type": "array"
+        },
+        "complexity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ComplexityReport"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Complexity, present for function/method kinds."
+        },
+        "symbol": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CodeSymbol"
+            }
+          ],
+          "description": "The symbol itself."
+        }
+      },
+      "required": [
+        "callee_count",
+        "callees",
+        "caller_count",
+        "callers",
+        "symbol"
+      ],
+      "type": "object"
+    },
     "Direction": {
       "description": "Direction of a traversal (`§32.1 TraversalQuery.direction`).",
       "oneOf": [
@@ -2067,6 +2132,31 @@
           "type": "string"
         }
       ]
+    },
+    "DocDeletionReceipt": {
+      "description": "Receipt for a removed document source (DAPI-15).",
+      "properties": {
+        "deleted": {
+          "description": "True when this call performed the deletion; false when the call replayed a previously recorded idempotent deletion.",
+          "type": "boolean"
+        },
+        "document_id": {
+          "description": "The removed document.",
+          "type": "string"
+        },
+        "removed_blocks": {
+          "description": "Blocks removed by this call.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "deleted",
+        "document_id",
+        "removed_blocks"
+      ],
+      "type": "object"
     },
     "DocDiff": {
       "description": "Result of `document.compare_revisions` (`§33.1 DocDiff`).",
@@ -3131,6 +3221,44 @@
       ],
       "type": "object"
     },
+    "ExportGraphQuery": {
+      "description": "Request: export the code graph of a revision (CAPI-18).",
+      "properties": {
+        "edge_kinds": {
+          "description": "Edge kinds to include (empty means every kind).",
+          "items": {
+            "$ref": "#/$defs/CodeEdgeKind"
+          },
+          "type": "array"
+        },
+        "format": {
+          "description": "Export format wire name (`dot`, `json`, `csv`, `triples`).",
+          "type": "string"
+        },
+        "max_nodes": {
+          "description": "Cap on exported nodes (1..=10000); edges touching dropped nodes are dropped too. `0` means no cap.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "repository_id": {
+          "description": "Repository the query is bound to.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Revision (commit SHA or a registered alias).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "edge_kinds",
+        "format",
+        "max_nodes",
+        "repository_id",
+        "revision"
+      ],
+      "type": "object"
+    },
     "ExtractRelations": {
       "description": "`document.extract_relations` (DAPI-08).",
       "properties": {
@@ -3298,6 +3426,79 @@
       "required": [
         "fact",
         "max_results"
+      ],
+      "type": "object"
+    },
+    "FindImplementorsQuery": {
+      "description": "Request: implementors of a symbol (`find_implementors` parity, CAPI-14).",
+      "properties": {
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CodePageRequest"
+            }
+          ],
+          "description": "Page."
+        },
+        "repository_id": {
+          "description": "Repository the query is bound to.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Revision (commit SHA or a registered alias).",
+          "type": "string"
+        },
+        "target_symbol_id": {
+          "description": "The interface/trait whose implementors are wanted.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "page",
+        "repository_id",
+        "revision",
+        "target_symbol_id"
+      ],
+      "type": "object"
+    },
+    "FindImportersQuery": {
+      "description": "Request: reverse import lookup by module name (`code.find_importers`, CAPI-33).",
+      "properties": {
+        "match_mode": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ImportMatchMode"
+            }
+          ],
+          "default": "contains",
+          "description": "Match mode (default `contains`)."
+        },
+        "module_name": {
+          "description": "Module name to search for.",
+          "type": "string"
+        },
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CodePageRequest"
+            }
+          ],
+          "description": "Page."
+        },
+        "repository_id": {
+          "description": "Repository the query is bound to.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Revision (commit SHA or a registered alias).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "module_name",
+        "page",
+        "repository_id",
+        "revision"
       ],
       "type": "object"
     },
@@ -3543,6 +3744,29 @@
       ],
       "type": "object"
     },
+    "GetDetailedSymbolQuery": {
+      "description": "Request: one symbol with its full detail (`get_detailed_symbol` parity, CAPI-16).",
+      "properties": {
+        "repository_id": {
+          "description": "Repository the query is bound to.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Revision (commit SHA or a registered alias).",
+          "type": "string"
+        },
+        "symbol_id": {
+          "description": "The symbol.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "repository_id",
+        "revision",
+        "symbol_id"
+      ],
+      "type": "object"
+    },
     "GetDocument": {
       "description": "`document.get_document` (DAPI-04).",
       "properties": {
@@ -3618,6 +3842,10 @@
       ],
       "type": "object"
     },
+    "GetMemoryStats": {
+      "description": "`memory.stats` request (empty payload).",
+      "type": "null"
+    },
     "GetSourceSpan": {
       "description": "`document.get_source_span` (DAPI-14).",
       "properties": {
@@ -3670,6 +3898,43 @@
       },
       "required": [
         "job_id"
+      ],
+      "type": "object"
+    },
+    "GraphExport": {
+      "description": "Result of `code.export_graph` (CAPI-18).",
+      "properties": {
+        "content": {
+          "description": "The rendered graph.",
+          "type": "string"
+        },
+        "edge_count": {
+          "description": "Edges in the export.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "format": {
+          "description": "The format wire name that was used.",
+          "type": "string"
+        },
+        "node_count": {
+          "description": "Nodes in the export.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "truncated": {
+          "description": "True when the `max_nodes` cap dropped nodes.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "content",
+        "edge_count",
+        "format",
+        "node_count",
+        "truncated"
       ],
       "type": "object"
     },
@@ -3856,6 +4121,131 @@
         "paths",
         "test_candidates",
         "unresolved_dynamic_calls"
+      ],
+      "type": "object"
+    },
+    "ImplementorMatch": {
+      "description": "One implementor of the queried symbol (CAPI-14).",
+      "properties": {
+        "evidence": {
+          "description": "Evidence for the match (edge evidence ids).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "language": {
+          "description": "Language identifier.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Simple name.",
+          "type": "string"
+        },
+        "symbol_id": {
+          "description": "Implementing symbol.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "evidence",
+        "language",
+        "name",
+        "symbol_id"
+      ],
+      "type": "object"
+    },
+    "ImportMatchMode": {
+      "description": "Module name match mode for `code.find_importers` (CAPI-33).",
+      "oneOf": [
+        {
+          "description": "Exact equality.",
+          "enum": [
+            "exact"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "`imported_module` starts with the query.",
+          "enum": [
+            "prefix"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Case-sensitive substring (the default).",
+          "enum": [
+            "contains"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Case-insensitive substring.",
+          "enum": [
+            "fuzzy"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "ImporterMatch": {
+      "description": "One importing file of a module (CAPI-33).",
+      "properties": {
+        "evidence": {
+          "description": "Evidence ids of the import edge.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "imported_module": {
+          "description": "Module name as written in the import declaration.",
+          "type": "string"
+        },
+        "importer_file": {
+          "description": "File that imports the module (repository-relative path).",
+          "type": "string"
+        },
+        "line": {
+          "description": "1-based line of the import declaration.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "evidence",
+        "imported_module",
+        "importer_file",
+        "line"
+      ],
+      "type": "object"
+    },
+    "IndexDirectory": {
+      "description": "Request: index every source-snapshot file under a path prefix (`index_directory` parity, CAPI-17).",
+      "properties": {
+        "base_revision": {
+          "description": "Base revision to extend (commit SHA or a registered alias).",
+          "type": "string"
+        },
+        "parser_profile": {
+          "description": "Parser profile.",
+          "type": "string"
+        },
+        "path_prefix": {
+          "description": "Only files whose path starts with this prefix (e.g. `src/lib/`).",
+          "type": "string"
+        },
+        "repository_id": {
+          "description": "Repository the files are added to.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "base_revision",
+        "parser_profile",
+        "path_prefix",
+        "repository_id"
       ],
       "type": "object"
     },
@@ -4115,6 +4505,31 @@
       ],
       "type": "object"
     },
+    "ListMemoryQuery": {
+      "description": "`memory.list` request: live records, optionally per store, cursor-paged.",
+      "properties": {
+        "kinds": {
+          "description": "Stores to list; empty means all stores.",
+          "items": {
+            "$ref": "#/$defs/MemoryKind"
+          },
+          "type": "array"
+        },
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryPageRequest"
+            }
+          ],
+          "description": "Cursor page."
+        }
+      },
+      "required": [
+        "kinds",
+        "page"
+      ],
+      "type": "object"
+    },
     "ListRequirements": {
       "description": "`document.list_requirements` (DAPI-10).",
       "properties": {
@@ -4243,6 +4658,108 @@
       ],
       "type": "object"
     },
+    "MemoryContextMatch": {
+      "description": "One `memory.context` match.",
+      "properties": {
+        "kind": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryKind"
+            }
+          ],
+          "description": "Store the record lives in."
+        },
+        "matched_on": {
+          "description": "Which query terms matched: `path`, `symbol` or `path+symbol`.",
+          "type": "string"
+        },
+        "reference": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryRef"
+            }
+          ],
+          "description": "Address of the record."
+        },
+        "summary": {
+          "description": "Head summary.",
+          "type": "string"
+        },
+        "trust": {
+          "description": "Ranking trust of the record.",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "kind",
+        "matched_on",
+        "reference",
+        "summary",
+        "trust"
+      ],
+      "type": "object"
+    },
+    "MemoryContextQuery": {
+      "description": "`memory.context` request: memories relevant to a code path or symbol.",
+      "properties": {
+        "limit": {
+          "description": "Maximum number of matches: `0` defaults to 20, maximum 100.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "min_trust": {
+          "description": "Minimum ranking trust, in `[0,1]`.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "path": {
+          "description": "Code path to match (case-insensitive), e.g. `crates/memory-domain/src/service.rs`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "symbol_id": {
+          "description": "Canonical symbol id to match (case-insensitive).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "limit"
+      ],
+      "type": "object"
+    },
+    "MemoryContextResult": {
+      "description": "`memory.context` result, ranked by trust (desc) then id (asc).",
+      "properties": {
+        "matches": {
+          "description": "Matches within the limit.",
+          "items": {
+            "$ref": "#/$defs/MemoryContextMatch"
+          },
+          "type": "array"
+        },
+        "total": {
+          "description": "How many records matched before the limit.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "matches",
+        "total"
+      ],
+      "type": "object"
+    },
     "MemoryEvidence": {
       "description": "Evidence supporting a claim (§21.1 `provenance_refs`, §34.1).",
       "properties": {
@@ -4363,6 +4880,114 @@
           "type": "string"
         }
       ]
+    },
+    "MemoryKindCount": {
+      "description": "One store breakdown of `memory.stats`.",
+      "properties": {
+        "count": {
+          "description": "Live records in the store.",
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "kind": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryKind"
+            }
+          ],
+          "description": "The store."
+        }
+      },
+      "required": [
+        "count",
+        "kind"
+      ],
+      "type": "object"
+    },
+    "MemoryListItem": {
+      "description": "One entry of the `memory.list` page.",
+      "properties": {
+        "kind": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryKind"
+            }
+          ],
+          "description": "Store the record lives in."
+        },
+        "reference": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/MemoryRef"
+            }
+          ],
+          "description": "Address of the record."
+        },
+        "state": {
+          "description": "Verification state token.",
+          "type": "string"
+        },
+        "summary": {
+          "description": "Head summary.",
+          "type": "string"
+        },
+        "token_count": {
+          "description": "Estimated token count of the body.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "trust": {
+          "description": "Ranking trust of the record.",
+          "format": "double",
+          "type": "number"
+        },
+        "version": {
+          "description": "Head revision number.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "reference",
+        "state",
+        "summary",
+        "token_count",
+        "trust",
+        "version"
+      ],
+      "type": "object"
+    },
+    "MemoryListPage": {
+      "description": "`memory.list` result.",
+      "properties": {
+        "items": {
+          "description": "The page of records, ordered by id.",
+          "items": {
+            "$ref": "#/$defs/MemoryListItem"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "description": "Cursor for the next page.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "total": {
+          "description": "How many records matched the filter.",
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "total"
+      ],
+      "type": "object"
     },
     "MemoryPageRequest": {
       "description": "Cursor page request (§31.4).",
@@ -4539,6 +5164,75 @@
         "id",
         "kind",
         "revision"
+      ],
+      "type": "object"
+    },
+    "MemoryStats": {
+      "description": "`memory.stats` result: visible, live records only.",
+      "properties": {
+        "by_kind": {
+          "description": "Per-store breakdown (all four stores, in fixed order).",
+          "items": {
+            "$ref": "#/$defs/MemoryKindCount"
+          },
+          "type": "array"
+        },
+        "by_verification": {
+          "description": "Per-verification-state breakdown (all four states, in fixed order).",
+          "items": {
+            "$ref": "#/$defs/MemoryVerificationCount"
+          },
+          "type": "array"
+        },
+        "folded": {
+          "description": "Records at fold level 1 or higher.",
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "total": {
+          "description": "Live records visible to the caller.",
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "working_blocks": {
+          "description": "Working memory blocks in the caller's sandbox.",
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "by_kind",
+        "by_verification",
+        "folded",
+        "total",
+        "working_blocks"
+      ],
+      "type": "object"
+    },
+    "MemoryVerificationCount": {
+      "description": "One verification-state breakdown of `memory.stats`.",
+      "properties": {
+        "count": {
+          "description": "Live records in the state.",
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "state": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/VerificationState"
+            }
+          ],
+          "description": "The verification state."
+        }
+      },
+      "required": [
+        "count",
+        "state"
       ],
       "type": "object"
     },
@@ -5051,6 +5745,52 @@
         },
         "next_cursor": {
           "description": "Cursor for the next page.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "type": "object"
+    },
+    "Page_for_ImplementorMatch": {
+      "description": "One page of results.",
+      "properties": {
+        "items": {
+          "description": "Items in this page.",
+          "items": {
+            "$ref": "#/$defs/ImplementorMatch"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "description": "Cursor for the next page, when more items exist.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "type": "object"
+    },
+    "Page_for_ImporterMatch": {
+      "description": "One page of results.",
+      "properties": {
+        "items": {
+          "description": "Items in this page.",
+          "items": {
+            "$ref": "#/$defs/ImporterMatch"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "description": "Cursor for the next page, when more items exist.",
           "type": [
             "string",
             "null"
@@ -5742,6 +6482,41 @@
       ],
       "type": "object"
     },
+    "ProOrchestratedScanRequest": {
+      "description": "Key for `pro.security_orchestrated_scan`.",
+      "properties": {
+        "engines": {
+          "description": "The engines to run; `native` (the heuristic suite, reported as `codegraph`) is the built-in engine.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "path_filter": {
+          "description": "Substring filter on the file path (optional).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revision": {
+          "description": "The indexed revision to analyze.",
+          "type": "string"
+        },
+        "severity": {
+          "description": "Minimum severity gate (optional; `info` / `warning` / `error` / `critical`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "engines",
+        "revision"
+      ],
+      "type": "object"
+    },
     "ProQueryRequest": {
       "description": "Key for `pro.cross_project_search` / `pro.search_git_history`.",
       "properties": {
@@ -6279,6 +7054,19 @@
         "repository_id",
         "revision",
         "symbol_id"
+      ],
+      "type": "object"
+    },
+    "RemoveDocSource": {
+      "description": "Request: remove an ingested document source (`remove_doc_source` parity, DAPI-15).",
+      "properties": {
+        "document_id": {
+          "description": "Document id to remove.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document_id"
       ],
       "type": "object"
     },
@@ -7181,6 +7969,24 @@
       ],
       "type": "object"
     },
+    "SymbolRef": {
+      "description": "One referenced symbol (id + name) in a detailed view (CAPI-16).",
+      "properties": {
+        "id": {
+          "description": "Symbol id.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Simple name.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "type": "object"
+    },
     "TraceImpact": {
       "description": "Impact analysis result (§35.1).",
       "properties": {
@@ -7761,6 +8567,98 @@
       ],
       "type": "object"
     },
+    "TraverseQuery": {
+      "description": "Request: bounded free traversal (`traverse_graph` parity, CAPI-15).",
+      "properties": {
+        "direction": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Direction"
+            }
+          ],
+          "description": "Direction to follow."
+        },
+        "edge_kinds": {
+          "description": "Edge kinds to follow (empty means every kind except `defines`).",
+          "items": {
+            "$ref": "#/$defs/CodeEdgeKind"
+          },
+          "type": "array"
+        },
+        "max_depth": {
+          "description": "Maximum hops (1..=32).",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "max_nodes": {
+          "description": "Maximum visited nodes (1..=10000).",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/CodePageRequest"
+            }
+          ],
+          "description": "Page over the collected edges."
+        },
+        "repository_id": {
+          "description": "Repository the query is bound to.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Revision (commit SHA or a registered alias).",
+          "type": "string"
+        },
+        "start_symbol_id": {
+          "description": "Start symbol.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "direction",
+        "edge_kinds",
+        "max_depth",
+        "max_nodes",
+        "page",
+        "repository_id",
+        "revision",
+        "start_symbol_id"
+      ],
+      "type": "object"
+    },
+    "TraverseResult": {
+      "description": "Result of `code.traverse` (CAPI-15).",
+      "properties": {
+        "edges": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Page_for_CodeEdge"
+            }
+          ],
+          "description": "The collected (deduplicated, sorted) edges, paged."
+        },
+        "truncated": {
+          "description": "True when the `max_nodes` cap stopped the traversal early.",
+          "type": "boolean"
+        },
+        "visited_count": {
+          "description": "Symbols visited (including the start symbol).",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "edges",
+        "truncated",
+        "visited_count"
+      ],
+      "type": "object"
+    },
     "Trust": {
       "description": "Trust columns of a memory object (§21.1, kept separate from authorization).",
       "properties": {
@@ -7933,6 +8831,39 @@
         "index_freshness"
       ],
       "type": "object"
+    },
+    "VerificationState": {
+      "description": "Verification state of a memory record (§21.1 `verification_state`).",
+      "oneOf": [
+        {
+          "description": "No independent verification yet.",
+          "enum": [
+            "unverified"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Independently verified.",
+          "enum": [
+            "verified"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Contradicted or rejected.",
+          "enum": [
+            "rejected"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Verified once, but the source moved on.",
+          "enum": [
+            "stale"
+          ],
+          "type": "string"
+        }
+      ]
     },
     "VerifyConsistency": {
       "description": "`document.verify_consistency` (DAPI-11).",
@@ -8116,6 +9047,10 @@
       "request": "CodeRevisionDiff",
       "response": "Page_for_CodeChange"
     },
+    "code.export_graph": {
+      "request": "ExportGraphQuery",
+      "response": "GraphExport"
+    },
     "code.find_by_signature": {
       "request": "SignatureQuery",
       "response": "Page_for_CodeSymbol"
@@ -8135,6 +9070,14 @@
     "code.find_hot_paths": {
       "request": "HotPathsQuery",
       "response": "Array_of_HotPath"
+    },
+    "code.find_implementors": {
+      "request": "FindImplementorsQuery",
+      "response": "Page_for_ImplementorMatch"
+    },
+    "code.find_importers": {
+      "request": "FindImportersQuery",
+      "response": "Page_for_ImporterMatch"
     },
     "code.find_references": {
       "request": "ReferenceQuery",
@@ -8160,6 +9103,10 @@
       "request": "CuratedContextQuery",
       "response": "CuratedContext"
     },
+    "code.get_detailed_symbol": {
+      "request": "GetDetailedSymbolQuery",
+      "response": "DetailedSymbol"
+    },
     "code.get_edit_context": {
       "request": "EditContextQuery",
       "response": "EditContextResult"
@@ -8171,6 +9118,10 @@
     "code.get_symbol": {
       "request": "GetSymbol",
       "response": "CodeSymbol"
+    },
+    "code.index_directory": {
+      "request": "IndexDirectory",
+      "response": "IndexedRevision"
     },
     "code.index_files": {
       "request": "IndexFiles",
@@ -8203,6 +9154,10 @@
     "code.search_by_pattern": {
       "request": "PatternSearchQuery",
       "response": "Page_for_PatternMatch"
+    },
+    "code.traverse": {
+      "request": "TraverseQuery",
+      "response": "TraverseResult"
     },
     "document.cancel_ingest_job": {
       "request": "DocumentCancelJob",
@@ -8256,6 +9211,10 @@
       "request": "ParsePreview",
       "response": "ParsedDocument"
     },
+    "document.remove_source": {
+      "request": "RemoveDocSource",
+      "response": "DocDeletionReceipt"
+    },
     "document.review_requirement": {
       "request": "ReviewRequirement",
       "response": "RequirementReviewResult"
@@ -8284,6 +9243,10 @@
       "request": "Consolidate",
       "response": "MemoryJobHandle"
     },
+    "memory.context": {
+      "request": "MemoryContextQuery",
+      "response": "MemoryContextResult"
+    },
     "memory.evaluate_eviction": {
       "request": "EvaluateEviction",
       "response": "EvictionPlan"
@@ -8307,6 +9270,10 @@
     "memory.get_consolidation_job": {
       "request": "GetMemoryJob",
       "response": "MemoryJobView"
+    },
+    "memory.list": {
+      "request": "ListMemoryQuery",
+      "response": "MemoryListPage"
     },
     "memory.list_working_blocks": {
       "request": "ListWorkingBlocks",
@@ -8355,6 +9322,10 @@
     "memory.search": {
       "request": "SearchMemory",
       "response": "Page_for_MemoryView"
+    },
+    "memory.stats": {
+      "request": "GetMemoryStats",
+      "response": "MemoryStats"
     },
     "memory.store_episode": {
       "request": "StoreEpisode",
@@ -8452,6 +9423,10 @@
       "request": "ProRevisionRequest",
       "response": "ProReport"
     },
+    "pro.security_codeql_warmup": {
+      "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
     "pro.security_control_flow": {
       "request": "ProRevisionRequest",
       "response": "ProReport"
@@ -8466,6 +9441,10 @@
     },
     "pro.security_generate_sbom": {
       "request": "ProRevisionRequest",
+      "response": "ProReport"
+    },
+    "pro.security_orchestrated_scan": {
+      "request": "ProOrchestratedScanRequest",
       "response": "ProReport"
     },
     "pro.security_scan_iac": {

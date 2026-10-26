@@ -1,0 +1,20 @@
+{
+  "api_version": "1",
+  "request_id": "x",
+  "trace_id": "x",
+  "status": "ok",
+  "data": {
+    "total_success": 1,
+    "total_failure": 0,
+    "per_operation": [
+      {
+        "operation_id": "system.metrics",
+        "success": 1,
+        "failure": 0
+      }
+    ]
+  },
+  "warnings": [],
+  "partial_reasons": [],
+  "freshness": "current"
+}

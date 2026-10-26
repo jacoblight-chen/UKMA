@@ -6,8 +6,8 @@
 //! policy (what to rescan, what "changed" means, how the revision is derived)
 //! stays in `ukma-cache`; this module only stores and returns rows.
 //!
-//! Stated limits: the database is a **cache** ??deleting it loses no
-//! information, only work ??and a file written by a newer schema version is
+//! Stated limits: the database is a **cache** — deleting it loses no
+//! information, only work — and a file written by a newer schema version is
 //! refused rather than silently reset.
 
 use std::path::{Path, PathBuf};

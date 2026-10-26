@@ -21,7 +21,9 @@ use crate::domain::{
     AgentScopeGrant, AgentScopeView, AgentStatus, BeginReconsolidation, BlockKind, BudgetView,
     ChangeReceipt, CloseAgentScope, CloseScopeResult, CommitReconsolidation, DeletionReceipt,
     DetailLevel, EvaluateEviction, EvictionPlan, FoldInput, FoldMemory, FoldedResult, ForgetMemory,
-    GetMemoryBudget, ListWorkingBlocks, MemoryError, MemoryKind, MemoryPatch, MemoryView,
+    GetMemoryBudget, GetMemoryStats, ListMemoryQuery, ListWorkingBlocks, MemoryContextMatch,
+    MemoryContextQuery, MemoryContextResult, MemoryError, MemoryKind, MemoryKindCount,
+    MemoryListItem, MemoryListPage, MemoryPatch, MemoryStats, MemoryVerificationCount, MemoryView,
     OpenAgentScope, Page, PageIn, PageInResult, PageOut, PageRequest, PagingReceipt, PagingStatus,
     ProcedureState, PutWorkingBlock, Ref, RemoveWorkingBlock, Result, RetrieveMemory, SearchMemory,
     StoreEpisode, Trust, UpdateMemory, VerificationState, WorkingState,
@@ -1958,6 +1960,226 @@ impl MemoryService {
     // -- MAPI-23 -------------------------------------------------------------
 
     /// `memory.forget` — tombstone a record and revoke every projection.
+    /// `memory.context` (MAPI-26): live records relevant to a code path or
+    /// symbol, ranked by trust.
+    pub fn memory_context(
+        &self,
+        ctx: &RequestContext,
+        request: &MemoryContextQuery,
+    ) -> Result<MemoryContextResult> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        let path = request
+            .path
+            .as_ref()
+            .map(|value| value.trim().to_lowercase())
+            .filter(|value| !value.is_empty());
+        let symbol = request
+            .symbol_id
+            .as_ref()
+            .map(|value| value.trim().to_lowercase())
+            .filter(|value| !value.is_empty());
+        if path.is_none() && symbol.is_none() {
+            return Err(MemoryError::InvalidArgument {
+                field: "path|symbol_id".to_string(),
+                reason: "at least one of path or symbol_id is required".to_string(),
+            });
+        }
+        if let Some(min_trust) = request.min_trust {
+            if !min_trust.is_finite() || !(0.0..=1.0).contains(&min_trust) {
+                return Err(MemoryError::InvalidArgument {
+                    field: "min_trust".to_string(),
+                    reason: "must be in [0,1]".to_string(),
+                });
+            }
+        }
+        let limit = if request.limit == 0 {
+            20
+        } else {
+            request.limit
+        };
+        if limit > 100 {
+            return Err(MemoryError::InvalidArgument {
+                field: "limit".to_string(),
+                reason: "must be in 1..=100".to_string(),
+            });
+        }
+        let state = self.lock();
+        let requested = ItemScope::from_context(ctx);
+        let mut matches: Vec<MemoryContextMatch> = Vec::new();
+        for item in state.items.values() {
+            if item.tombstoned || !Self::visible_to(&requested, item) {
+                continue;
+            }
+            let text = item.text().to_lowercase();
+            let on_path = path.as_ref().is_some_and(|needle| text.contains(needle));
+            let on_symbol = symbol.as_ref().is_some_and(|needle| text.contains(needle));
+            if !on_path && !on_symbol {
+                continue;
+            }
+            let trust = trust_of(item);
+            if request.min_trust.is_some_and(|min| trust < min) {
+                continue;
+            }
+            let matched_on = match (on_path, on_symbol) {
+                (true, true) => "path+symbol".to_string(),
+                (true, false) => "path".to_string(),
+                _ => "symbol".to_string(),
+            };
+            let head = item.revisions.head();
+            matches.push(MemoryContextMatch {
+                reference: Ref::new(item.revisions.id.clone(), item.kind, head.etag.clone()),
+                kind: item.kind,
+                trust,
+                summary: head.summary.clone(),
+                matched_on,
+            });
+        }
+        matches.sort_by(|a, b| {
+            b.trust
+                .partial_cmp(&a.trust)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| a.reference.id.cmp(&b.reference.id))
+        });
+        let total = matches.len() as u32;
+        matches.truncate(limit as usize);
+        Ok(MemoryContextResult { matches, total })
+    }
+
+    /// `memory.list` (MAPI-27): cursor-paged listing of live records.
+    pub fn list_memory(
+        &self,
+        ctx: &RequestContext,
+        request: &ListMemoryQuery,
+    ) -> Result<MemoryListPage> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        request.page.validate()?;
+        let state = self.lock();
+        let requested = ItemScope::from_context(ctx);
+        let visible: Vec<&MemoryItem> = state
+            .items
+            .values()
+            .filter(|item| !item.tombstoned && Self::visible_to(&requested, item))
+            .filter(|item| request.kinds.is_empty() || request.kinds.contains(&item.kind))
+            .collect();
+        let total = visible.len() as u64;
+        let mut ordered: Vec<MemoryListItem> = visible
+            .iter()
+            .map(|item| {
+                let head = item.revisions.head();
+                MemoryListItem {
+                    reference: Ref::new(item.revisions.id.clone(), item.kind, head.etag.clone()),
+                    kind: item.kind,
+                    state: item.verification.as_str().to_string(),
+                    trust: trust_of(item),
+                    summary: head.summary.clone(),
+                    version: head.revision.to_string(),
+                    token_count: (head.content.chars().count() / 4) as u32,
+                }
+            })
+            .collect();
+        ordered.sort_by(|a, b| a.reference.id.cmp(&b.reference.id));
+        let offset = request.page.offset()?;
+        if offset > ordered.len() {
+            return Err(MemoryError::CursorExpired {
+                cursor: request.page.cursor.clone().unwrap_or_default(),
+            });
+        }
+        let limit = request.page.limit as usize;
+        let mut page: Vec<MemoryListItem> =
+            ordered.into_iter().skip(offset).take(limit + 1).collect();
+        let next_cursor = if page.len() > limit {
+            page.truncate(limit);
+            Some((offset + limit).to_string())
+        } else {
+            None
+        };
+        Ok(MemoryListPage {
+            items: page,
+            next_cursor,
+            total,
+        })
+    }
+
+    /// `memory.stats` (MAPI-28): per-store and per-verification-state counts
+    /// over the live records visible to the caller.
+    pub fn memory_stats(
+        &self,
+        ctx: &RequestContext,
+        _request: &GetMemoryStats,
+    ) -> Result<MemoryStats> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        let state = self.lock();
+        let requested = ItemScope::from_context(ctx);
+        let stores: [MemoryKind; 4] = [
+            MemoryKind::Working,
+            MemoryKind::Episodic,
+            MemoryKind::Semantic,
+            MemoryKind::Procedural,
+        ];
+        let states: [VerificationState; 4] = [
+            VerificationState::Unverified,
+            VerificationState::Verified,
+            VerificationState::Rejected,
+            VerificationState::Stale,
+        ];
+        let mut by_kind = [0u64; 4];
+        let mut by_verification = [0u64; 4];
+        let mut total = 0u64;
+        let mut folded = 0u64;
+        for item in state.items.values() {
+            if item.tombstoned || !Self::visible_to(&requested, item) {
+                continue;
+            }
+            total += 1;
+            by_kind[Self::kind_index(item.kind)] += 1;
+            by_verification[Self::verification_index(item.verification)] += 1;
+            if item.fold_level > 0 {
+                folded += 1;
+            }
+        }
+        let working_blocks = state.blocks.len() as u64;
+        Ok(MemoryStats {
+            total,
+            by_kind: stores
+                .iter()
+                .enumerate()
+                .map(|(index, kind)| MemoryKindCount {
+                    kind: *kind,
+                    count: by_kind[index],
+                })
+                .collect(),
+            by_verification: states
+                .iter()
+                .enumerate()
+                .map(|(index, state)| MemoryVerificationCount {
+                    state: *state,
+                    count: by_verification[index],
+                })
+                .collect(),
+            folded,
+            working_blocks,
+        })
+    }
+
+    fn kind_index(kind: MemoryKind) -> usize {
+        match kind {
+            MemoryKind::Working => 0,
+            MemoryKind::Episodic => 1,
+            MemoryKind::Semantic => 2,
+            MemoryKind::Procedural => 3,
+        }
+    }
+
+    fn verification_index(state: VerificationState) -> usize {
+        match state {
+            VerificationState::Unverified => 0,
+            VerificationState::Verified => 1,
+            VerificationState::Rejected => 2,
+            VerificationState::Stale => 3,
+        }
+    }
+
+    /// `memory.forget` (MAPI-25): tombstone a record with the §22.5 guards.
     pub fn forget(&self, ctx: &RequestContext, request: &ForgetMemory) -> Result<DeletionReceipt> {
         self.authorizer.require_scope(ctx, SCOPE_FORGET)?;
         if request.reason.trim().is_empty() {

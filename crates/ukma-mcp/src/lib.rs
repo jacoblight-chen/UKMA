@@ -1,5 +1,5 @@
-//! UKMA gateway: registry-driven MCP tool + REST dispatch for the 108 domain
-//! operations and the 4 system operations.
+//! UKMA gateway: registry-driven MCP tool + REST dispatch for the 120 domain
+//! operations and the 5 system operations.
 //!
 //! Normative source: `docs/UKMA_v1.2.3_Full_Spec.md` §31.
 //!
@@ -20,6 +20,7 @@ pub mod gateway;
 pub mod handlers;
 pub mod index;
 pub mod instant;
+pub mod lsp;
 pub mod manifest;
 pub mod parse_cache;
 pub mod pending;
@@ -35,11 +36,13 @@ pub use code_intelligence::pro::{
 pub use code_intelligence::search::SearchPolicy;
 use code_intelligence::service::SourceSnapshotPort;
 pub use context::{visibility, visibility_error, OpContext, Visibility};
-#[cfg(feature = "onnx")]
-pub use embedding_engine::RealOnnxEmbedder;
 pub use embedding_engine::{
     effective_mode, model_gate_passes, skip_memory_check, standard_registry, BackendMode,
     EmbeddingModel, EmbeddingPort, MemoryProbe, OnnxEmbedder, SystemMemoryProbe, RAM_GATE_BYTES,
+};
+#[cfg(feature = "onnx")]
+pub use embedding_engine::{
+    resolve_static_model_dir, HfTokenizer, Model2VecEmbedder, Pooling, RealOnnxEmbedder,
 };
 pub use error::{DomainFailure, GatewayError};
 pub use gateway::{Gateway, GatewayOutcome, Handler};
@@ -48,6 +51,7 @@ pub use index::{
     glob_match, index_directory, index_multi, is_skipped_dir, is_skipped_file, resolve_cwd_alias,
     revision_of, tree_signature, CwdIndex, IndexOptions, IndexedSources,
 };
+pub use lsp::{run_lsp, LspSession};
 pub use manifest::{drift, manifest_json, tool_by_name, tools, Tool, ToolProfile};
 pub use parse_cache::{CachingParser, PARSE_CACHE_VERSION};
 pub use pending::{banner, PendingFile, PendingProbe, SnapshotProbe, SnapshotStat};

@@ -1,0 +1,16 @@
+{
+  "api_version": "2",
+  "operation": "ukma.memory.stats.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": null
+}

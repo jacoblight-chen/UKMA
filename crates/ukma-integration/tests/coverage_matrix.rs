@@ -178,12 +178,12 @@ fn the_matrix_covers_the_whole_closed_error_and_operation_set() {
             *families.entry(family).or_default() += 1;
         }
     }
-    assert_eq!(families.get("CAPI").copied(), Some(27));
-    assert_eq!(families.get("DAPI").copied(), Some(16));
-    assert_eq!(families.get("MAPI").copied(), Some(25));
+    assert_eq!(families.get("CAPI").copied(), Some(33));
+    assert_eq!(families.get("DAPI").copied(), Some(17));
+    assert_eq!(families.get("MAPI").copied(), Some(28));
     assert_eq!(families.get("TAPI").copied(), Some(13));
-    assert_eq!(families.get("SYS").copied(), Some(4));
-    assert_eq!(families.get("PRO").copied(), Some(27));
+    assert_eq!(families.get("SYS").copied(), Some(5));
+    assert_eq!(families.get("PRO").copied(), Some(29));
 
     // And the matrix describes this repository at this spec version.
     let matrix = load_matrix();

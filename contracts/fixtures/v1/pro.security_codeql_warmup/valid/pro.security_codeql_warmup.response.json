@@ -1,0 +1,20 @@
+{
+  "api_version": "1",
+  "request_id": "x",
+  "trace_id": "x",
+  "status": "ok",
+  "data": {
+    "report": {
+      "ready": true,
+      "analyzer": "codeql",
+      "engine": "native",
+      "file_count": 1,
+      "symbol_count": 0,
+      "line_count": 1,
+      "languages": []
+    }
+  },
+  "warnings": [],
+  "partial_reasons": [],
+  "freshness": "current"
+}

@@ -1,0 +1,22 @@
+{
+  "api_version": "1",
+  "operation": "ukma.code.find_implementors.v1",
+  "context": {
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "page": {
+      "limit": 0
+    },
+    "repository_id": "x",
+    "revision": "x",
+    "target_symbol_id": "x"
+  }
+}

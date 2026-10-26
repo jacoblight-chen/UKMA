@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/memory.context.request.schema.json",
+  "title": "memory.context Request (Phase 4 typed candidate)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "operation",
+    "context",
+    "input"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "1"
+    },
+    "operation": {
+      "const": "ukma.memory.context.v1"
+    },
+    "context": {
+      "$ref": "shared.schema.json#/$defs/RequestContext"
+    },
+    "input": {
+      "$ref": "wire.schema.json#/$defs/MemoryContextQuery"
+    }
+  }
+}

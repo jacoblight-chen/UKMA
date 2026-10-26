@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/memory.context.request.schema.json",
+  "title": "memory.context Request (Phase 4 typed candidate)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "operation",
+    "context",
+    "input"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "1"
+    },
+    "operation": {
+      "const": "ukma.memory.context.v1"
+    },
+    "context": {
+      "$ref": "#/$defs/shared.RequestContext"
+    },
+    "input": {
+      "$ref": "#/$defs/wire.MemoryContextQuery"
+    }
+  },
+  "$defs": {
+    "wire.MemoryContextQuery": {
+      "description": "`memory.context` request: memories relevant to a code path or symbol.",
+      "properties": {
+        "limit": {
+          "description": "Maximum number of matches: `0` defaults to 20, maximum 100.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "min_trust": {
+          "description": "Minimum ranking trust, in `[0,1]`.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "path": {
+          "description": "Code path to match (case-insensitive), e.g. `crates/memory-domain/src/service.rs`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "symbol_id": {
+          "description": "Canonical symbol id to match (case-insensitive).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "limit"
+      ],
+      "type": "object"
+    },
+    "shared.ID": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "shared.ISODate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "shared.Consistency": {
+      "enum": [
+        "eventual",
+        "read_your_writes",
+        "snapshot",
+        "strict_generation"
+      ]
+    },
+    "shared.ScopeRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "project_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "repo_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "workspace_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "agent_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "session_id": {
+          "$ref": "#/$defs/shared.ID"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "project_id"
+      ]
+    },
+    "shared.RequestContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "trace_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "scope": {
+          "$ref": "#/$defs/shared.ScopeRef"
+        },
+        "principal_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "deadline_at": {
+          "$ref": "#/$defs/shared.ISODate"
+        },
+        "consistency": {
+          "$ref": "#/$defs/shared.Consistency"
+        },
+        "required_generation": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "snapshot_id": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "idempotency_key": {
+          "$ref": "#/$defs/shared.ID"
+        },
+        "expected_etag": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "delegation_token": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "request_id",
+        "trace_id",
+        "scope",
+        "principal_id",
+        "scopes",
+        "consistency"
+      ]
+    }
+  }
+}

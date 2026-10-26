@@ -1,0 +1,136 @@
+# UKMA Phase 8 Gap-Closure Migration Ledger — S8 slice
+# Template per docs/PHASE8_GAP_CLOSURE_PLAN.md §7.
+# The Phase 8 parity audit (plan §2) found 35 of 42 upstream CodeGraph tools
+# already covered by Phase 6/7, 5 partially covered and 2 missing; this slice
+# closes the gap with 10 operations + graph export + the LSP transport.
+#
+# This slice is UKMA-NATIVE: no upstream source was copied. The single
+# upstream reference consulted (graph-export semantics, G5) is recorded under
+# `upstream` for traceability only.
+
+slice_id: S8-gap-closure
+upstream:
+  repository: https://github.com/codegraph-ai/CodeGraph
+  commit: "590c2ca7dd7b37bd1d41caf45fac535b6522f969"
+  paths:
+    # Read-only reference only, consulted for graph-export semantics (G5:
+    # dot/json/csv/triples rendering). The export implementation is original
+    # UKMA code; no upstream source was ported into this slice.
+    - "f:\\codegraph-workspace\\codegraph-reference (read-only checkout at the locked SHA)"
+  note: >-
+    No upstream source was migrated in this slice. The CodeGraph reference
+    checkout was consulted to understand the four graph-export formats
+    (G5) only; crates/graph-engine/src/export.rs is original UKMA code.
+    Every other change in this slice has no upstream origin.
+target:
+  repository: ukma
+  crate:
+  - graph-engine
+  - code-intelligence
+  - document-intelligence
+  - memory-domain
+  - ukma-mcp
+  - ukma-cli
+  - ukma-integration
+  - ukma-contract-check
+  files:
+  - crates/graph-engine/src/export.rs (S8-1: four-format export, 9 inline tests)
+  - crates/code-intelligence/tests/gap_closure.rs (S8-2: CAPI-28..32, 24 tests)
+  - crates/document-intelligence/tests/dapi_matrix.rs (S8-2: DAPI-17 remove_source, 6 tests)
+  - crates/memory-domain/tests/gap_closure.rs (S8-2: MAPI-26..28, 14 tests)
+  - crates/ukma-mcp/tests/sys05_metrics.rs (S8-2: SYS-05, 5 tests)
+  - crates/ukma-mcp/src/lsp.rs (S8-4: LSP transport, 9 inline tests)
+  - crates/ukma-mcp/src/stdio.rs (dev_context generalized to a transport parameter)
+  - crates/ukma-mcp/src/manifest.rs (domain/system split 117/5; per-domain test counts)
+  - crates/ukma-mcp/src/sdk.rs (in-process transport test uses SYSTEM_OPERATION_COUNT)
+  - crates/ukma-cli/src/lib.rs (--lsp flag, bidirectional mutual exclusion with --mcp)
+  - crates/ukma-cli/src/main.rs (--lsp branch -> run_lsp)
+  - crates/ukma-integration/tests/e2e_gap_closure.rs (S8-5: E2E-GC-01..10, 41 tests)
+  - contracts/api/operation-registry.yaml (112 -> 122 operations; 10 new entries)
+  - contracts/schema/v1/wire.schema.json (regenerated with the 10 new operation types)
+  - contracts/fixtures/v1/code.find_implementors/ (+ 9 more per-op fixture directories, 20 fixtures)
+  - contracts/matrices/api-contract-matrix.yaml (10 new entries)
+  - crates/ukma-contract-check/src/lib.rs (per-op schema checks extended to 122 ops)
+license:
+  identified: true            # UKMA is Apache-2.0; no upstream code copied in this slice
+  notices_preserved: true    # NOTICE keeps the CodeGraph/Andrey Vasilevsky attribution
+  note: >-
+    No upstream code was copied, so no per-file license header transfer applies.
+    The upstream reference checkout (read-only) was consulted for semantics only.
+changes:
+- id: S8-C1
+  kind: addition
+  detail: >-
+    Graph export (G5): crates/graph-engine/src/export.rs renders a graph as
+    dot / json / csv / triples with an edge-kind filter and a node cap
+    (max_nodes > 10000 -> RESOURCE_LIMIT); unknown formats are rejected.
+    UKMA-native; the upstream reference was consulted for format semantics only.
+- id: S8-C2
+  kind: addition
+  detail: >-
+    Ten operations registered and wired end to end (registry entry, wire types,
+    per-op request/response schemas + fixtures, MCP handlers, LSP capability
+    list): code.find_implementors (CAPI-28), code.traverse (CAPI-29),
+    code.get_detailed_symbol (CAPI-30), code.index_directory (CAPI-31),
+    code.export_graph (CAPI-32), document.remove_source (DAPI-17),
+    memory.context (MAPI-26), memory.list (MAPI-27), memory.stats (MAPI-28),
+    system.metrics (SYS-05). Registry: 112 -> 122 operations
+    (117 domain + 5 system).
+- id: S8-C3
+  kind: addition
+  detail: >-
+    LSP transport (ukma-mcp --lsp): line-delimited JSON-RPC 2.0 over stdio;
+    initialize returns serverInfo {name: ukma, version: 1.2.3} and a
+    capabilities.customRequests.valueSet of all 122 ukma/<operation_id> methods;
+    initialized is a no-op notification; shutdown -> {} then requests fail with
+    -32600; exit terminates the session. Unknown method -> -32601, unknown
+    operation / missing input -> -32602, malformed line -> -32700. Custom
+    requests dispatch through the same gateway (envelope
+    scopes, authorization, metrics, outbox) as the MCP transport. CLI: --lsp
+    is mutually exclusive with --mcp in both orders.
+- id: S8-C4
+  kind: omission
+  detail: >-
+    The 65/65 parity closure is NOT claimed. The audit found 35 of 42 upstream
+    tools fully covered, 5 partial and 2 missing before this slice; this slice
+    adds the 10 gap operations, and the remaining upstream tools (e.g. the
+    language-server protocol, watch mode, IDE integrations) are outside the
+    UKMA v1.2.3 API surface by design.
+behavior:
+  preserved:
+  - tenant/project isolation: cross-scope reads and writes return NOT_FOUND (existence never leaks)
+  - optimistic concurrency via etag (document.remove_source tombstone)
+  - idempotency keys (document.remove_source required; memory ops not_required)
+  - in-band closed-set error codes; gateway normalises undeclared codes (INVALID_ARGUMENT -> INVALID_SCHEMA when declared)
+  - domain knowledge is never subject to memory TTL or folding
+  intentional_breaking: []
+tests:
+  unit: >-
+    EXECUTED: cargo test --workspace --all-targets — graph-engine export 9 tests
+    (S8-1); ukma-mcp lib 101 tests including the 9 LSP transport tests (S8-4).
+  golden: >-
+    EXECUTED: code-intelligence/tests/gap_closure.rs 24 tests (CAPI-28..32);
+    document-intelligence/tests/dapi_matrix.rs 6 remove_source tests (DAPI-17);
+    memory-domain/tests/gap_closure.rs 14 tests (MAPI-26..28);
+    ukma-mcp/tests/sys05_metrics.rs 5 tests (SYS-05).
+  contract: >-
+    EXECUTED: cargo run -p ukma-contract-check => 9191 checks passed, 0 failed
+    (registry / wire schema / per-op schemas / fixtures for all 122 operations).
+  integration: >-
+    EXECUTED: crates/ukma-integration/tests/e2e_gap_closure.rs — E2E-GC-01..10,
+    41 tests through the public API with the five classes per operation
+    (positive, negative, authorization, version, failure).
+    S8-7 gates all executed green: fmt check, clippy -D warnings,
+    cargo test --workspace --all-targets (1204 passed / 0 failed),
+    contract-check (9191 checks / 0 failed), wire-schema --check.
+  deviations:
+  - "The built-in parser profiles emit only Defines/Imports/Calls edges; Implements/References edges appear with a custom parser profile. find_implementors semantics over Implements edges are covered by the code-intelligence domain tests (fake parser port); the E2E asserts the API contract and the (documented) empty result under the built-in profile."
+  - "system.metrics self-observation: dispatch records the counter after the in-flight call returns, so the first call reports 0 and the second reports 1."
+status:
+  grammar_ported: true
+  parity_report: n/a (UKMA-native slice; parity audit in the plan §2)
+  blocked_reason: null
+review:
+  owner: jacoblight-chen
+  status: pending
+  evidence: cargo test --workspace --all-targets; cargo run -p ukma-contract-check; cargo run -p ukma-wire-schema -- --check

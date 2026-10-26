@@ -27,27 +27,27 @@ fn health_and_capabilities_are_reported() {
     assert!(health.contains(&format!("\"operations\":{}", OPERATIONS.len())));
 
     let capabilities = output("capabilities");
-    assert!(capabilities.contains("\"domain_operations\": 108"));
-    assert!(capabilities.contains("\"system_operations\": 4"));
+    assert!(capabilities.contains("\"domain_operations\": 120"));
+    assert!(capabilities.contains("\"system_operations\": 5"));
 }
 
 #[test]
 fn tools_list_every_tool_and_can_be_filtered() {
     let all = output("tools");
     let total_line = all.lines().last().expect("total line");
-    assert!(total_line.starts_with("total=112"), "{total_line}");
-    assert!(total_line.contains("code=27"));
-    assert!(total_line.contains("document=16"));
-    assert!(total_line.contains("memory=25"));
-    assert!(total_line.contains("pro=27"));
+    assert!(total_line.starts_with("total=125"), "{total_line}");
+    assert!(total_line.contains("code=33"));
+    assert!(total_line.contains("document=17"));
+    assert!(total_line.contains("memory=28"));
+    assert!(total_line.contains("pro=29"));
     assert!(total_line.contains("traceability=13"));
-    assert!(total_line.contains("system=4"));
+    assert!(total_line.contains("system=5"));
     for spec in OPERATIONS {
         assert!(all.contains(spec.mcp_tool), "{} missing", spec.mcp_tool);
     }
 
     let memory = output("tools --domain memory");
-    assert!(memory.lines().count() <= 26);
+    assert!(memory.lines().count() <= 29);
     assert!(memory.contains("ukma_memory_search_v1"));
     assert!(!memory.contains("ukma_code_get_symbol_v1"));
 }

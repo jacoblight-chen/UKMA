@@ -1,0 +1,16 @@
+{
+  "api_version": "1",
+  "request_id": "x",
+  "trace_id": "x",
+  "status": "ok",
+  "data": {
+    "base_revision": "x",
+    "dirty": true,
+    "indexed_files": 0,
+    "revision": "x",
+    "total_files": 0
+  },
+  "warnings": [],
+  "partial_reasons": [],
+  "freshness": "current"
+}

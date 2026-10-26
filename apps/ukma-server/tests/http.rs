@@ -62,7 +62,7 @@ fn a_domain_operation_is_posted_with_an_envelope() {
     assert_eq!(response.status, 200);
     let body = body_of(&response);
     assert_eq!(body["status"], "ok");
-    assert_eq!(body["data"]["domain_operations"], 108);
+    assert_eq!(body["data"]["domain_operations"], 120);
 }
 
 #[test]

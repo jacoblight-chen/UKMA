@@ -1,0 +1,22 @@
+{
+  "api_version": "1",
+  "request_id": "x",
+  "trace_id": "x",
+  "status": "ok",
+  "data": {
+    "items": [
+      {
+        "importer_file": "src/lib.rs",
+        "imported_module": "std::collections::BTreeMap",
+        "line": 1,
+        "evidence": [
+          "ev:src/lib.rs:1"
+        ]
+      }
+    ],
+    "next_cursor": null
+  },
+  "warnings": [],
+  "partial_reasons": [],
+  "freshness": "current"
+}

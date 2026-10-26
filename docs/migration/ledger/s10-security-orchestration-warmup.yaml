@@ -1,0 +1,139 @@
+# UKMA S10 Migration Ledger — `pro.security_orchestrated_scan` + `pro.security_codeql_warmup` (PRO-28/29)
+# Template per docs/migration/ledger/s9-find-importers.yaml.
+# This slice closes the last two CodeGraph security-tool parity gaps
+# identified in the Phase 8 re-audit (54 upstream tools, 2 with no UKMA
+# counterpart: `security_orchestrated_scan` and `security_codeql_warmup`)
+# with two new `pro`-domain operations.
+#
+# This slice is UKMA-NATIVE: no upstream source was copied. The upstream
+# reference consulted (harness case + profile stubs only; the `codegraph-pro`
+# binary that implements the two tools is NOT part of the reference checkout)
+# is recorded under `upstream` for traceability only.
+
+slice_id: S10-security-orchestration-warmup
+upstream:
+  repository: https://github.com/codegraph-ai/CodeGraph
+  commit: "590c2ca7dd7b37bd1d41caf45fac535b6522f969"
+  paths:
+    # Read-only reference only, consulted for the two tools' contract shapes.
+    # The `codegraph-pro` binary that implements them is not in the checkout;
+    # only the harness case + profile stubs were available.
+    - "f:\\codegraph-workspace\\codegraph-reference\\crates\\codegraph-harness\\src\\profiles.rs (tool ids)"
+    - "f:\\codegraph-workspace\\codegraph-reference\\crates\\codegraph-harness\\cases\\security_orchestrated_scan (harness case: args scope/engines/severity; output analyzer/engines/total/actionable/findings/reachability/path_filter/agreement_distribution)"
+  note: >-
+    No upstream source was migrated in this slice. The CodeGraph reference
+    checkout was consulted to understand the two tools' contracts only.
+    `security_orchestrated_scan` runs all detectors and rolls up the findings
+    (analyzer "orchestrated", per-engine findings_pre_merge, severity gate,
+    path filter, agreement_distribution, reachability). `security_codeql_warmup`
+    warms a CodeQL database. The UKMA-native equivalent pre-builds the indexed
+    corpus and reports its shape and readiness. Both implementations in this
+    slice are original UKMA code.
+target:
+  repository: ukma
+  crate:
+  - code-intelligence
+  - ukma-mcp
+  - ukma-integration
+  - ukma-contract-check
+  files:
+  - crates/code-intelligence/src/pro/service.rs (S10-C1: security_orchestrated_scan, security_codeql_warmup)
+  - crates/code-intelligence/src/pro/wire.rs (S10-C1: ProOrchestratedScanRequest)
+  - crates/code-intelligence/src/pro/mod.rs (S10-C1: export ProOrchestratedScanRequest)
+  - crates/code-intelligence/tests/pro_matrix.rs (S10-C2: PRO-28/29, 7 tests, five classes for both ops)
+  - crates/ukma-mcp/src/handlers.rs (S10-C2: manual multi-field bind for pro.security_orchestrated_scan; bind_pro! for pro.security_codeql_warmup)
+  - crates/ukma-mcp/src/manifest.rs (domain count 118 -> 120; pro 27 -> 29; PRO_SECURITY_OPERATIONS 17 -> 19)
+  - contracts/api/operation-registry.yaml (123 -> 125 operations; 2 new entries)
+  - contracts/schema/v1/pro.security_orchestrated_scan.{request,response}.schema.json (+ pro.security_codeql_warmup.{request,response}.schema.json, per-op schemas)
+  - contracts/schema/v1/wire.schema.json (regenerated: ProOrchestratedScanRequest, both ops in x-operations)
+  - contracts/fixtures/v1/pro.security_orchestrated_scan/ (2 valid, 2 negative)
+  - contracts/fixtures/v1/pro.security_codeql_warmup/ (2 valid, 2 negative)
+  - contracts/matrices/api-contract-matrix.yaml (2 new entries, PRO-28/29)
+  - crates/ukma-contract-check/src/main.rs (expected_counts pro 27 -> 29)
+  - tools/wire-schema/src/main.rs (wire_table 2 new ops; domain-op count 118 -> 120)
+  - crates/ukma-mcp/tests/gateway_matrix.rs (domain_operations 118 -> 120; pro 27 -> 29)
+  - crates/ukma-integration/tests/coverage_matrix.rs (PRO 27 -> 29)
+  - apps/ukma-server/tests/http.rs (domain_operations 118 -> 120)
+  - crates/ukma-cli/tests/cli.rs (domain_operations 118 -> 120; total 123 -> 125; pro 27 -> 29)
+license:
+  identified: true            # UKMA is Apache-2.0; no upstream code copied in this slice
+  notices_preserved: true    # NOTICE keeps the CodeGraph/Andrey Vasilevsky attribution
+  note: >-
+    No upstream code was copied, so no per-file license header transfer applies.
+    The upstream reference checkout (read-only) was consulted for semantics only.
+changes:
+- id: S10-C1
+  kind: addition
+  detail: >-
+    Two `pro` service methods + the `ProOrchestratedScanRequest` wire type.
+    `security_orchestrated_scan` (PRO-28) runs the full detector suite across
+    the requested engines and rolls up the findings: per-engine
+    `findings_pre_merge` (raw detector count before suppression), a minimum
+    severity gate, a path substring filter, `agreement_distribution` (per-rule
+    counts), `reachability` (distinct files with findings), and the
+    `analyzer: orchestrated` rollup. UKMA has one built-in engine, `native`
+    (the heuristic detector suite, reported as analyzer `codegraph`);
+    `codegraph` is accepted as an alias. Unknown engine / severity are
+    `INVALID_ARGUMENT`; an unknown revision is `NOT_FOUND`.
+    `security_codeql_warmup` (PRO-29) is the UKMA-native equivalent of warming
+    a CodeQL database: it pre-builds the indexed corpus for a revision and
+    reports its shape and readiness (ready, analyzer, engine, file_count,
+    symbol_count, line_count, languages). Both require `code:read`.
+- id: S10-C2
+  kind: addition
+  detail: >-
+    Registered and wired end to end (registry entries, wire types, per-op
+    request/response schemas + fixtures, MCP handlers, gateway binds). Registry:
+    123 -> 125 operations (120 domain + 5 system). The 5-class domain tests
+    (pro_matrix.rs, 7 tests) cover positive / negative / authorization /
+    version / failure for both operations.
+- id: S10-C3
+  kind: omission
+  detail: >-
+    The 65/65 parity closure is NOT claimed. This slice closes the last two
+    upstream security tools with no UKMA counterpart. `security_codeql_warmup`
+    is a UKMA-native corpus warmup (no CodeQL dependency), an honest
+    equivalent, not a CodeQL port. The two detectors remain heuristic (they
+    flag candidates, they do not prove vulnerabilities).
+behavior:
+  preserved:
+  - tenant/project isolation: cross-scope reads return NOT_FOUND (existence never leaks)
+  - read-only / immutable-snapshot / not-idempotent consistency for both operations
+  - in-band closed-set error codes; gateway normalises undeclared codes
+  - domain knowledge is never subject to memory TTL or folding
+  intentional_breaking: []
+tests:
+  unit: >-
+    EXECUTED: code-intelligence/tests/pro_matrix.rs — PRO-28/29, 7 tests
+    (orchestrated_scan_rolls_up_the_detector_suite,
+    orchestrated_scan_applies_severity_and_path_filters,
+    orchestrated_scan_is_silent_on_clean,
+    orchestrated_and_warmup_require_the_read_scope,
+    orchestrated_and_warmup_are_bound_to_the_revision,
+    orchestrated_and_warmup_failure_paths,
+    codeql_warmup_reports_the_corpus_shape).
+  golden: >-
+    EXECUTED: the existing pro_matrix.rs golden gates (scan_security,
+    find_unused_code, find_duplicates, SBOM, SARIF, OSV audit) remain green
+    with the two new operations added.
+  contract: >-
+    EXECUTED: cargo run -p ukma-contract-check => 9404 checks passed, 0 failed
+    (registry / wire schema / per-op schemas / fixtures for all 125 operations).
+  integration: >-
+    EXECUTED: the pro domain is covered by the 5-class domain tests (the
+    existing 27 pro operations follow the same convention and carry no
+    separate E2E slice; the two new pro operations follow it too). All gates
+    executed green: fmt check, clippy -D warnings, cargo test --workspace
+    --all-targets, contract-check, wire-schema --check.
+  deviations:
+  - "UKMA has one built-in engine (`native`, reported as `codegraph`); the upstream multi-engine orchestration is modelled as a single-engine rollup with the `engines` selector validated against {native, codegraph}."
+  - "`security_codeql_warmup` is a UKMA-native corpus warmup (pre-builds the indexed corpus and reports its shape/readiness), an honest equivalent of warming a CodeQL database with no CodeQL dependency."
+  - "The detectors are heuristic (line / token based); the rollup flags candidates and does not prove vulnerabilities."
+status:
+  grammar_ported: true
+  parity_report: n/a (UKMA-native slice; parity audit in the Phase 8 re-audit)
+  blocked_reason: null
+review:
+  owner: jacoblight-chen
+  status: pending
+  evidence: cargo test --workspace --all-targets; cargo run -p ukma-contract-check; cargo run -p ukma-wire-schema -- --check

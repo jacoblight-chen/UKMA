@@ -176,12 +176,65 @@ impl Clock for FixedClock {
     }
 }
 
+/// Counters for one operation (`system.metrics`, SYS-05).
+#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize)]
+pub struct OpMetrics {
+    /// The operation id.
+    pub operation_id: String,
+    /// Successful dispatches (status `Ok` or `Partial`).
+    pub success: u64,
+    /// Failed dispatches (validation, authorization or handler failure).
+    pub failure: u64,
+}
+
+/// Per-operation success/failure counters.
+///
+/// Telemetry is counters only: no request payloads are retained, so the
+/// registry is safe to share across the gateway, the MCP server and the
+/// LSP transport.
+#[derive(Debug, Default)]
+pub struct MetricsRegistry {
+    counters: std::sync::Mutex<BTreeMap<String, (u64, u64)>>,
+}
+
+impl MetricsRegistry {
+    /// Empty registry.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Record one call outcome.
+    pub fn record(&self, operation_id: &str, success: bool) {
+        let mut counters = self.counters.lock().expect("metrics poisoned");
+        let entry = counters.entry(operation_id.to_string()).or_insert((0, 0));
+        if success {
+            entry.0 += 1;
+        } else {
+            entry.1 += 1;
+        }
+    }
+
+    /// Snapshot, sorted by operation id.
+    pub fn snapshot(&self) -> Vec<OpMetrics> {
+        let counters = self.counters.lock().expect("metrics poisoned");
+        counters
+            .iter()
+            .map(|(operation_id, (success, failure))| OpMetrics {
+                operation_id: operation_id.clone(),
+                success: *success,
+                failure: *failure,
+            })
+            .collect()
+    }
+}
+
 /// The dispatch core.
 pub struct Gateway {
     handlers: BTreeMap<&'static str, Handler>,
     clock: Arc<dyn Clock>,
     scopes: Arc<dyn ScopeResolver>,
     max_input_bytes: usize,
+    metrics: Arc<MetricsRegistry>,
 }
 
 impl std::fmt::Debug for Gateway {
@@ -241,6 +294,7 @@ impl Gateway {
             clock: Arc::new(SystemClock),
             scopes: Arc::new(EnvelopeScopes),
             max_input_bytes: MAX_INPUT_BYTES,
+            metrics: Arc::new(MetricsRegistry::new()),
         }
     }
 
@@ -260,6 +314,17 @@ impl Gateway {
     pub fn with_max_input_bytes(mut self, bytes: usize) -> Self {
         self.max_input_bytes = bytes;
         self
+    }
+
+    /// Replace the metrics registry.
+    pub fn with_metrics(mut self, metrics: Arc<MetricsRegistry>) -> Self {
+        self.metrics = metrics;
+        self
+    }
+
+    /// The metrics registry (shared with `system.metrics`).
+    pub fn metrics(&self) -> &Arc<MetricsRegistry> {
+        &self.metrics
     }
 
     /// Register a handler for a registered operation.
@@ -299,6 +364,17 @@ impl Gateway {
         ctx: &OpContext,
         input: &Value,
     ) -> Result<GatewayOutcome, GatewayError> {
+        let outcome = self.call_inner(operation_id, ctx, input);
+        self.metrics.record(operation_id, outcome.is_ok());
+        outcome
+    }
+
+    fn call_inner(
+        &self,
+        operation_id: &str,
+        ctx: &OpContext,
+        input: &Value,
+    ) -> Result<GatewayOutcome, GatewayError> {
         let spec = spec_of(operation_id).ok_or_else(|| {
             GatewayError::invalid_schema(format!("unknown operation `{operation_id}`"))
         })?;
@@ -311,6 +387,19 @@ impl Gateway {
 
     /// Dispatch an untrusted request envelope.
     pub fn dispatch(&self, request: RequestEnvelope<Value>) -> ResponseEnvelope<Value> {
+        let operation = request.operation.clone();
+        let response = self.dispatch_inner(request);
+        self.metrics.record(
+            &operation,
+            matches!(
+                response.status,
+                ResponseStatus::Ok | ResponseStatus::Partial
+            ),
+        );
+        response
+    }
+
+    fn dispatch_inner(&self, request: RequestEnvelope<Value>) -> ResponseEnvelope<Value> {
         let request_id = request.context.request_id.clone();
         let trace_id = request.context.trace_id.clone();
         let operation = request.operation.clone();

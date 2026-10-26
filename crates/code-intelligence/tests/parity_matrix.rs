@@ -1,4 +1,4 @@
-//! Parity operations (`CAPI-14..27`) ??CodeGraph gap closure.
+//! Parity operations (`CAPI-14..27`) — CodeGraph gap closure.
 //!
 //! Every operation is exercised through the §41.4 sub-cases that apply to it:
 //! `valid`, `invalid_schema`, `cross_scope` (authorization), `version`

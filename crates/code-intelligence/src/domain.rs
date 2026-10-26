@@ -1012,3 +1012,208 @@ pub struct PrContextReport {
     /// Changed symbols whose body changed (signature unchanged).
     pub body_changes: Vec<String>,
 }
+
+// ---------------------------------------------------------------------------
+// Gap-closure operations (Phase 8, additive only)
+// ---------------------------------------------------------------------------
+
+/// Request: implementors of a symbol (`find_implementors` parity, CAPI-14).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FindImplementorsQuery {
+    /// Repository the query is bound to.
+    pub repository_id: String,
+    /// Revision (commit SHA or a registered alias).
+    pub revision: String,
+    /// The interface/trait whose implementors are wanted.
+    pub target_symbol_id: String,
+    /// Page.
+    pub page: PageRequest,
+}
+
+/// One implementor of the queried symbol (CAPI-14).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ImplementorMatch {
+    /// Implementing symbol.
+    pub symbol_id: String,
+    /// Simple name.
+    pub name: String,
+    /// Language identifier.
+    pub language: String,
+    /// Evidence for the match (edge evidence ids).
+    pub evidence: Vec<String>,
+}
+
+/// Request: bounded free traversal (`traverse_graph` parity, CAPI-15).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TraverseQuery {
+    /// Repository the query is bound to.
+    pub repository_id: String,
+    /// Revision (commit SHA or a registered alias).
+    pub revision: String,
+    /// Start symbol.
+    pub start_symbol_id: String,
+    /// Direction to follow.
+    pub direction: Direction,
+    /// Edge kinds to follow (empty means every kind except `defines`).
+    pub edge_kinds: Vec<CodeEdgeKind>,
+    /// Maximum hops (1..=32).
+    pub max_depth: u32,
+    /// Maximum visited nodes (1..=10000).
+    pub max_nodes: u32,
+    /// Page over the collected edges.
+    pub page: PageRequest,
+}
+
+/// Result of `code.traverse` (CAPI-15).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TraverseResult {
+    /// The collected (deduplicated, sorted) edges, paged.
+    pub edges: Page<CodeEdge>,
+    /// Symbols visited (including the start symbol).
+    pub visited_count: u32,
+    /// True when the `max_nodes` cap stopped the traversal early.
+    pub truncated: bool,
+}
+
+/// Request: one symbol with its full detail (`get_detailed_symbol` parity,
+/// CAPI-16).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GetDetailedSymbolQuery {
+    /// Repository the query is bound to.
+    pub repository_id: String,
+    /// Revision (commit SHA or a registered alias).
+    pub revision: String,
+    /// The symbol.
+    pub symbol_id: String,
+}
+
+/// One referenced symbol (id + name) in a detailed view (CAPI-16).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SymbolRef {
+    /// Symbol id.
+    pub id: String,
+    /// Simple name.
+    pub name: String,
+}
+
+/// Result of `code.get_detailed_symbol` (CAPI-16): the symbol plus its
+/// complexity and direct call relationships.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DetailedSymbol {
+    /// The symbol itself.
+    pub symbol: Symbol,
+    /// Complexity, present for function/method kinds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub complexity: Option<ComplexityReport>,
+    /// Symbols that call this one (direct `calls` incoming edges).
+    pub callers: Vec<SymbolRef>,
+    /// Symbols this one calls (direct `calls` outgoing edges).
+    pub callees: Vec<SymbolRef>,
+    /// Total direct caller count.
+    pub caller_count: u32,
+    /// Total direct callee count.
+    pub callee_count: u32,
+}
+
+/// Request: index every source-snapshot file under a path prefix
+/// (`index_directory` parity, CAPI-17).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct IndexDirectory {
+    /// Repository the files are added to.
+    pub repository_id: String,
+    /// Base revision to extend (commit SHA or a registered alias).
+    pub base_revision: String,
+    /// Only files whose path starts with this prefix (e.g. `src/lib/`).
+    pub path_prefix: String,
+    /// Parser profile.
+    pub parser_profile: String,
+}
+
+/// Request: export the code graph of a revision (CAPI-18).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExportGraphQuery {
+    /// Repository the query is bound to.
+    pub repository_id: String,
+    /// Revision (commit SHA or a registered alias).
+    pub revision: String,
+    /// Export format wire name (`dot`, `json`, `csv`, `triples`).
+    pub format: String,
+    /// Edge kinds to include (empty means every kind).
+    pub edge_kinds: Vec<CodeEdgeKind>,
+    /// Cap on exported nodes (1..=10000); edges touching dropped nodes are
+    /// dropped too. `0` means no cap.
+    pub max_nodes: u32,
+}
+
+/// Result of `code.export_graph` (CAPI-18).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GraphExport {
+    /// The format wire name that was used.
+    pub format: String,
+    /// The rendered graph.
+    pub content: String,
+    /// Nodes in the export.
+    pub node_count: u32,
+    /// Edges in the export.
+    pub edge_count: u32,
+    /// True when the `max_nodes` cap dropped nodes.
+    pub truncated: bool,
+}
+
+/// Module name match mode for `code.find_importers` (CAPI-33).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ImportMatchMode {
+    /// Exact equality.
+    Exact,
+    /// `imported_module` starts with the query.
+    Prefix,
+    /// Case-sensitive substring (the default).
+    #[default]
+    Contains,
+    /// Case-insensitive substring.
+    Fuzzy,
+}
+
+/// Request: reverse import lookup by module name (`code.find_importers`,
+/// CAPI-33).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FindImportersQuery {
+    /// Repository the query is bound to.
+    pub repository_id: String,
+    /// Revision (commit SHA or a registered alias).
+    pub revision: String,
+    /// Module name to search for.
+    pub module_name: String,
+    /// Match mode (default `contains`).
+    #[serde(default)]
+    pub match_mode: ImportMatchMode,
+    /// Page.
+    pub page: PageRequest,
+}
+
+/// One importing file of a module (CAPI-33).
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ImporterMatch {
+    /// File that imports the module (repository-relative path).
+    pub importer_file: String,
+    /// Module name as written in the import declaration.
+    pub imported_module: String,
+    /// 1-based line of the import declaration.
+    pub line: u32,
+    /// Evidence ids of the import edge.
+    pub evidence: Vec<String>,
+}

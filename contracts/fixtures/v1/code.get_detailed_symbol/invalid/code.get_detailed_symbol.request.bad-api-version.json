@@ -1,0 +1,20 @@
+{
+  "api_version": "2",
+  "operation": "ukma.code.get_detailed_symbol.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {
+    "repository_id": "x",
+    "revision": "x",
+    "symbol_id": "x"
+  }
+}

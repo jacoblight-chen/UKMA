@@ -29,6 +29,24 @@ pub struct ProQueryRequest {
     pub query: String,
 }
 
+/// Key for `pro.security_orchestrated_scan`.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct ProOrchestratedScanRequest {
+    /// The indexed revision to analyze.
+    pub revision: String,
+    /// The engines to run; `native` (the heuristic suite, reported as
+    /// `codegraph`) is the built-in engine.
+    pub engines: Vec<String>,
+    /// Minimum severity gate (optional; `info` / `warning` / `error` /
+    /// `critical`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub severity: Option<String>,
+    /// Substring filter on the file path (optional).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path_filter: Option<String>,
+}
+
 /// Key for `pro.compare_symbols`.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]

@@ -146,6 +146,9 @@ pub struct Parsed {
     pub tool_args: Option<String>,
     /// Whether to serve the MCP stdio protocol instead of printing.
     pub mcp: bool,
+    /// Whether to serve the LSP stdio protocol instead of printing
+    /// (mutually exclusive with `--mcp`).
+    pub lsp: bool,
     /// The directory to index as a `@cwd` revision (`--index-cwd`).
     pub index_cwd: Option<String>,
     /// Additional workspace roots to index and merge (`--workspace`, repeatable).
@@ -225,6 +228,7 @@ pub fn parse(args: &[String]) -> Result<Parsed, CliError> {
         run_tool: None,
         tool_args: None,
         mcp: false,
+        lsp: false,
         index_cwd: None,
         workspaces: Vec::new(),
         excludes: Vec::new(),
@@ -290,7 +294,20 @@ pub fn parse(args: &[String]) -> Result<Parsed, CliError> {
                 parsed.tool_args = Some(tool_args);
             }
             "--mcp" => {
+                if parsed.lsp {
+                    return Err(CliError::Usage(
+                        "--mcp cannot be combined with --lsp".into(),
+                    ));
+                }
                 parsed.mcp = true;
+            }
+            "--lsp" => {
+                if parsed.mcp {
+                    return Err(CliError::Usage(
+                        "--lsp cannot be combined with --mcp".into(),
+                    ));
+                }
+                parsed.lsp = true;
             }
             "--index-cwd" => {
                 let path = take(args, &mut index, "--index-cwd")?;
@@ -669,6 +686,7 @@ pub fn usage() -> String {
         "",
         "  ukma --run-tool <name> [--tool-args json]  run one tool and exit",
         "  ukma --mcp [--index-cwd <path>]          serve the MCP stdio protocol",
+        "  ukma --lsp [--index-cwd <path>]          serve the LSP stdio protocol",
         "",
         "setup (CodeGraph `install` / `init` / `uninstall` / `upgrade` parity):",
         "  ukma init [dir]                          create .ukma/ and index the project",
@@ -1319,6 +1337,23 @@ mod tests {
         let error = parse(&args(&["--run-tool", "a", "--run-tool", "b"]))
             .expect_err("duplicates are a usage error");
         assert_eq!(exit_code(&error), 2);
+    }
+
+    #[test]
+    fn parse_accepts_the_lsp_flag() {
+        let parsed = parse(&args(&["--lsp", "--index-cwd", "."])).expect("the flag is valid");
+        assert!(parsed.lsp);
+        assert!(!parsed.mcp);
+    }
+
+    #[test]
+    fn parse_rejects_mcp_and_lsp_together() {
+        let error =
+            parse(&args(&["--mcp", "--lsp"])).expect_err("the transports are mutually exclusive");
+        assert!(matches!(error, CliError::Usage(_)));
+        let error = parse(&args(&["--lsp", "--mcp"]))
+            .expect_err("the transports are mutually exclusive, in either order");
+        assert!(matches!(error, CliError::Usage(_)));
     }
 
     #[test]

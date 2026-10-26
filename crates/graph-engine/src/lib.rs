@@ -29,6 +29,7 @@
 pub mod algorithms;
 pub mod engine;
 pub mod error;
+pub mod export;
 pub mod file_store;
 pub mod ids;
 pub mod memory_store;

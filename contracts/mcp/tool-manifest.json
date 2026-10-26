@@ -2978,6 +2978,363 @@
         "SOURCE_UNAVAILABLE",
         "NOT_FOUND"
       ]
+    },
+    {
+      "name": "ukma_pro_security_orchestrated_scan_v1",
+      "description": "pro.security_orchestrated_scan (api v1)",
+      "operation_id": "pro.security_orchestrated_scan",
+      "operation_uri": "ukma.pro.security_orchestrated_scan.v1",
+      "input_schema": "contracts/mcp/tools/ukma_pro_security_orchestrated_scan_v1.input.schema.json",
+      "input_schema_id": "https://schemas.ukma.dev/v1/pro.security_orchestrated_scan.request.schema.json",
+      "output_schema_id": "https://schemas.ukma.dev/v1/pro.security_orchestrated_scan.response.schema.json",
+      "required_scopes": [
+        "code:read"
+      ],
+      "consistency_modes": [
+        "eventual",
+        "read_your_writes",
+        "snapshot",
+        "strict_generation"
+      ],
+      "idempotency": "not_required",
+      "error_codes": [
+        "INVALID_SCHEMA",
+        "UNAUTHENTICATED",
+        "FORBIDDEN",
+        "INTERNAL",
+        "SOURCE_UNAVAILABLE",
+        "NOT_FOUND"
+      ]
+    },
+    {
+      "name": "ukma_pro_security_codeql_warmup_v1",
+      "description": "pro.security_codeql_warmup (api v1)",
+      "operation_id": "pro.security_codeql_warmup",
+      "operation_uri": "ukma.pro.security_codeql_warmup.v1",
+      "input_schema": "contracts/mcp/tools/ukma_pro_security_codeql_warmup_v1.input.schema.json",
+      "input_schema_id": "https://schemas.ukma.dev/v1/pro.security_codeql_warmup.request.schema.json",
+      "output_schema_id": "https://schemas.ukma.dev/v1/pro.security_codeql_warmup.response.schema.json",
+      "required_scopes": [
+        "code:read"
+      ],
+      "consistency_modes": [
+        "eventual",
+        "read_your_writes",
+        "snapshot",
+        "strict_generation"
+      ],
+      "idempotency": "not_required",
+      "error_codes": [
+        "INVALID_SCHEMA",
+        "UNAUTHENTICATED",
+        "FORBIDDEN",
+        "INTERNAL",
+        "SOURCE_UNAVAILABLE",
+        "NOT_FOUND"
+      ]
+    },
+    {
+      "name": "ukma_code_find_implementors_v1",
+      "description": "code.find_implementors (api v1)",
+      "operation_id": "code.find_implementors",
+      "operation_uri": "ukma.code.find_implementors.v1",
+      "input_schema": "contracts/mcp/tools/ukma_code_find_implementors_v1.input.schema.json",
+      "input_schema_id": "https://schemas.ukma.dev/v1/code.find_implementors.request.schema.json",
+      "output_schema_id": "https://schemas.ukma.dev/v1/code.find_implementors.response.schema.json",
+      "required_scopes": [
+        "code:read"
+      ],
+      "consistency_modes": [
+        "eventual",
+        "read_your_writes",
+        "snapshot",
+        "strict_generation"
+      ],
+      "idempotency": "not_required",
+      "error_codes": [
+        "INVALID_SCHEMA",
+        "UNAUTHENTICATED",
+        "FORBIDDEN",
+        "INTERNAL",
+        "NOT_FOUND",
+        "SOURCE_UNAVAILABLE",
+        "CAPABILITY_UNAVAILABLE"
+      ]
+    },
+    {
+      "name": "ukma_code_traverse_v1",
+      "description": "code.traverse (api v1)",
+      "operation_id": "code.traverse",
+      "operation_uri": "ukma.code.traverse.v1",
+      "input_schema": "contracts/mcp/tools/ukma_code_traverse_v1.input.schema.json",
+      "input_schema_id": "https://schemas.ukma.dev/v1/code.traverse.request.schema.json",
+      "output_schema_id": "https://schemas.ukma.dev/v1/code.traverse.response.schema.json",
+      "required_scopes": [
+        "code:read"
+      ],
+      "consistency_modes": [
+        "eventual",
+        "read_your_writes",
+        "snapshot",
+        "strict_generation"
+      ],
+      "idempotency": "not_required",
+      "error_codes": [
+        "INVALID_SCHEMA",
+        "UNAUTHENTICATED",
+        "FORBIDDEN",
+        "INTERNAL",
+        "NOT_FOUND",
+        "INDEX_STALE",
+        "RESOURCE_LIMIT"
+      ]
+    },
+    {
+      "name": "ukma_code_get_detailed_symbol_v1",
+      "description": "code.get_detailed_symbol (api v1)",
+      "operation_id": "code.get_detailed_symbol",
+      "operation_uri": "ukma.code.get_detailed_symbol.v1",
+      "input_schema": "contracts/mcp/tools/ukma_code_get_detailed_symbol_v1.input.schema.json",
+      "input_schema_id": "https://schemas.ukma.dev/v1/code.get_detailed_symbol.request.schema.json",
+      "output_schema_id": "https://schemas.ukma.dev/v1/code.get_detailed_symbol.response.schema.json",
+      "required_scopes": [
+        "code:read"
+      ],
+      "consistency_modes": [
+        "eventual",
+        "read_your_writes",
+        "snapshot",
+        "strict_generation"
+      ],
+      "idempotency": "not_required",
+      "error_codes": [
+        "INVALID_SCHEMA",
+        "UNAUTHENTICATED",
+        "FORBIDDEN",
+        "INTERNAL",
+        "NOT_FOUND",
+        "SOURCE_UNAVAILABLE",
+        "CAPABILITY_UNAVAILABLE"
+      ]
+    },
+    {
+      "name": "ukma_code_index_directory_v1",
+      "description": "code.index_directory (api v1)",
+      "operation_id": "code.index_directory",
+      "operation_uri": "ukma.code.index_directory.v1",
+      "input_schema": "contracts/mcp/tools/ukma_code_index_directory_v1.input.schema.json",
+      "input_schema_id": "https://schemas.ukma.dev/v1/code.index_directory.request.schema.json",
+      "output_schema_id": "https://schemas.ukma.dev/v1/code.index_directory.response.schema.json",
+      "required_scopes": [
+        "code:index"
+      ],
+      "consistency_modes": [
+        "eventual",
+        "read_your_writes",
+        "snapshot",
+        "strict_generation"
+      ],
+      "idempotency": "required",
+      "error_codes": [
+        "INVALID_SCHEMA",
+        "UNAUTHENTICATED",
+        "FORBIDDEN",
+        "INTERNAL",
+        "NOT_FOUND",
+        "CAPABILITY_UNAVAILABLE",
+        "RESOURCE_LIMIT",
+        "IDEMPOTENCY_CONFLICT"
+      ]
+    },
+    {
+      "name": "ukma_code_export_graph_v1",
+      "description": "code.export_graph (api v1)",
+      "operation_id": "code.export_graph",
+      "operation_uri": "ukma.code.export_graph.v1",
+      "input_schema": "contracts/mcp/tools/ukma_code_export_graph_v1.input.schema.json",
+      "input_schema_id": "https://schemas.ukma.dev/v1/code.export_graph.request.schema.json",
+      "output_schema_id": "https://schemas.ukma.dev/v1/code.export_graph.response.schema.json",
+      "required_scopes": [
+        "code:read"
+      ],
+      "consistency_modes": [
+        "eventual",
+        "read_your_writes",
+        "snapshot",
+        "strict_generation"
+      ],
+      "idempotency": "not_required",
+      "error_codes": [
+        "INVALID_SCHEMA",
+        "UNAUTHENTICATED",
+        "FORBIDDEN",
+        "INTERNAL",
+        "NOT_FOUND",
+        "INDEX_STALE",
+        "RESOURCE_LIMIT"
+      ]
+    },
+    {
+      "name": "ukma_code_find_importers_v1",
+      "description": "code.find_importers (api v1)",
+      "operation_id": "code.find_importers",
+      "operation_uri": "ukma.code.find_importers.v1",
+      "input_schema": "contracts/mcp/tools/ukma_code_find_importers_v1.input.schema.json",
+      "input_schema_id": "https://schemas.ukma.dev/v1/code.find_importers.request.schema.json",
+      "output_schema_id": "https://schemas.ukma.dev/v1/code.find_importers.response.schema.json",
+      "required_scopes": [
+        "code:read"
+      ],
+      "consistency_modes": [
+        "eventual",
+        "read_your_writes",
+        "snapshot",
+        "strict_generation"
+      ],
+      "idempotency": "not_required",
+      "error_codes": [
+        "INVALID_SCHEMA",
+        "UNAUTHENTICATED",
+        "FORBIDDEN",
+        "INTERNAL",
+        "NOT_FOUND",
+        "INDEX_STALE",
+        "CURSOR_EXPIRED"
+      ]
+    },
+    {
+      "name": "ukma_document_remove_source_v1",
+      "description": "document.remove_source (api v1)",
+      "operation_id": "document.remove_source",
+      "operation_uri": "ukma.document.remove_source.v1",
+      "input_schema": "contracts/mcp/tools/ukma_document_remove_source_v1.input.schema.json",
+      "input_schema_id": "https://schemas.ukma.dev/v1/document.remove_source.request.schema.json",
+      "output_schema_id": "https://schemas.ukma.dev/v1/document.remove_source.response.schema.json",
+      "required_scopes": [
+        "document:index_admin"
+      ],
+      "consistency_modes": [
+        "eventual",
+        "read_your_writes",
+        "snapshot",
+        "strict_generation"
+      ],
+      "idempotency": "required",
+      "error_codes": [
+        "INVALID_SCHEMA",
+        "UNAUTHENTICATED",
+        "FORBIDDEN",
+        "INTERNAL",
+        "NOT_FOUND",
+        "ALREADY_DELETED",
+        "DELETION_BLOCKED",
+        "IDEMPOTENCY_CONFLICT"
+      ]
+    },
+    {
+      "name": "ukma_memory_context_v1",
+      "description": "memory.context (api v1)",
+      "operation_id": "memory.context",
+      "operation_uri": "ukma.memory.context.v1",
+      "input_schema": "contracts/mcp/tools/ukma_memory_context_v1.input.schema.json",
+      "input_schema_id": "https://schemas.ukma.dev/v1/memory.context.request.schema.json",
+      "output_schema_id": "https://schemas.ukma.dev/v1/memory.context.response.schema.json",
+      "required_scopes": [
+        "memory:read"
+      ],
+      "consistency_modes": [
+        "eventual",
+        "read_your_writes",
+        "snapshot",
+        "strict_generation"
+      ],
+      "idempotency": "not_required",
+      "error_codes": [
+        "INVALID_SCHEMA",
+        "UNAUTHENTICATED",
+        "FORBIDDEN",
+        "INTERNAL",
+        "INVALID_ARGUMENT",
+        "NOT_FOUND"
+      ]
+    },
+    {
+      "name": "ukma_memory_list_v1",
+      "description": "memory.list (api v1)",
+      "operation_id": "memory.list",
+      "operation_uri": "ukma.memory.list.v1",
+      "input_schema": "contracts/mcp/tools/ukma_memory_list_v1.input.schema.json",
+      "input_schema_id": "https://schemas.ukma.dev/v1/memory.list.request.schema.json",
+      "output_schema_id": "https://schemas.ukma.dev/v1/memory.list.response.schema.json",
+      "required_scopes": [
+        "memory:read"
+      ],
+      "consistency_modes": [
+        "eventual",
+        "read_your_writes",
+        "snapshot",
+        "strict_generation"
+      ],
+      "idempotency": "not_required",
+      "error_codes": [
+        "INVALID_SCHEMA",
+        "UNAUTHENTICATED",
+        "FORBIDDEN",
+        "INTERNAL",
+        "INVALID_ARGUMENT",
+        "CURSOR_EXPIRED"
+      ]
+    },
+    {
+      "name": "ukma_memory_stats_v1",
+      "description": "memory.stats (api v1)",
+      "operation_id": "memory.stats",
+      "operation_uri": "ukma.memory.stats.v1",
+      "input_schema": "contracts/mcp/tools/ukma_memory_stats_v1.input.schema.json",
+      "input_schema_id": "https://schemas.ukma.dev/v1/memory.stats.request.schema.json",
+      "output_schema_id": "https://schemas.ukma.dev/v1/memory.stats.response.schema.json",
+      "required_scopes": [
+        "memory:read"
+      ],
+      "consistency_modes": [
+        "eventual",
+        "read_your_writes",
+        "snapshot",
+        "strict_generation"
+      ],
+      "idempotency": "not_required",
+      "error_codes": [
+        "INVALID_SCHEMA",
+        "UNAUTHENTICATED",
+        "FORBIDDEN",
+        "INTERNAL"
+      ]
+    },
+    {
+      "name": "ukma_system_metrics_v1",
+      "description": "system.metrics (api v1)",
+      "operation_id": "system.metrics",
+      "operation_uri": "ukma.system.metrics.v1",
+      "input_schema": "contracts/mcp/tools/ukma_system_metrics_v1.input.schema.json",
+      "input_schema_id": "https://schemas.ukma.dev/v1/system.metrics.request.schema.json",
+      "output_schema_id": "https://schemas.ukma.dev/v1/system.metrics.response.schema.json",
+      "required_scopes": [
+        "system:read"
+      ],
+      "consistency_modes": [
+        "eventual",
+        "read_your_writes",
+        "snapshot",
+        "strict_generation"
+      ],
+      "idempotency": "not_required",
+      "error_codes": [
+        "INVALID_SCHEMA",
+        "UNAUTHENTICATED",
+        "FORBIDDEN",
+        "INTERNAL",
+        "CAPABILITY_UNAVAILABLE"
+      ]
     }
   ]
 }

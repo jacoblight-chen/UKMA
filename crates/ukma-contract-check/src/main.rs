@@ -70,12 +70,12 @@ const REQUIRED_EVENT_FIELDS: [&str; 11] = [
 /// CodeGraph gap in v1.2.3).
 fn expected_counts() -> BTreeMap<&'static str, usize> {
     BTreeMap::from([
-        ("code", 27),
-        ("document", 16),
-        ("memory", 25),
+        ("code", 33),
+        ("document", 17),
+        ("memory", 28),
         ("traceability", 13),
-        ("system", 4),
-        ("pro", 27),
+        ("system", 5),
+        ("pro", 29),
     ])
 }
 

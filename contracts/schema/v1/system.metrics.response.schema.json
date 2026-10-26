@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ukma.dev/v1/system.metrics.response.schema.json",
+  "title": "system.metrics Response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "request_id",
+    "trace_id",
+    "status",
+    "warnings",
+    "partial_reasons",
+    "freshness"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "1"
+    },
+    "request_id": {
+      "$ref": "shared.schema.json#/$defs/ID"
+    },
+    "trace_id": {
+      "$ref": "shared.schema.json#/$defs/ID"
+    },
+    "status": {
+      "$ref": "shared.schema.json#/$defs/Status"
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "total_success": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_failure": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "per_operation": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "operation_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "success": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "failure": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "operation_id",
+              "success",
+              "failure"
+            ]
+          }
+        }
+      },
+      "required": [
+        "total_success",
+        "total_failure",
+        "per_operation"
+      ]
+    },
+    "error": {
+      "$ref": "shared.schema.json#/$defs/ErrorDetail"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "partial_reasons": {
+      "type": "array",
+      "items": {
+        "$ref": "shared.schema.json#/$defs/PartialReason"
+      }
+    },
+    "snapshot_id": {
+      "$ref": "shared.schema.json#/$defs/ID"
+    },
+    "index_generation": {
+      "$ref": "shared.schema.json#/$defs/ID"
+    },
+    "freshness": {
+      "$ref": "shared.schema.json#/$defs/Freshness"
+    },
+    "observed_revision": {
+      "$ref": "shared.schema.json#/$defs/ID"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "ok"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "error"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "error"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "partial"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "partial_reasons": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ]
+}

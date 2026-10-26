@@ -16,7 +16,7 @@
 //!   `analyze_repository` drives a submitted job to completion inline; a worker
 //!   replaces that call at P8 without changing the operation surface.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use embedding_engine::{BackendMode, EmbeddingPort};
@@ -28,14 +28,16 @@ use crate::domain::{
     AiContextQuery, AiContextResult, AiContextSection, AnalyzeRepository, CancelJob, ChangeKind,
     ChangeReceipt, CircularDependency, CircularDepsQuery, CodeChange, CodeRevisionDiff,
     ComplexityQuery, ComplexityReport, ContextBlock, ContextIntent, CuratedContext,
-    CuratedContextQuery, CuratedMatch, DeadImport, DeadImportsQuery, Direction, DirtyPolicy,
-    EditContextQuery, EditContextResult, EntryPoint, EntryPointsQuery, ErrorMatch,
-    ErrorSearchQuery, GetJob, GetSymbol, HotPath, HotPathsQuery, ImpactQuery, ImpactReport,
-    IndexFile, IndexFiles, IndexedRevision, InvalidateCodeRevision, JobHandle, JobView,
-    ModuleSummary, ModuleSummaryQuery, Page, PatternMatch, PatternScope, PatternSearchQuery,
-    PrContextFormat, PrContextQuery, PrContextReport, ReferenceLocation, ReferenceQuery,
-    RelatedTest, RelatedTestsQuery, RepoRevision, SignatureQuery, SourceFile, SourceSnapshot,
-    SymbolQuery, TraversalQuery,
+    CuratedContextQuery, CuratedMatch, DeadImport, DeadImportsQuery, DetailedSymbol, Direction,
+    DirtyPolicy, EditContextQuery, EditContextResult, EntryPoint, EntryPointsQuery, ErrorMatch,
+    ErrorSearchQuery, ExportGraphQuery, FindImplementorsQuery, FindImportersQuery,
+    GetDetailedSymbolQuery, GetJob, GetSymbol, GraphExport, HotPath, HotPathsQuery, ImpactQuery,
+    ImpactReport, ImplementorMatch, ImportMatchMode, ImporterMatch, IndexDirectory, IndexFile,
+    IndexFiles, IndexedRevision, InvalidateCodeRevision, JobHandle, JobView, ModuleSummary,
+    ModuleSummaryQuery, Page, PatternMatch, PatternScope, PatternSearchQuery, PrContextFormat,
+    PrContextQuery, PrContextReport, ReferenceLocation, ReferenceQuery, RelatedTest,
+    RelatedTestsQuery, RepoRevision, SignatureQuery, SourceFile, SourceSnapshot, SymbolQuery,
+    SymbolRef, TraversalQuery, TraverseQuery, TraverseResult,
 };
 use crate::{
     CodeAnalysisManifest, CodeDiagnostic, CodeEdge, CodeEdgeKind, CodeError, CodeLocation,
@@ -2769,6 +2771,491 @@ impl CodeIntelligenceService {
             body_changes,
         })
     }
+
+    // -- Phase 8 gap-closure operations (additive only) --------------------
+
+    /// `code.find_implementors` (CAPI-14): the symbols that implement
+    /// `target` — `implements` edges, plus class/interface `references`
+    /// (the extractor's fallback for languages without a dedicated
+    /// implements construct).
+    pub fn find_implementors(
+        &self,
+        ctx: &RequestContext,
+        request: &FindImplementorsQuery,
+    ) -> CodeResult<Page<ImplementorMatch>> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        request.page.validate()?;
+        let state = self.lock();
+        let index = self.index_for(ctx, &state, &request.repository_id, &request.revision)?;
+        let target = index
+            .symbols
+            .get(&request.target_symbol_id)
+            .ok_or_else(|| CodeError::NotFound {
+                resource: format!("symbol {}", request.target_symbol_id),
+            })?;
+        self.authorizer.check_symbol(ctx, target)?;
+
+        let mut matches: BTreeMap<String, (Symbol, Vec<String>)> = BTreeMap::new();
+        for edge in &index.edges {
+            let Some(edge_target) = &edge.target else {
+                continue;
+            };
+            if edge_target != &request.target_symbol_id {
+                continue;
+            }
+            let is_implements = edge.kind == CodeEdgeKind::Implements;
+            let is_reference = edge.kind == CodeEdgeKind::References;
+            if !is_implements && !is_reference {
+                continue;
+            }
+            let Some(symbol) = index.symbols.get(&edge.source) else {
+                continue;
+            };
+            // The reference fallback only counts class-like symbols.
+            if is_reference && !matches!(symbol.kind, SymbolKind::Class | SymbolKind::Interface) {
+                continue;
+            }
+            if self.authorizer.check_symbol(ctx, symbol).is_err() {
+                continue;
+            }
+            let entry = matches
+                .entry(symbol.id.clone())
+                .or_insert((symbol.clone(), Vec::new()));
+            for evidence in &edge.evidence_ids {
+                if !entry.1.contains(evidence) {
+                    entry.1.push(evidence.clone());
+                }
+            }
+        }
+        let items: Vec<ImplementorMatch> = matches
+            .into_iter()
+            .map(|(_, (symbol, evidence))| ImplementorMatch {
+                symbol_id: symbol.id,
+                name: symbol.name,
+                language: symbol.language,
+                evidence,
+            })
+            .collect();
+        Page::of(items, &request.page)
+    }
+
+    /// `code.find_importers` (CAPI-33): reverse import lookup by module
+    /// name. An unknown module name is a valid empty page, not an error
+    /// (upstream `find_by_imports` parity).
+    pub fn find_importers(
+        &self,
+        ctx: &RequestContext,
+        request: &FindImportersQuery,
+    ) -> CodeResult<Page<ImporterMatch>> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        request.page.validate()?;
+        if request.module_name.trim().is_empty() {
+            return Err(CodeError::InvalidArgument {
+                field: "module_name",
+                reason: "must be non-empty".into(),
+            });
+        }
+        let state = self.lock();
+        let index = self.index_for(ctx, &state, &request.repository_id, &request.revision)?;
+        let needle = request.module_name.trim();
+        let mut seen: BTreeSet<(String, String, u32)> = BTreeSet::new();
+        let mut items: Vec<ImporterMatch> = Vec::new();
+        for edge in &index.edges {
+            if edge.kind != CodeEdgeKind::Imports {
+                continue;
+            }
+            let Some(imported_module) = &edge.import_path else {
+                continue;
+            };
+            let matched = match request.match_mode {
+                ImportMatchMode::Exact => imported_module == needle,
+                ImportMatchMode::Prefix => imported_module.starts_with(needle),
+                ImportMatchMode::Contains => imported_module.contains(needle),
+                ImportMatchMode::Fuzzy => imported_module
+                    .to_ascii_lowercase()
+                    .contains(&needle.to_ascii_lowercase()),
+            };
+            if !matched {
+                continue;
+            }
+            let Some(source_symbol) = index.symbols.get(&edge.source) else {
+                continue;
+            };
+            let importer_file = path_of(&source_symbol.definition).to_string();
+            if self.authorizer.check_path(ctx, &importer_file).is_err() {
+                continue;
+            }
+            let line = edge
+                .evidence_ids
+                .first()
+                .and_then(|evidence| evidence.rsplit(':').next())
+                .and_then(|value| value.parse::<u32>().ok())
+                .unwrap_or(0);
+            if !seen.insert((importer_file.clone(), imported_module.clone(), line)) {
+                continue;
+            }
+            items.push(ImporterMatch {
+                importer_file,
+                imported_module: imported_module.clone(),
+                line,
+                evidence: edge.evidence_ids.clone(),
+            });
+        }
+        items.sort_by(|left, right| {
+            left.importer_file
+                .cmp(&right.importer_file)
+                .then_with(|| left.imported_module.cmp(&right.imported_module))
+                .then_with(|| left.line.cmp(&right.line))
+        });
+        Page::of(items, &request.page)
+    }
+
+    /// `code.traverse` (CAPI-15): bounded free traversal. Unlike the
+    /// caller/callee/dependency operations, hitting `max_nodes` records
+    /// `truncated` instead of failing.
+    pub fn traverse_graph(
+        &self,
+        ctx: &RequestContext,
+        request: &TraverseQuery,
+    ) -> CodeResult<TraverseResult> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        request.page.validate()?;
+        check_bounds(request.max_depth, request.max_nodes)?;
+        let state = self.lock();
+        let index = self.index_for(ctx, &state, &request.repository_id, &request.revision)?;
+        let start =
+            index
+                .symbols
+                .get(&request.start_symbol_id)
+                .ok_or_else(|| CodeError::NotFound {
+                    resource: format!("symbol {}", request.start_symbol_id),
+                })?;
+        self.authorizer.check_symbol(ctx, start)?;
+
+        let mut visited: Vec<String> = vec![request.start_symbol_id.clone()];
+        let mut queue: Vec<(String, u32)> = vec![(request.start_symbol_id.clone(), 0)];
+        let mut collected: Vec<CodeEdge> = Vec::new();
+        let mut seen_edges: BTreeMap<(String, String, CodeEdgeKind), ()> = BTreeMap::new();
+        let mut truncated = false;
+
+        while let Some((node, depth)) = queue.pop() {
+            if depth >= request.max_depth {
+                continue;
+            }
+            let positions: &[usize] = match request.direction {
+                Direction::In => index
+                    .incoming
+                    .get(&node)
+                    .map(Vec::as_slice)
+                    .unwrap_or_default(),
+                Direction::Out => index
+                    .outgoing
+                    .get(&node)
+                    .map(Vec::as_slice)
+                    .unwrap_or_default(),
+            };
+            for position in positions {
+                let edge = index.edge_at(*position);
+                // `defines` is structural, never followed.
+                if edge.kind == CodeEdgeKind::Defines {
+                    continue;
+                }
+                if !request.edge_kinds.is_empty() && !request.edge_kinds.contains(&edge.kind) {
+                    continue;
+                }
+                let neighbour = match request.direction {
+                    Direction::In => edge.source.clone(),
+                    Direction::Out => match &edge.target {
+                        Some(target) => target.clone(),
+                        None => continue,
+                    },
+                };
+                let Some(symbol) = index.symbols.get(&neighbour) else {
+                    continue;
+                };
+                if self.authorizer.check_symbol(ctx, symbol).is_err() {
+                    continue;
+                }
+                let fingerprint = (
+                    edge.source.clone(),
+                    edge.target.clone().unwrap_or_default(),
+                    edge.kind,
+                );
+                if seen_edges.insert(fingerprint, ()).is_none() {
+                    collected.push(edge.clone());
+                }
+                if !visited.iter().any(|seen| seen == &neighbour) {
+                    if visited.len() as u32 >= request.max_nodes {
+                        truncated = true;
+                        continue;
+                    }
+                    visited.push(neighbour.clone());
+                    queue.push((neighbour, depth + 1));
+                }
+            }
+        }
+        collected.sort_by(|left, right| {
+            (left.kind as u8, &left.source, &left.target).cmp(&(
+                right.kind as u8,
+                &right.source,
+                &right.target,
+            ))
+        });
+        let edges = Page::of(collected, &request.page)?;
+        Ok(TraverseResult {
+            edges,
+            visited_count: visited.len() as u32,
+            truncated,
+        })
+    }
+
+    /// `code.get_detailed_symbol` (CAPI-16): one symbol with its complexity
+    /// (function/method kinds) and its direct call relationships.
+    pub fn get_detailed_symbol(
+        &self,
+        ctx: &RequestContext,
+        request: &GetDetailedSymbolQuery,
+    ) -> CodeResult<DetailedSymbol> {
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        let state = self.lock();
+        let index = self.index_for(ctx, &state, &request.repository_id, &request.revision)?;
+        let symbol = index
+            .symbols
+            .get(&request.symbol_id)
+            .cloned()
+            .ok_or_else(|| CodeError::NotFound {
+                resource: format!("symbol {}", request.symbol_id),
+            })?;
+        self.authorizer.check_symbol(ctx, &symbol)?;
+
+        let complexity = if matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method) {
+            let body = slice_lines(
+                index
+                    .sources
+                    .get(path_of(&symbol.definition))
+                    .map(String::as_str)
+                    .unwrap_or_default(),
+                symbol.definition.line_start,
+                symbol.definition.line_end,
+            );
+            Some(complexity_report(&symbol, &body))
+        } else {
+            None
+        };
+
+        let mut callers: Vec<SymbolRef> = Vec::new();
+        if let Some(positions) = index.incoming.get(&symbol.id) {
+            for position in positions {
+                let edge = &index.edges[*position];
+                if edge.kind != CodeEdgeKind::Calls {
+                    continue;
+                }
+                if let Some(referenced) = index.symbols.get(&edge.source) {
+                    if self.authorizer.check_symbol(ctx, referenced).is_ok() {
+                        callers.push(SymbolRef {
+                            id: referenced.id.clone(),
+                            name: referenced.name.clone(),
+                        });
+                    }
+                }
+            }
+        }
+        let mut callees: Vec<SymbolRef> = Vec::new();
+        if let Some(positions) = index.outgoing.get(&symbol.id) {
+            for position in positions {
+                let edge = &index.edges[*position];
+                if edge.kind != CodeEdgeKind::Calls {
+                    continue;
+                }
+                if let Some(target_id) = &edge.target {
+                    if let Some(referenced) = index.symbols.get(target_id) {
+                        if self.authorizer.check_symbol(ctx, referenced).is_ok() {
+                            callees.push(SymbolRef {
+                                id: referenced.id.clone(),
+                                name: referenced.name.clone(),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        callers.sort_by(|left, right| left.id.cmp(&right.id));
+        callees.sort_by(|left, right| left.id.cmp(&right.id));
+        Ok(DetailedSymbol {
+            caller_count: callers.len() as u32,
+            callee_count: callees.len() as u32,
+            symbol,
+            complexity,
+            callers,
+            callees,
+        })
+    }
+
+    /// `code.index_directory` (CAPI-17): index every file of the base
+    /// revision whose path starts with `path_prefix`. The actual indexing
+    /// reuses the `index_files` pipeline verbatim.
+    pub fn index_directory(
+        &self,
+        ctx: &RequestContext,
+        request: &IndexDirectory,
+    ) -> CodeResult<IndexedRevision> {
+        self.authorizer.require_scope(ctx, SCOPE_INDEX)?;
+        if request.path_prefix.trim().is_empty() {
+            return Err(CodeError::InvalidArgument {
+                field: "path_prefix",
+                reason: "must be non-empty".into(),
+            });
+        }
+        if request.parser_profile.trim().is_empty() {
+            return Err(CodeError::InvalidArgument {
+                field: "parser_profile",
+                reason: "must be non-empty".into(),
+            });
+        }
+        let base = {
+            let state = self.lock();
+            self.index_for(ctx, &state, &request.repository_id, &request.base_revision)?
+                .clone()
+        };
+        let selected: Vec<IndexFile> = base
+            .sources
+            .iter()
+            .filter(|(path, _)| path.starts_with(&request.path_prefix))
+            .map(|(path, content)| IndexFile {
+                path: path.clone(),
+                content: content.clone(),
+            })
+            .collect();
+        if selected.is_empty() {
+            return Err(CodeError::NotFound {
+                resource: format!(
+                    "files under `{}` in revision {}",
+                    request.path_prefix, request.base_revision
+                ),
+            });
+        }
+        self.index_files(
+            ctx,
+            &IndexFiles {
+                repository_id: request.repository_id.clone(),
+                base_revision: request.base_revision.clone(),
+                files: selected,
+                parser_profile: request.parser_profile.clone(),
+            },
+        )
+    }
+
+    /// `code.export_graph` (CAPI-18): render the code graph of a revision
+    /// to dot / json / csv / triples via [`graph_engine::export`].
+    pub fn export_graph(
+        &self,
+        ctx: &RequestContext,
+        request: &ExportGraphQuery,
+    ) -> CodeResult<GraphExport> {
+        use graph_engine::export::{export_graph as render, ExportFormat};
+        use graph_engine::ids::IdKind;
+        use graph_engine::types::{GraphEdge, GraphNode, PropertyMap, PropertyValue};
+
+        self.authorizer.require_scope(ctx, SCOPE_READ)?;
+        let format = ExportFormat::from_wire_name(&request.format).ok_or_else(|| {
+            CodeError::InvalidArgument {
+                field: "format",
+                reason: format!(
+                    "`{}` is not a supported format (dot, json, csv, triples)",
+                    request.format
+                ),
+            }
+        })?;
+        if request.max_nodes > 10_000 {
+            return Err(CodeError::ResourceLimit {
+                detail: "max_nodes must be <= 10000".into(),
+            });
+        }
+        let state = self.lock();
+        let index = self.index_for(ctx, &state, &request.repository_id, &request.revision)?;
+
+        let mut node_ids: Vec<String> = index.symbols.keys().cloned().collect();
+        node_ids.sort();
+        let truncated = request.max_nodes > 0 && node_ids.len() > request.max_nodes as usize;
+        if truncated {
+            node_ids.truncate(request.max_nodes as usize);
+        }
+        let kept: std::collections::BTreeSet<String> = node_ids.iter().cloned().collect();
+
+        let mut code_edges: Vec<CodeEdge> = Vec::new();
+        for edge in &index.edges {
+            if !request.edge_kinds.is_empty() && !request.edge_kinds.contains(&edge.kind) {
+                continue;
+            }
+            let Some(target) = &edge.target else {
+                continue;
+            };
+            if !kept.contains(&edge.source) || !kept.contains(target) {
+                continue;
+            }
+            code_edges.push(edge.clone());
+        }
+        code_edges.sort_by(|left, right| {
+            (
+                left.kind as u8,
+                &left.source,
+                left.target.clone().unwrap_or_default(),
+            )
+                .cmp(&(
+                    right.kind as u8,
+                    &right.source,
+                    right.target.clone().unwrap_or_default(),
+                ))
+        });
+
+        let graph_nodes: Vec<GraphNode> = node_ids
+            .iter()
+            .map(|id| {
+                let symbol = index.symbols.get(id).expect("node id from the index");
+                let mut properties = PropertyMap::new();
+                properties.insert("name", PropertyValue::String(symbol.name.clone()));
+                properties.insert(
+                    "qualified_name",
+                    PropertyValue::String(symbol.qualified_name.clone()),
+                );
+                properties.insert("language", PropertyValue::String(symbol.language.clone()));
+                properties.insert(
+                    "path",
+                    PropertyValue::String(path_of(&symbol.definition).to_string()),
+                );
+                GraphNode::new(
+                    canonical_id(IdKind::Node, id),
+                    symbol.kind.as_graph_node_type(),
+                    properties,
+                )
+            })
+            .collect();
+        let graph_edges: Vec<GraphEdge> = code_edges
+            .iter()
+            .map(|edge| {
+                let target = edge.target.clone().unwrap_or_default();
+                let mut properties = PropertyMap::new();
+                if let Some(confidence) = edge.confidence {
+                    properties.insert("confidence", PropertyValue::Float(confidence));
+                }
+                GraphEdge::new(
+                    canonical_id(IdKind::Edge, &format!("{}|{}", edge.source, target)),
+                    canonical_id(IdKind::Node, &edge.source),
+                    canonical_id(IdKind::Node, &target),
+                    edge.kind.as_graph_edge_type(),
+                    properties,
+                )
+            })
+            .collect();
+
+        Ok(GraphExport {
+            format: format.wire_name().to_string(),
+            content: render(&graph_nodes, &graph_edges, format),
+            node_count: node_ids.len() as u32,
+            edge_count: code_edges.len() as u32,
+            truncated,
+        })
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -2857,6 +3344,17 @@ fn check_bounds(max_depth: u32, max_nodes: u32) -> CodeResult<()> {
         });
     }
     Ok(())
+}
+
+/// Deterministically map an arbitrary stable string (a symbol id, or
+/// `source|target` for an edge) to a graph-engine [`CanonicalId`]. The
+/// mapping is a SHA-256 prefix, so the same id always renders the same
+/// canonical id — the export stays stable across calls (PROP-03).
+fn canonical_id(kind: graph_engine::ids::IdKind, key: &str) -> graph_engine::ids::CanonicalId {
+    let digest = Sha256::digest(key.as_bytes());
+    let mut bytes = [0u8; 16];
+    bytes.copy_from_slice(&digest[..16]);
+    graph_engine::ids::CanonicalId::from_parts(kind, graph_engine::ids::Ulid(bytes))
 }
 
 fn options_fingerprint(include_globs: &[String], exclude_globs: &[String]) -> String {
@@ -3419,6 +3917,7 @@ fn index_parsed(
             kind: edge.kind,
             resolution,
             confidence: edge.confidence,
+            import_path: edge.import_path.clone(),
             evidence_ids: edge
                 .evidence_ids
                 .iter()

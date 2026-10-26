@@ -1,0 +1,17 @@
+{
+  "api_version": "1",
+  "operation": "ukma.system.metrics.v1",
+  "context": {
+    "request_id": "x",
+    "trace_id": "x",
+    "scope": {
+      "tenant_id": "x",
+      "project_id": "x"
+    },
+    "principal_id": "x",
+    "scopes": [],
+    "consistency": "eventual"
+  },
+  "input": {},
+  "unexpected_field": true
+}

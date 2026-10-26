@@ -146,7 +146,7 @@ fn the_manifest_is_projected_from_the_registry_without_drift() {
         manifest["domain_operations"],
         ukma_mcp::manifest::DOMAIN_OPERATION_COUNT as u64
     );
-    assert_eq!(manifest["system_operations"], 4);
+    assert_eq!(manifest["system_operations"], 5);
 
     for spec in OPERATIONS {
         let tool = tool_by_name(spec.mcp_tool).expect("every operation has a tool");
@@ -400,13 +400,13 @@ fn the_system_operations_describe_the_registry() {
     let gateway = default_gateway();
     let capabilities = data_of(&gateway, "system.capabilities", json!({}));
     assert_eq!(capabilities["spec_version"], "1.2.3");
-    assert_eq!(capabilities["domain_operations"], 108);
-    assert_eq!(capabilities["system_operations"], 4);
-    assert_eq!(capabilities["domains"]["code"], 27);
-    assert_eq!(capabilities["domains"]["document"], 16);
-    assert_eq!(capabilities["domains"]["memory"], 25);
+    assert_eq!(capabilities["domain_operations"], 120);
+    assert_eq!(capabilities["system_operations"], 5);
+    assert_eq!(capabilities["domains"]["code"], 33);
+    assert_eq!(capabilities["domains"]["document"], 17);
+    assert_eq!(capabilities["domains"]["memory"], 28);
     assert_eq!(capabilities["domains"]["traceability"], 13);
-    assert_eq!(capabilities["domains"]["pro"], 27);
+    assert_eq!(capabilities["domains"]["pro"], 29);
 
     let described = data_of(
         &gateway,

@@ -59,6 +59,19 @@ macro_rules! wire_table {
         ("code.search_by_error", "response", ci::domain::Page<ci::domain::ErrorMatch>),
         ("code.search_by_pattern", "request", ci::domain::PatternSearchQuery),
         ("code.search_by_pattern", "response", ci::domain::Page<ci::domain::PatternMatch>),
+        // CodeGraph parity (Phase 8 gap closure).
+        ("code.find_implementors", "request", ci::domain::FindImplementorsQuery),
+        ("code.find_implementors", "response", ci::domain::Page<ci::domain::ImplementorMatch>),
+        ("code.traverse", "request", ci::domain::TraverseQuery),
+        ("code.traverse", "response", ci::domain::TraverseResult),
+        ("code.get_detailed_symbol", "request", ci::domain::GetDetailedSymbolQuery),
+        ("code.get_detailed_symbol", "response", ci::domain::DetailedSymbol),
+        ("code.index_directory", "request", ci::domain::IndexDirectory),
+        ("code.index_directory", "response", ci::domain::IndexedRevision),
+        ("code.export_graph", "request", ci::domain::ExportGraphQuery),
+        ("code.export_graph", "response", ci::domain::GraphExport),
+        ("code.find_importers", "request", ci::domain::FindImportersQuery),
+        ("code.find_importers", "response", ci::domain::Page<ci::domain::ImporterMatch>),
         ("code.cancel_analysis_job", "request", ci::domain::CancelJob),
         ("code.cancel_analysis_job", "response", ci::domain::JobView),
         ("code.compare_revisions", "request", ci::domain::CodeRevisionDiff),
@@ -113,6 +126,8 @@ macro_rules! wire_table {
         ("document.search", "response", di::domain::Page<di::domain::SearchHit>),
         ("document.verify_consistency", "request", di::domain::VerifyConsistency),
         ("document.verify_consistency", "response", di::domain::ConsistencyReport),
+        ("document.remove_source", "request", di::domain::RemoveDocSource),
+        ("document.remove_source", "response", di::domain::DocDeletionReceipt),
         ("memory.begin_reconsolidation", "request", mem::domain::BeginReconsolidation),
         ("memory.begin_reconsolidation", "response", mem::domain::ReconsolidationWindow),
         ("memory.close_agent_scope", "request", mem::domain::CloseAgentScope),
@@ -163,6 +178,12 @@ macro_rules! wire_table {
         ("memory.update_revision", "response", mem::domain::ChangeReceipt),
         ("memory.verify_fact", "request", mem::domain::VerifyFact),
         ("memory.verify_fact", "response", mem::domain::ChangeReceipt),
+        ("memory.context", "request", mem::domain::MemoryContextQuery),
+        ("memory.context", "response", mem::domain::MemoryContextResult),
+        ("memory.list", "request", mem::domain::ListMemoryQuery),
+        ("memory.list", "response", mem::domain::MemoryListPage),
+        ("memory.stats", "request", mem::domain::GetMemoryStats),
+        ("memory.stats", "response", mem::domain::MemoryStats),
         ("traceability.accept_link", "request", tr::domain::AcceptLink),
         ("traceability.accept_link", "response", tr::domain::TraceLink),
         ("traceability.analyze_change_impact", "request", tr::domain::TraceImpactQuery),
@@ -244,6 +265,10 @@ macro_rules! wire_table {
         ("pro.security_check_crypto", "response", ci::pro::ProReport),
         ("pro.security_export_sarif", "request", ci::pro::ProRevisionRequest),
         ("pro.security_export_sarif", "response", ci::pro::ProReport),
+        ("pro.security_orchestrated_scan", "request", ci::pro::ProOrchestratedScanRequest),
+        ("pro.security_orchestrated_scan", "response", ci::pro::ProReport),
+        ("pro.security_codeql_warmup", "request", ci::pro::ProRevisionRequest),
+        ("pro.security_codeql_warmup", "response", ci::pro::ProReport),
         }
     };
 }
@@ -414,7 +439,7 @@ mod tests {
             .and_then(Value::as_object)
             .expect("x-operations present");
         let ids = registry_ids();
-        assert_eq!(ids.len(), 108, "registry carries 108 domain operations");
+        assert_eq!(ids.len(), 120, "registry carries 120 domain operations");
         for id in ids {
             let entry = operations
                 .get(&id)

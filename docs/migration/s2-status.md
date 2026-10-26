@@ -2,7 +2,7 @@
 
 Upstream commit: `590c2ca7dd7b37bd1d41caf45fac535b6522f969`  ·  languages: 38  ·  upstream `.rs` files: 277
 
-**A language is `Ported` only with `grammar_ported: true` *and* a golden parity report.** One language (`rust`) has landed; the other 37 rows are `not_run`.
+**A language is `Ported` only with `grammar_ported: true` *and* a golden parity report.** All 38 baseline languages have landed: every ledger slice records `grammar_ported: true`, the parity report records `parity: passed` for each, and `s2_coverage.rs` enforces the three-way agreement (registry `Ported` ⇄ ledger ⇄ parity report).
 
 | Language | Upstream files | Grammar ported | Parity | Ledger |
 |---|---:|---|---|---|
@@ -45,7 +45,7 @@ Upstream commit: `590c2ca7dd7b37bd1d41caf45fac535b6522f969`  ·  languages: 38  
 | yaml | 5 | **yes** | **passed** | [s2-yaml.yaml](ledger/s2-yaml.yaml) |
 | zig | 8 | **yes** | **passed** | [s2-zig.yaml](ledger/s2-zig.yaml) |
 
-## Landed slice: `rust`
+## Landed slice: `rust` (first, 10 dedicated tests)
 
 | Evidence | Where |
 |---|---|
@@ -61,21 +61,22 @@ resolutions. Cross-file name resolution, macro expansion and type/lifetime infer
 are **not** covered, so call edges stay `static_possible` or `unresolved` and are
 never `static_exact`.
 
-## Remaining languages (23)
+## The other 37 languages
 
-**16 with a baseline grammar, not ported yet.** These need per-grammar work: several
-of them expose no `name` field (the name is a plain child, or nested under a
-`sig`/`statement` node), and S-expression/macro languages (clojure, elixir,
-haskell) have no declaration node kinds at all — their forms are `list_lit`/`call`
-nodes whose head symbol decides the meaning. A kind-map spec would extract almost
-nothing for them, so they must not be flipped to `Ported` until a form/head
-mechanism exists:
+All 37 remaining baseline languages were ported through the shared generic
+tree-sitter engine (`crates/code-intelligence/src/parsers/engine.rs`) with per-language
+specs in `crates/code-intelligence/src/parsers/spec.rs`, at the locked-baseline
+grammar versions. S-expression/macro languages (clojure, elixir, haskell) have no
+declaration node kinds; their forms are `list_lit`/`call` nodes whose head symbol
+decides the meaning, handled by the spec's head mechanism. The 7 languages without
+a grammar in the locked baseline (`cobol, dart, dockerfile, perl, r, tcl, zig`)
+use a pinned, non-baseline grammar crate under ADR-049 O-08, with the deviation
+recorded in each ledger slice.
 
-`clojure, css, elixir, elm, erlang, fortran, groovy, haskell, hcl, julia, lua, objc, ocaml, toml, verilog, yaml`
-
-**7 without any grammar in the locked baseline** (`cobol, dart, dockerfile, perl,
-r, tcl, zig`): ADR-049 O-08 allows a pinned, non-baseline grammar crate with the
-deviation recorded in that language's ledger slice. None has been added yet.
+Shared golden parity for all 38: `crates/code-intelligence/tests/s2_languages.rs`
+(8 tests, one table per language, identical asserted properties), plus the
+`rust`-specific `s2_rust_parity.rs` (10 tests). Coverage gate:
+`crates/code-intelligence/tests/s2_coverage.rs`.
 
 ## What must happen before a row flips to `ported`
 

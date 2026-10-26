@@ -1,0 +1,123 @@
+# UKMA S9 Migration Ledger — `code.find_importers` (CAPI-33)
+# Template per docs/migration/ledger/s8-gap-closure.yaml.
+# This slice closes the last `find_by_imports` parity gap identified in the
+# Phase 8 re-audit (1 partial of 42 upstream tools) with a single new
+# operation, `code.find_importers`, the reverse import lookup by module name.
+#
+# This slice is UKMA-NATIVE: no upstream source was copied. The single
+# upstream reference consulted (find_by_imports semantics) is recorded under
+# `upstream` for traceability only.
+
+slice_id: S9-find-importers
+upstream:
+  repository: https://github.com/codegraph-ai/CodeGraph
+  commit: "590c2ca7dd7b37bd1d41caf45fac535b6522f969"
+  paths:
+    # Read-only reference only, consulted for the find_by_imports semantics
+    # (G: reverse import lookup by module name, four match modes, dedup by
+    # importing node). The lookup implementation is original UKMA code; no
+    # upstream source was ported into this slice.
+    - "f:\\codegraph-workspace\\codegraph-reference (read-only checkout at the locked SHA)"
+  note: >-
+    No upstream source was migrated in this slice. The CodeGraph reference
+    checkout was consulted to understand the find_by_imports contract only
+    (moduleName required, matchMode [exact, prefix, contains, fuzzy] default
+    "contains", dedup by importing node, take(limit)). The implementation in
+    this slice is original UKMA code.
+target:
+  repository: ukma
+  crate:
+  - code-intelligence
+  - ukma-mcp
+  - ukma-integration
+  - ukma-contract-check
+  files:
+  - crates/code-intelligence/src/lib.rs (S9-C1: CodeEdge.import_path additive field; 3 test literals)
+  - crates/code-intelligence/src/parsers/engine.rs (S9-C1: extract_import_path text heuristic + finish() carry-through; 6 unit tests)
+  - crates/code-intelligence/src/domain.rs (S9-C2: ImportMatchMode, FindImportersQuery, ImporterMatch)
+  - crates/code-intelligence/src/service.rs (S9-C2: find_importers; index_parsed carries import_path)
+  - crates/code-intelligence/tests/gap_closure.rs (S9-C2: CAPI-33, 6 tests, five classes + parity-safe invariant)
+  - crates/ukma-integration/tests/e2e_gap_closure.rs (S9-C2: E2E-GC-11, 6 tests)
+  - crates/ukma-mcp/src/handlers.rs (S9-C2: bind! code.find_importers)
+  - crates/ukma-mcp/src/manifest.rs (domain count 117 -> 118; code 32 -> 33)
+  - contracts/api/operation-registry.yaml (122 -> 123 operations; 1 new entry)
+  - contracts/schema/v1/code.find_importers.request.schema.json (+ response, per-op schemas)
+  - contracts/schema/v1/wire.schema.json (regenerated: FindImportersQuery, ImportMatchMode, ImporterMatch, Page_for_ImporterMatch, CodeEdge.import_path)
+  - contracts/fixtures/v1/code.find_importers/ (2 valid, 4 negative)
+  - contracts/matrices/api-contract-matrix.yaml (1 new entry, CAPI-33)
+  - crates/ukma-contract-check/src/main.rs (expected_counts code 32 -> 33)
+license:
+  identified: true            # UKMA is Apache-2.0; no upstream code copied in this slice
+  notices_preserved: true    # NOTICE keeps the CodeGraph/Andrey Vasilevsky attribution
+  note: >-
+    No upstream code was copied, so no per-file license header transfer applies.
+    The upstream reference checkout (read-only) was consulted for semantics only.
+changes:
+- id: S9-C1
+  kind: modification
+  detail: >-
+    CodeEdge.import_path (additive, Option<String>, serde default + skip_when
+    none): the built-in parser's Imports edges were `target: None` /
+    `Unresolved` with no module name. A language-agnostic `extract_import_path`
+    text heuristic (quoted specifier, `#include <...>`, or the declaration with
+    its leading import keyword(s) stripped) now carries the best-effort module
+    name on the edge while the `target: None` / `Unresolved` parity gates stay
+    green. The edge is otherwise untouched, so the golden parity rows are
+    unchanged.
+- id: S9-C2
+  kind: addition
+  detail: >-
+    code.find_importers (CAPI-33) registered and wired end to end (registry
+    entry, wire types, per-op request/response schemas + fixtures, MCP handler,
+    gateway bind!). Reverse import lookup by module name: scans the revision
+    index for Imports edges, matches import_path against the query under one of
+    the four match modes (exact / prefix / contains / fuzzy), de-duplicates by
+    (importer_file, imported_module, line), sorts deterministically, and pages.
+    An unknown module name is a valid empty page (parity). Registry: 122 ->
+    123 operations (118 domain + 5 system).
+- id: S9-C3
+  kind: omission
+  detail: >-
+    The 65/65 parity closure is NOT claimed. This slice closes the last
+    `find_by_imports` partial (the 27/27 Pro ops were already mapped 1:1 and the
+    other 40 of 42 upstream tools were already covered). The remaining upstream
+    capabilities (language-server protocol, watch mode, IDE integrations) are
+    outside the UKMA v1.2.3 API surface by design.
+behavior:
+  preserved:
+  - the built-in parser's Imports edges keep `target: None` / `Unresolved` (parity gates green); only the additive `import_path` is carried
+  - tenant/project isolation: cross-scope reads return NOT_FOUND (existence never leaks)
+  - in-band closed-set error codes; gateway normalises undeclared codes (INVALID_ARGUMENT -> INVALID_SCHEMA when declared)
+  - domain knowledge is never subject to memory TTL or folding
+  intentional_breaking: []
+tests:
+  unit: >-
+    EXECUTED: code-intelligence engine `extract_import_path` — 6 unit tests
+    (rust use, quoted specifiers, `#include <...>`, unquoted module paths,
+    keyword-only declarations, empty/bare keyword -> None).
+  golden: >-
+    EXECUTED: code-intelligence/tests/gap_closure.rs — CAPI-33, 6 tests
+    (positive, negative, authorization, version, failure + parity-safe edge
+    invariant). The s2_languages / s2_rust_parity golden parity gates remain
+    green.
+  contract: >-
+    EXECUTED: cargo run -p ukma-contract-check => 9264 checks passed, 0 failed
+    (registry / wire schema / per-op schemas / fixtures for all 123 operations).
+  integration: >-
+    EXECUTED: crates/ukma-integration/tests/e2e_gap_closure.rs — E2E-GC-11,
+    6 tests through the public API with the five classes
+    (positive, negative, authorization, version, failure). All gates executed
+    green: fmt check, clippy -D warnings, cargo test --workspace --all-targets,
+    contract-check (9264 checks / 0 failed), wire-schema --check.
+  deviations:
+  - "The built-in parser's Imports edges carried no module name upstream of this change; `import_path` is therefore a text heuristic (quoted specifier / `#include <...>` / keyword-stripped declaration), not full language resolution. The parity gates on `target: None` / `Unresolved` are untouched."
+  - "The four upstream match modes map to: exact = full-string equality, prefix = starts_with, contains = case-sensitive substring (default), fuzzy = case-insensitive substring."
+  - "An unknown module name is a valid empty page (not an error), matching the upstream find_by_imports behaviour."
+status:
+  grammar_ported: true
+  parity_report: n/a (UKMA-native slice; parity audit in the Phase 8 re-audit)
+  blocked_reason: null
+review:
+  owner: jacoblight-chen
+  status: pending
+  evidence: cargo test --workspace --all-targets; cargo run -p ukma-contract-check; cargo run -p ukma-wire-schema -- --check

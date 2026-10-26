@@ -114,7 +114,20 @@ export type OperationId =
   | 'pro.security_detect_injection' |
   | 'pro.security_check_search_path' |
   | 'pro.security_check_crypto' |
-  | 'pro.security_export_sarif';
+  | 'pro.security_export_sarif' |
+  | 'pro.security_orchestrated_scan' |
+  | 'pro.security_codeql_warmup' |
+  | 'code.find_implementors' |
+  | 'code.traverse' |
+  | 'code.get_detailed_symbol' |
+  | 'code.index_directory' |
+  | 'code.export_graph' |
+  | 'code.find_importers' |
+  | 'document.remove_source' |
+  | 'memory.context' |
+  | 'memory.list' |
+  | 'memory.stats' |
+  | 'system.metrics';
 
 export interface OperationSpec {
   readonly id: OperationId;
@@ -237,4 +250,17 @@ export const OPERATIONS: readonly OperationSpec[] = [
   { id: 'pro.security_check_search_path', uri: 'ukma.pro.security_check_search_path.v1', mcp: 'ukma_pro_security_check_search_path_v1', scopes: ['code:read'], idempotency: 'not_required' },
   { id: 'pro.security_check_crypto', uri: 'ukma.pro.security_check_crypto.v1', mcp: 'ukma_pro_security_check_crypto_v1', scopes: ['code:read'], idempotency: 'not_required' },
   { id: 'pro.security_export_sarif', uri: 'ukma.pro.security_export_sarif.v1', mcp: 'ukma_pro_security_export_sarif_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.security_orchestrated_scan', uri: 'ukma.pro.security_orchestrated_scan.v1', mcp: 'ukma_pro_security_orchestrated_scan_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'pro.security_codeql_warmup', uri: 'ukma.pro.security_codeql_warmup.v1', mcp: 'ukma_pro_security_codeql_warmup_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'code.find_implementors', uri: 'ukma.code.find_implementors.v1', mcp: 'ukma_code_find_implementors_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'code.traverse', uri: 'ukma.code.traverse.v1', mcp: 'ukma_code_traverse_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'code.get_detailed_symbol', uri: 'ukma.code.get_detailed_symbol.v1', mcp: 'ukma_code_get_detailed_symbol_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'code.index_directory', uri: 'ukma.code.index_directory.v1', mcp: 'ukma_code_index_directory_v1', scopes: ['code:index'], idempotency: 'required' },
+  { id: 'code.export_graph', uri: 'ukma.code.export_graph.v1', mcp: 'ukma_code_export_graph_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'code.find_importers', uri: 'ukma.code.find_importers.v1', mcp: 'ukma_code_find_importers_v1', scopes: ['code:read'], idempotency: 'not_required' },
+  { id: 'document.remove_source', uri: 'ukma.document.remove_source.v1', mcp: 'ukma_document_remove_source_v1', scopes: ['document:index_admin'], idempotency: 'required' },
+  { id: 'memory.context', uri: 'ukma.memory.context.v1', mcp: 'ukma_memory_context_v1', scopes: ['memory:read'], idempotency: 'not_required' },
+  { id: 'memory.list', uri: 'ukma.memory.list.v1', mcp: 'ukma_memory_list_v1', scopes: ['memory:read'], idempotency: 'not_required' },
+  { id: 'memory.stats', uri: 'ukma.memory.stats.v1', mcp: 'ukma_memory_stats_v1', scopes: ['memory:read'], idempotency: 'not_required' },
+  { id: 'system.metrics', uri: 'ukma.system.metrics.v1', mcp: 'ukma_system_metrics_v1', scopes: ['system:read'], idempotency: 'not_required' },
 ];

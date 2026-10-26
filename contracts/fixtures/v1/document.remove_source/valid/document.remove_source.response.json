@@ -1,0 +1,14 @@
+{
+  "api_version": "1",
+  "request_id": "x",
+  "trace_id": "x",
+  "status": "ok",
+  "data": {
+    "deleted": true,
+    "document_id": "x",
+    "removed_blocks": 0
+  },
+  "warnings": [],
+  "partial_reasons": [],
+  "freshness": "current"
+}

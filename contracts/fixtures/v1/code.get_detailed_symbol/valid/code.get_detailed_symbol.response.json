@@ -1,0 +1,30 @@
+{
+  "api_version": "1",
+  "request_id": "x",
+  "trace_id": "x",
+  "status": "ok",
+  "data": {
+    "callee_count": 0,
+    "callees": [],
+    "caller_count": 0,
+    "callers": [],
+    "symbol": {
+      "definition": {
+        "file_id": "x",
+        "line_end": 0,
+        "line_start": 0,
+        "revision": "x"
+      },
+      "evidence_ids": [],
+      "id": "x",
+      "kind": "module",
+      "language": "x",
+      "name": "x",
+      "qualified_name": "x",
+      "resolution": "resolved"
+    }
+  },
+  "warnings": [],
+  "partial_reasons": [],
+  "freshness": "current"
+}

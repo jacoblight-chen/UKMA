@@ -176,7 +176,7 @@ impl<'a> StdioSession<'a> {
                 format!("invalid params: tool `{name}` not in active profile"),
             ));
         }
-        let context = dev_context(tool.operation_id, tool.required_scopes);
+        let context = dev_context("mcp", tool.operation_id, tool.required_scopes);
         let envelope = RequestEnvelope {
             api_version: API_VERSION.into(),
             operation: tool.operation_id.to_string(),
@@ -237,13 +237,18 @@ impl<'a> StdioSession<'a> {
     }
 }
 
-/// The local-trusted request context for one tool call (mirrors the CLI:
+/// The local-trusted request context for one call (mirrors the CLI:
 /// expected scopes are the operation's required scopes, and the default
-/// `EnvelopeScopes` resolver grants exactly those).
-fn dev_context(operation: &str, required_scopes: &[&str]) -> RequestContext {
+/// `EnvelopeScopes` resolver grants exactly those). `transport` labels the
+/// ids so MCP and LSP calls are distinguishable in traces.
+pub(crate) fn dev_context(
+    transport: &str,
+    operation: &str,
+    required_scopes: &[&str],
+) -> RequestContext {
     RequestContext {
-        request_id: format!("mcp-{operation}"),
-        trace_id: "trace-mcp".into(),
+        request_id: format!("{transport}-{operation}"),
+        trace_id: format!("trace-{transport}"),
         scope: ScopeRef {
             tenant_id: "tenant-dev".into(),
             project_id: "project-dev".into(),
@@ -261,8 +266,8 @@ fn dev_context(operation: &str, required_scopes: &[&str]) -> RequestContext {
         consistency: Consistency::Eventual,
         required_generation: None,
         snapshot_id: None,
-        idempotency_key: Some(format!("mcp-{operation}")),
-        expected_etag: Some("\"mcp-etag\"".into()),
+        idempotency_key: Some(format!("{transport}-{operation}")),
+        expected_etag: Some(format!("\"{transport}-etag\"")),
         delegation_token: None,
     }
 }
@@ -609,8 +614,8 @@ mod tests {
     fn the_memory_profile_exposes_memory_and_document_tools() {
         assert_eq!(
             list_len(crate::manifest::ToolProfile::Memory),
-            41,
-            "memory exposes all 25 memory + 16 document tools"
+            45,
+            "memory exposes all 28 memory + 17 document tools"
         );
     }
 
@@ -618,8 +623,8 @@ mod tests {
     fn the_security_profile_exposes_the_pro_analyzers() {
         assert_eq!(
             list_len(crate::manifest::ToolProfile::Security),
-            17,
-            "the security profile exposes the 17 CodeGraph Pro analyzers"
+            19,
+            "the security profile exposes the 19 CodeGraph Pro analyzers"
         );
     }
 

@@ -1146,3 +1146,202 @@ fn unparsed_blocks_are_never_reported_as_complete() {
         "SOURCE_TOO_LARGE"
     ));
 }
+
+// ---------------------------------------------------------------------------
+// DAPI-17 document.remove_source (Phase 8 gap closure)
+// ---------------------------------------------------------------------------
+
+fn ctx_with_key(key: Option<&str>, scopes: &[&str]) -> RequestContext {
+    let mut ctx = base_ctx(scopes);
+    ctx.idempotency_key = key.map(|value| value.to_string());
+    ctx
+}
+
+#[test]
+fn dapi17_remove_source_positive_and_tombstone() {
+    let (svc, _) = service();
+    let ctx = full_ctx();
+    let job_id = ingest(&svc, &ctx, "artifact:rev-1", "rev-1");
+    let document = document_id(&svc, &ctx, &job_id);
+    let receipt = svc
+        .remove_source(
+            &ctx,
+            &document_intelligence::domain::RemoveDocSource {
+                document_id: document.clone(),
+            },
+        )
+        .expect("positive path");
+    assert!(receipt.deleted, "first removal deletes");
+    assert!(receipt.removed_blocks > 0);
+    // The source no longer lists the document.
+    let page = svc
+        .list_doc_sources(
+            &ctx,
+            &document_intelligence::domain::ListDocSources {
+                page: PageRequest::new(200),
+            },
+        )
+        .expect("list");
+    assert!(
+        !page.items.iter().any(|item| item.document_id == document),
+        "removed document is gone from the listing"
+    );
+    // A repeated removal without the key is ALREADY_DELETED.
+    let err = svc
+        .remove_source(
+            &ctx,
+            &document_intelligence::domain::RemoveDocSource {
+                document_id: document,
+            },
+        )
+        .expect_err("repeated removal must fail");
+    assert!(matches!(err, DocumentError::AlreadyDeleted { .. }));
+}
+
+#[test]
+fn dapi17_remove_source_idempotent_replay_and_conflict() {
+    let (svc, _) = service();
+    let ctx = full_ctx();
+    let job_id = ingest(&svc, &ctx, "artifact:rev-1", "rev-1");
+    let document = document_id(&svc, &ctx, &job_id);
+
+    // First removal with a key.
+    let first = svc
+        .remove_source(
+            &ctx_with_key(Some("key-remove-1"), &[SCOPE_INDEX_ADMIN]),
+            &document_intelligence::domain::RemoveDocSource {
+                document_id: document.clone(),
+            },
+        )
+        .expect("first removal");
+    assert!(first.deleted);
+
+    // Replay with the same key + same document: the recorded receipt.
+    let replay = svc
+        .remove_source(
+            &ctx_with_key(Some("key-remove-1"), &[SCOPE_INDEX_ADMIN]),
+            &document_intelligence::domain::RemoveDocSource {
+                document_id: document.clone(),
+            },
+        )
+        .expect("replay");
+    assert!(!replay.deleted, "replay is not a fresh deletion");
+    assert_eq!(replay.removed_blocks, first.removed_blocks);
+
+    // Same key, different document: conflict.
+    let job_id2 = ingest(&svc, &ctx, "artifact:other", "other");
+    let document2 = document_id(&svc, &ctx, &job_id2);
+    let err = svc
+        .remove_source(
+            &ctx_with_key(Some("key-remove-1"), &[SCOPE_INDEX_ADMIN]),
+            &document_intelligence::domain::RemoveDocSource {
+                document_id: document2,
+            },
+        )
+        .expect_err("key reuse with a different document must conflict");
+    assert!(matches!(err, DocumentError::IdempotencyConflict { .. }));
+}
+
+#[test]
+fn dapi17_remove_source_negative_paths() {
+    let (svc, _) = service();
+    let ctx = full_ctx();
+    let job_id = ingest(&svc, &ctx, "artifact:rev-1", "rev-1");
+    let _ = document_id(&svc, &ctx, &job_id);
+
+    // Unknown document.
+    let err = svc
+        .remove_source(
+            &ctx,
+            &document_intelligence::domain::RemoveDocSource {
+                document_id: "doc:missing".to_string(),
+            },
+        )
+        .expect_err("unknown document must fail");
+    assert!(matches!(err, DocumentError::NotFound { .. }));
+
+    // Empty id.
+    let err = svc
+        .remove_source(
+            &ctx,
+            &document_intelligence::domain::RemoveDocSource {
+                document_id: " ".to_string(),
+            },
+        )
+        .expect_err("empty id must fail");
+    assert!(matches!(err, DocumentError::InvalidArgument { .. }));
+}
+
+#[test]
+fn dapi17_remove_source_requires_the_admin_scope() {
+    let (svc, _) = service();
+    let ctx = full_ctx();
+    let job_id = ingest(&svc, &ctx, "artifact:rev-1", "rev-1");
+    let document = document_id(&svc, &ctx, &job_id);
+    let read_only = base_ctx(&[SCOPE_READ]);
+    let err = svc
+        .remove_source(
+            &read_only,
+            &document_intelligence::domain::RemoveDocSource {
+                document_id: document,
+            },
+        )
+        .expect_err("missing scope must fail");
+    assert!(matches!(err, DocumentError::Forbidden { .. }));
+}
+
+#[test]
+fn dapi17_remove_source_deletion_blocked_by_a_queued_reingest() {
+    let (svc, _) = service();
+    let ctx = full_ctx();
+    let job_id = ingest(&svc, &ctx, "artifact:rev-1", "rev-1");
+    let document = document_id(&svc, &ctx, &job_id);
+    // A queued re-ingest of the same artifact (new revision).
+    let handle = svc
+        .submit_ingest(
+            &ctx,
+            &document_intelligence::domain::DocumentIngest {
+                source: DocumentSource {
+                    source_uri: "file:///spec.md".to_string(),
+                    media_type: "text/markdown".to_string(),
+                    content_hash: String::new(),
+                    revision: "rev-3".to_string(),
+                    language_hint: None,
+                    artifact_ref: "artifact:rev-1".to_string(),
+                },
+                parser_profile: "markdown/1".to_string(),
+                include_images: true,
+                asynchronous: true,
+            },
+        )
+        .expect("submit");
+    assert_eq!(handle.stage, "queued");
+    let err = svc
+        .remove_source(
+            &ctx,
+            &document_intelligence::domain::RemoveDocSource {
+                document_id: document,
+            },
+        )
+        .expect_err("a queued re-ingest must block the removal");
+    assert!(matches!(err, DocumentError::DeletionBlocked { .. }));
+}
+
+#[test]
+fn dapi17_remove_source_cross_scope_is_not_found() {
+    let (svc, _) = service();
+    let ctx = full_ctx();
+    let job_id = ingest(&svc, &ctx, "artifact:rev-1", "rev-1");
+    let document = document_id(&svc, &ctx, &job_id);
+    let mut other = base_ctx(&[SCOPE_INDEX_ADMIN]);
+    other.scope.tenant_id = "tenant-2".to_string();
+    let err = svc
+        .remove_source(
+            &other,
+            &document_intelligence::domain::RemoveDocSource {
+                document_id: document,
+            },
+        )
+        .expect_err("cross-scope must fail");
+    assert!(matches!(err, DocumentError::NotFound { .. }));
+}

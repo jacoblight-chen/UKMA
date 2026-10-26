@@ -11,11 +11,12 @@ use ukma_contracts::generated::{OperationSpec, OPERATIONS};
 
 use crate::rest;
 
-/// Registered domain operations (code 27 + document 16 + memory 25 + trace 13
-/// + pro 27).
-pub const DOMAIN_OPERATION_COUNT: usize = 108;
-/// Registered system operations (`capabilities`, `get_operation`, `get_job`, `cancel_job`).
-pub const SYSTEM_OPERATION_COUNT: usize = 4;
+/// Registered domain operations (code 33 + document 17 + memory 28 + trace 13
+/// + pro 29).
+pub const DOMAIN_OPERATION_COUNT: usize = 120;
+/// Registered system operations (`capabilities`, `get_operation`, `get_job`,
+/// `cancel_job`, `metrics`).
+pub const SYSTEM_OPERATION_COUNT: usize = 5;
 /// Prefix shared by every MCP tool name.
 pub const TOOL_PREFIX: &str = "ukma_";
 
@@ -138,7 +139,7 @@ const GRAPH_OPERATIONS: &[&str] = &[
     "code.find_references",
 ];
 
-/// CodeGraph Pro security analyzers (the 17 `pro.security_*` /
+/// CodeGraph Pro security analyzers (the 19 `pro.security_*` /
 /// `pro.scan_security` tools).
 const PRO_SECURITY_OPERATIONS: &[&str] = &[
     "pro.scan_security",
@@ -158,6 +159,8 @@ const PRO_SECURITY_OPERATIONS: &[&str] = &[
     "pro.security_check_search_path",
     "pro.security_check_crypto",
     "pro.security_export_sarif",
+    "pro.security_orchestrated_scan",
+    "pro.security_codeql_warmup",
 ];
 
 /// A named subset of the tool surface (CodeGraph `--profile` parity).
@@ -172,7 +175,7 @@ pub enum ToolProfile {
     Graph,
     /// Memory + document tools.
     Memory,
-    /// Security tools only (the 17 CodeGraph Pro analyzers).
+    /// Security tools only (the 19 CodeGraph Pro analyzers).
     Security,
 }
 
@@ -320,11 +323,12 @@ mod tests {
     fn the_domain_split_is_the_registered_one() {
         let tools = tools();
         let count = |domain: &str| tools.iter().filter(|tool| tool.domain == domain).count();
-        assert_eq!(count("code"), 27);
-        assert_eq!(count("document"), 16);
-        assert_eq!(count("memory"), 25);
+        assert_eq!(count("code"), 33);
+        assert_eq!(count("document"), 17);
+        assert_eq!(count("memory"), 28);
         assert_eq!(count("traceability"), 13);
-        assert_eq!(count("system"), 4);
+        assert_eq!(count("pro"), 29);
+        assert_eq!(count("system"), 5);
     }
 
     #[test]
