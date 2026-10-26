@@ -8,11 +8,17 @@
 //! would add a package and invalidate the signed SBOM), and everything else
 //! falls back to a poll the operator can tune.
 
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::path::Path;
 use std::time::Duration;
 
+#[cfg(windows)]
+use std::path::PathBuf;
+#[cfg(windows)]
+use std::sync::atomic::{AtomicBool, Ordering};
+#[cfg(windows)]
+use std::sync::Arc;
+
+#[cfg(windows)]
 use super::project::PROJECT_DIR;
 
 /// The default safety poll interval.
@@ -20,6 +26,7 @@ pub const DEFAULT_POLL_SECS: u64 = 2;
 /// The default safety poll interval when a native watcher is in charge.
 const NATIVE_SAFETY_POLL_SECS: u64 = 30;
 /// The file written to wake a blocked directory read (inside `.ukma/`).
+#[cfg(windows)]
 const NUDGE_FILE: &str = "watch.nudge";
 
 /// The safety poll interval from `UKMA_DAEMON_POLL_SECS` (clamped to `[1, 3600]`).
@@ -85,7 +92,10 @@ impl Watcher {
                 }
                 ready.load(Ordering::SeqCst)
             }
-            Watcher::Poll => true,
+            Watcher::Poll => {
+                let _ = timeout;
+                true
+            }
         }
     }
 
