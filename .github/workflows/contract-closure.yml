@@ -45,6 +45,10 @@ jobs:
       - name: codegen reproducibility
         run: |
           python3 scripts/gen_contracts.py
+          # The generator emits compact literals while the committed artifacts are
+          # rustfmt'd, so format before comparing: this gate is about content, not
+          # whitespace, and `cargo fmt --all -- --check` already guards formatting.
+          cargo fmt --all
           git diff --exit-code -- \
             crates/ukma-contracts/src/generated \
             contracts/mcp \
