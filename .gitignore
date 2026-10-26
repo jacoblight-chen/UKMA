@@ -2,6 +2,8 @@ target/
 .codegraph/
 .ukma/
 node_modules/
+# `npm login` / a pasted token writes credentials here; never commit either one.
+.npmrc
 npm/.npmrc
 .vscode/.ropeproject
 *.pending
