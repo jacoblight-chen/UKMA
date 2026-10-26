@@ -6890,7 +6890,7 @@
       "version": "0.1.0"
     },
     {
-      "bom-ref": "ukma-cli@0.1.0",
+      "bom-ref": "ukma-cli@0.1.1",
       "licenses": [
         {
           "license": {
@@ -6905,10 +6905,10 @@
           "value": "true"
         }
       ],
-      "purl": "pkg:cargo/ukma-cli@0.1.0",
+      "purl": "pkg:cargo/ukma-cli@0.1.1",
       "scope": "required",
       "type": "library",
-      "version": "0.1.0"
+      "version": "0.1.1"
     },
     {
       "bom-ref": "ukma-code-runtime@0.1.0",
