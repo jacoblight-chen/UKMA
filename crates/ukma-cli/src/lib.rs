@@ -782,8 +782,10 @@ fn setup_init(parsed: &Parsed) -> Result<String, CliError> {
         &parsed.index_options(),
     )
     .map_err(setup_error)?;
+    let git = setup::git_state::capture(&report.root);
+    setup::git_state::persist(&report.root, &git).map_err(setup_error)?;
     Ok(format!(
-        "project   {}\nmanifest  {}\nsnapshot  {}\nrevision  {} ({} files, {} read)\nstate     {}\nnext: run `ukma install` to wire your agents; a bare `ukma --mcp` in the project picks the manifest up.",
+        "project   {}\nmanifest  {}\nsnapshot  {}\nrevision  {} ({} files, {} read)\nstate     {}\ngit       {}\nnext: run `ukma install` to wire your agents; a bare `ukma --mcp` in the project picks the manifest up.",
         report.root.display(),
         report
             .project_dir
@@ -802,6 +804,7 @@ fn setup_init(parsed: &Parsed) -> Result<String, CliError> {
         } else {
             "refreshed"
         },
+        git.summary(),
     ))
 }
 
@@ -821,8 +824,10 @@ fn setup_sync(parsed: &Parsed) -> Result<String, CliError> {
     };
     let report = setup::snapshot::sync_with(&root_path, &options, &store, parsed.verify)
         .map_err(|error| CliError::Setup(error.to_string()))?;
+    let git = setup::git_state::capture(&root_path);
+    setup::git_state::persist(&root_path, &git).map_err(setup_error)?;
     Ok(format!(
-        "project   {}\nsnapshot  {}\nrevision  {} ({} files)\nchange    {} added, {} modified, {} touched, {} removed, {} unchanged\nread      {} of {} files ({})\n",
+        "project   {}\nsnapshot  {}\nrevision  {} ({} files)\nchange    {} added, {} modified, {} touched, {} removed, {} unchanged\nread      {} of {} files ({})\ngit       {}\n",
         root_path.display(),
         store.path().display(),
         report.revision,
@@ -843,6 +848,7 @@ fn setup_sync(parsed: &Parsed) -> Result<String, CliError> {
         } else {
             "incremental".to_string()
         },
+        git.summary(),
     ))
 }
 
@@ -926,6 +932,13 @@ fn setup_status(parsed: &Parsed) -> Result<String, CliError> {
             ),
             None => "not running (share one warm index with `ukma daemon start`)".to_string(),
         }
+    );
+    let _ = writeln!(
+        text,
+        "git       {}",
+        setup::git_state::load(&root_path)
+            .map(|state| state.summary())
+            .unwrap_or_else(|| "not captured (run `ukma sync`)".to_string())
     );
     if report.is_current() {
         let _ = write!(text, "state     up to date");

@@ -14,6 +14,7 @@ pub mod agents;
 pub mod cache;
 pub mod config;
 pub mod daemon;
+pub mod git_state;
 pub mod install;
 pub mod project;
 pub mod snapshot;

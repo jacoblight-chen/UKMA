@@ -478,6 +478,15 @@ impl Warm {
                 self.gateway = fresh.gateway;
                 self.synced_at = now_rfc3339();
                 self.syncs += 1;
+                // Best-effort: keep the git-state sidecar fresh. A git failure
+                // never drops the daemon — the previous sidecar is kept.
+                if let Err(error) =
+                    super::git_state::persist(root, &super::git_state::capture(root))
+                {
+                    eprintln!(
+                        "ukma daemon: git-state refresh failed ({error}); keeping the previous"
+                    );
+                }
                 true
             }
             Err(error) => {
