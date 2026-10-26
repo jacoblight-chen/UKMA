@@ -1,6 +1,8 @@
 target/
 .codegraph/
 .ukma/
+# 2.8 GB of onnx model binaries; downloaded, never committed.
+models/
 node_modules/
 # `npm login` / a pasted token writes credentials here; never commit either one.
 .npmrc
