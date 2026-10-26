@@ -95,6 +95,13 @@ ukma daemon start              # 選用：讓多個 session 共用一份 warm in
 
 `ukma init`／`ukma sync` 把整棵樹的快照寫進 `.ukma/index.db`（SQLite、WAL）：每個檔案一列 `(size, mtime_ns, sha256, content)`，另加 snapshot metadata（revision、檔案數、掃描範圍指紋）。之後在專案內跑 `ukma --mcp`（或不帶 `--index-cwd` 的 `--run-tool`／`call`）會**先用快取**：只有 `(size, mtime)` 變了的檔案會被讀取與重新雜湊，其餘直接沿用；stderr 會印 `ukma: snapshot cache: N read, M reused`。`--no-cache` 可強制回到純掃描。多根專案（`ukma init --workspace <dir>`）也走同一顆快取：每個 root 各自套上限、相對路徑以**先出現的 root 勝出**、最後按路徑排序——與掃描器的合併規則逐條相同，所以快取 revision 與 fresh scan 相等。`--mcp --watch` 也從快取起跑（不重掃一次已讀過的樹）。索引仍是 dirty snapshot，但**跨進程持久化、增量、且多根**。
 
+**git 感知**：快照只按 `(size, mtime)` 追蹤檔案，不知道版本控制狀態。`ukma init`／`ukma sync` 會一併對專案 root 跑 `git`，把結果寫進 `.ukma/git-state.json`（schema-versioned 的 sidecar）；`ukma status` 讀取它，daemon 暖索引刷新時 best-effort 更新。它在檔案快照之外多一層 git 語意——HEAD、branch（或 detached commit）、以及 staged／unstaged／untracked 的檔案清單：
+
+- `ukma init`／`ukma sync`／`ukma status` 的輸出多一列 `git`，例如 `repo @ main (abc1234): 1 staged, 2 unstaged, 3 untracked`；非 repo 是 `not a git repository`，`git` 缺失或 repo 損毀是 `git unavailable: …`（**永不 panic**，回傳 typed 狀態）。
+- 索引自身的 `.ukma/` 目錄被排除，所以狀態反映的是專案而非工具產物。
+- 這是**純 CLI 端**：不動 `SnapshotStore` port、不動任何 backend、不動 wire API（ADR-021），65 操作 registry 未改。
+- 索引仍是「上次 sync 時的快照」（由 daemon + 觀察器保持新鮮），但現在帶 git 語意，接近 codegraph 的索引語意。
+
 `ukma status` 是唯讀的：列出快取持有的 revision、掃描範圍（`current` / `stale`）、快取中的 parse 數量，以及「與工作樹不同」的檔案（`### Pending sync:`），不寫任何東西。加上 `--verify` 時連 stat 沒動的檔案也會讀取比對。
 
 **parse 結果也持久化**（同一顆 `.ukma/index.db`）：`ParsedSource` 以 `(parser 版本, 語言, 路徑, 內容 sha256)` 為鍵，所以
