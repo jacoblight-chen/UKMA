@@ -30,6 +30,41 @@ npx ukma-cli --version
 
 ## Publishing
 
+Publishing must happen **inside this directory** (`npm/`): `npm publish` reads
+`package.json` from the current directory, and the repository root deliberately
+has none. Running it there fails with:
+
+```
+npm error code ENOENT
+npm error path .../package.json
+npm error enoent Could not read package.json
+```
+
+`--prefix npm` does **not** help for `publish`; use the helper, which `cd`s for
+you, shows the tarball first, and stays a dry run unless you ask it to upload:
+
+```powershell
+.\scripts\publish_npm.ps1                                  # dry run
+.\scripts\publish_npm.ps1 -Tag v0.1.0 -Publish             # upload
+.\scripts\publish_npm.ps1 -Publish -Otp 123456             # account without a bypass-2FA token
+```
+
+```shell
+sh scripts/publish_npm.sh                                  # dry run
+sh scripts/publish_npm.sh --tag v0.1.0 --publish           # upload
+sh scripts/publish_npm.sh --publish --otp 123456
+```
+
+### Common failures
+
+| Error | Cause | Fix |
+| --- | --- | --- |
+| `ENOENT … package.json` | ran outside `npm/` | `cd npm` first, or use the helper |
+| `E403 … Two-factor authentication or granular access token with bypass 2fa enabled is required` | the npm account enforces 2FA for writes | pass `--otp <code>` (or `-Otp`), or create a token with **Bypass 2FA** and use it as `NPM_TOKEN` |
+| `E402 Payment Required` | npm treated the package as private | keep `--access public` |
+| `E403 Forbidden - PUT … you do not have permission` | the name belongs to someone else, or the scope is not yours | pick another name in `package.json` (e.g. `@<your-scope>/ukma`) |
+| `npx ukma-cli` downloads and gets HTTP 404 | the GitHub release (with the bare `ukma-<triple>` assets) does not exist yet | publish the release first: `git tag v<version> && git push origin v<version>` |
+
 `.github/workflows/release.yml` publishes this package from `npm/` on every `v*`
 tag when the repository has an `NPM_TOKEN` secret; without the secret the release
 still produces the installers and `ukma upgrade` assets, and the npm step is

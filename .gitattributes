@@ -1,2 +1,5 @@
 # Shell scripts must keep LF endings: a CRLF `#!/bin/sh` line fails on Unix.
 *.sh text eol=lf
+# The npm launcher is executed directly by `npx`; a CRLF `#!/usr/bin/env node`
+# line would fail the same way.
+*.js text eol=lf
