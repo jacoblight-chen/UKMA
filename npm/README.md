@@ -60,7 +60,7 @@ sh scripts/publish_npm.sh --publish --otp 123456
 | Error | Cause | Fix |
 | --- | --- | --- |
 | `ENOENT … package.json` | ran outside `npm/` | `cd npm` first, or use the helper |
-| `E403 … Two-factor authentication or granular access token with bypass 2fa enabled is required` | the npm account enforces 2FA for writes | pass `--otp <code>` (or `-Otp`), or create a token with **Bypass 2FA** and use it as `NPM_TOKEN` |
+| `E403 … Two-factor authentication or granular access token with bypass 2fa enabled is required` | the credential cannot satisfy npm's 2FA check. **A Granular Access Token needs "Bypass 2FA" even when the account has 2FA disabled** (`npm profile get` → `two-factor auth: disabled`), and then there is no code to type | recreate the token with **Bypass 2FA** checked (Automation tokens always bypass), or `npm logout` + `npm login` and publish with the web-session credential. If the account really has 2FA on, pass `--otp <code>` |
 | `E402 Payment Required` | npm treated the package as private | keep `--access public` |
 | `E403 Forbidden - PUT … you do not have permission` | the name belongs to someone else, or the scope is not yours | pick another name in `package.json` (e.g. `@<your-scope>/ukma`) |
 | `npx ukma-cli` downloads and gets HTTP 404 | the GitHub release (with the bare `ukma-<triple>` assets) does not exist yet | publish the release first: `git tag v<version> && git push origin v<version>` |

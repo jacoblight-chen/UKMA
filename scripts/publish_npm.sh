@@ -102,10 +102,14 @@ if [ "$status" -ne 0 ]; then
     case "$output" in
         *two-factor*|*2fa*|*EOTP*)
             cat >&2 <<'EOF'
-npm rejected the publish because the account requires two-factor authentication.
-  - interactive:    sh scripts/publish_npm.sh --publish --otp <6-digit-code>
-  - CI / no prompt: create an npm token with "bypass 2FA" and use it as NPM_TOKEN
-    (Automation tokens bypass 2FA; Granular tokens need "Bypass 2FA" enabled)
+npm refused the publish because the credential cannot satisfy the two-factor check.
+Two cases, and only one of them needs a code:
+  - the account HAS 2FA enabled: pass a code with --otp <6-digit>, or use a token
+    created with "Bypass 2FA"
+  - the account has 2FA DISABLED but the token is a Granular Access Token without
+    "Bypass 2FA": no code exists to type. Either recreate the token with
+    "Bypass 2FA" checked (Automation tokens always bypass), or `npm logout` and
+    `npm login` so the web session credential is used instead of the token.
 EOF
             ;;
     esac
