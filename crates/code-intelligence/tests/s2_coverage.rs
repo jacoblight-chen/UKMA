@@ -27,6 +27,17 @@ fn repo_root() -> PathBuf {
         .to_path_buf()
 }
 
+/// The ledger slice file for a slice id.
+///
+/// Slice ids are `S2-<language>` but the files on disk are lower case
+/// (`docs/migration/ledger/s2-bash.yaml`), so resolving the id directly only
+/// works on a case-insensitive filesystem. Normalising here keeps the gate
+/// meaningful on Linux and macOS too.
+fn ledger_path(root: &Path, slice: &str) -> PathBuf {
+    root.join("docs/migration/ledger")
+        .join(format!("{}.yaml", slice.to_ascii_lowercase()))
+}
+
 fn load_yaml(path: &Path) -> serde_yaml::Value {
     let raw = std::fs::read_to_string(path)
         .unwrap_or_else(|error| panic!("cannot read {}: {error}", path.display()));
@@ -42,9 +53,7 @@ fn every_baseline_language_has_a_ledger_slice() {
         let entry = registry
             .get(language)
             .unwrap_or_else(|| panic!("{language} missing from the registry"));
-        let path = root
-            .join("docs/migration/ledger")
-            .join(format!("{}.yaml", entry.ledger_slice));
+        let path = ledger_path(&root, &entry.ledger_slice);
         assert!(
             path.exists(),
             "{language}: ledger slice missing at {}",
@@ -189,9 +198,7 @@ fn nothing_is_claimed_as_ported_without_evidence() {
 fn ported_slices_record_their_changes_and_evidence() {
     let root = repo_root();
     for language in PORTED_LANGUAGES {
-        let path = root
-            .join("docs/migration/ledger")
-            .join(format!("S2-{language}.yaml"));
+        let path = ledger_path(&root, &format!("S2-{language}"));
         let ledger = load_yaml(&path);
         let changes = ledger
             .get("changes")
@@ -237,9 +244,7 @@ fn ported_slices_record_their_changes_and_evidence() {
 }
 
 fn ledger_ported(root: &Path, slice: &str) -> bool {
-    let path = root
-        .join("docs/migration/ledger")
-        .join(format!("{slice}.yaml"));
+    let path = ledger_path(root, slice);
     load_yaml(&path)
         .get("status")
         .and_then(|status| status.get("grammar_ported"))
