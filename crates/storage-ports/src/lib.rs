@@ -22,6 +22,7 @@ pub mod error;
 pub mod migration;
 pub mod migrations;
 pub mod ports;
+pub mod snapshot;
 pub mod testing;
 
 pub use capabilities::{AdapterCapabilities, BackendKind, CapabilityProbe, TransactionScope};
@@ -35,4 +36,8 @@ pub use ports::{
     validate_scope, ArtifactPort, ArtifactRecord, EmbeddingProfile, FullTextDoc, FullTextHit,
     FullTextPort, GraphPort, MetadataEntry, MetadataPort, Metric, OutboxEvent, OutboxPort,
     Retention, VectorHit, VectorItem, VectorPort,
+};
+pub use snapshot::{
+    cache_db_error, cache_io_error, scope_fingerprint, sha256_hex, CacheError, FileRow, ParseCache,
+    ParseKey, SnapshotMeta, SnapshotStore, SNAPSHOT_FORMAT, SNAPSHOT_SCHEMA_VERSION,
 };

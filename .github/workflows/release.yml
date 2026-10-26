@@ -1,0 +1,142 @@
+name: release
+
+# Publishes the assets the installers and `ukma upgrade` expect:
+#
+#   ukma-<target-triple>.zip          the binary at the archive root
+#   ukma-<target-triple>.zip.sha256   `sha256  <file>`
+#   latest.json                       {"version": "...", "assets": {"<triple>": {"url", "sha256"}}}
+#
+# `scripts/install.ps1` / `scripts/install.sh` download the zip and verify the
+# SHA-256; `ukma upgrade` reads latest.json.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v0.1.0)'
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  TAG: ${{ github.event.inputs.tag || github.ref_name }}
+
+jobs:
+  package:
+    name: package ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-apple-darwin
+            os: macos-13
+          - target: aarch64-apple-darwin
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Check the tag matches the crate version
+        shell: bash
+        run: |
+          version=$(grep -m1 '^version' crates/ukma-cli/Cargo.toml | cut -d'"' -f2)
+          if [ "${TAG#v}" != "$version" ]; then
+            echo "tag $TAG does not match ukma-cli $version" >&2
+            exit 1
+          fi
+
+      - name: cargo build -p ukma-cli --release
+        run: cargo build -p ukma-cli --release --target ${{ matrix.target }}
+
+      - name: Package (unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          archive="ukma-${{ matrix.target }}.zip"
+          bin="target/${{ matrix.target }}/release/ukma"
+          "$bin" --version
+          zip -j "$archive" "$bin"
+          sha256sum "$archive" | tee "$archive.sha256"
+
+      - name: Package (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $archive = "ukma-${{ matrix.target }}.zip"
+          $bin = "target/${{ matrix.target }}/release/ukma.exe"
+          & $bin --version
+          Compress-Archive -Path $bin -DestinationPath $archive -Force
+          $hash = (Get-FileHash -Path $archive -Algorithm SHA256).Hash.ToLower()
+          "$hash  $archive" | Out-File -Encoding ascii "$archive.sha256"
+          Write-Host "$archive $hash"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ukma-${{ matrix.target }}
+          path: |
+            ukma-${{ matrix.target }}.zip
+            ukma-${{ matrix.target }}.zip.sha256
+          if-no-files-found: error
+
+  publish:
+    name: publish ${{ github.ref_name || github.event.inputs.tag }}
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Build latest.json
+        shell: bash
+        run: |
+          version="${TAG#v}"
+          base="https://github.com/${{ github.repository }}/releases/download/$TAG"
+          ls -l artifacts
+          {
+            printf '{\n  "version": "%s",\n  "assets": {\n' "$version"
+            first=1
+            for archive in artifacts/ukma-*.zip; do
+              name=$(basename "$archive")
+              triple=${name#ukma-}
+              triple=${triple%.zip}
+              sha=$(cut -d' ' -f1 "artifacts/$name.sha256")
+              if [ "$first" -eq 1 ]; then first=0; else printf ',\n'; fi
+              printf '    "%s": { "url": "%s/%s", "sha256": "%s" }' \
+                "$triple" "$base" "$name" "$sha"
+            done
+            printf '\n  }\n}\n'
+          } > latest.json
+          cat latest.json
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --title "UKMA $TAG" --notes "UKMA $TAG"
+          fi
+
+      - name: Upload the assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "$TAG" artifacts/ukma-*.zip artifacts/ukma-*.zip.sha256 --clobber
+          gh release upload "$TAG" latest.json --clobber

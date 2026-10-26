@@ -7,7 +7,10 @@
 //!
 //! Normative source: `docs/UKMA_v1.2.3_Full_Spec.md` §13, §39.2.
 
+pub mod setup;
+
 use std::collections::BTreeMap;
+use std::fmt::Write as _;
 
 use serde_json::Value;
 use ukma_contracts::{Consistency, RequestContext, RequestEnvelope, ScopeRef};
@@ -34,6 +37,8 @@ pub enum CliError {
     Api { code: String, message: String },
     /// No handler answered for the operation.
     Unhandled(String),
+    /// A setup command (install, init, upgrade, ...) failed.
+    Setup(String),
 }
 
 impl std::fmt::Display for CliError {
@@ -46,6 +51,7 @@ impl std::fmt::Display for CliError {
             CliError::BadJson(detail) => write!(f, "body is not JSON: {detail}"),
             CliError::Api { code, message } => write!(f, "{code}: {message}"),
             CliError::Unhandled(operation) => write!(f, "no handler for `{operation}`"),
+            CliError::Setup(detail) => write!(f, "{detail}"),
         }
     }
 }
@@ -60,6 +66,7 @@ pub fn exit_code(error: &CliError) -> i32 {
         CliError::BadJson(_) => 2,
         CliError::Unhandled(_) => 3,
         CliError::Api { .. } => 1,
+        CliError::Setup(_) => 4,
     }
 }
 
@@ -152,6 +159,8 @@ pub struct Parsed {
     pub profile: Option<String>,
     /// Re-index on change by polling mtimes (`--watch`).
     pub watch: bool,
+    /// Skip the persisted snapshot cache and rescan the tree (`--no-cache`).
+    pub no_cache: bool,
     /// Enable online OSV dependency lookups (`--online`). A network operation;
     /// the offline manifest is the fallback when the build has no `osv`
     /// feature or the network is unavailable.
@@ -169,6 +178,40 @@ pub struct Parsed {
     pub domain: Option<String>,
     /// Whether the caller asked for the usage text.
     pub help: bool,
+    /// Whether the caller asked for the version.
+    pub version: bool,
+    /// The agents to wire (`install` / `uninstall`, repeatable).
+    pub targets: Vec<String>,
+    /// Compute a setup report without writing (`--dry-run`).
+    pub dry_run: bool,
+    /// Confirmed: destructive setup commands require it (`--yes`).
+    pub yes: bool,
+    /// Keep the CLI when uninstalling (`--keep-cli`).
+    pub keep_cli: bool,
+    /// Delete the CLI when uninstalling (`--remove-cli`).
+    pub remove_cli: bool,
+    /// Only check for a newer release (`--check`).
+    pub check: bool,
+    /// Install a local binary instead of downloading (`--from`).
+    pub from: Option<String>,
+    /// The release manifest path or URL (`--manifest`).
+    pub manifest: Option<String>,
+    /// The expected SHA-256 of `--from` (`--sha256`).
+    pub sha256: Option<String>,
+    /// The install directory for `upgrade` (`--install-dir`).
+    pub install_dir: Option<String>,
+    /// Whether to write the agent rules file (`--rules` / `--no-rules`).
+    pub rules: Option<bool>,
+    /// Discard the cache and rescan (`--force`).
+    pub force: bool,
+    /// Hash every file, not just the ones whose stat moved (`--verify`).
+    pub verify: bool,
+    /// The binary path written into agent configurations (`--binary`).
+    pub binary: Option<String>,
+    /// The home directory agent configurations are resolved against (`--home`).
+    pub home: Option<String>,
+    /// The project directory project-scoped configuration uses (`--cwd`).
+    pub cwd: Option<String>,
 }
 
 /// Parse the command line.
@@ -185,6 +228,7 @@ pub fn parse(args: &[String]) -> Result<Parsed, CliError> {
         max_files: None,
         profile: None,
         watch: false,
+        no_cache: false,
         online: false,
         split_identifiers: None,
         full_body: None,
@@ -192,6 +236,23 @@ pub fn parse(args: &[String]) -> Result<Parsed, CliError> {
         embedding_model: None,
         domain: None,
         help: false,
+        version: false,
+        targets: Vec::new(),
+        dry_run: false,
+        yes: false,
+        keep_cli: false,
+        remove_cli: false,
+        check: false,
+        verify: false,
+        from: None,
+        manifest: None,
+        sha256: None,
+        install_dir: None,
+        rules: None,
+        force: false,
+        binary: None,
+        home: None,
+        cwd: None,
     };
     let mut index = 0;
     while index < args.len() {
@@ -275,6 +336,12 @@ pub fn parse(args: &[String]) -> Result<Parsed, CliError> {
             "--watch" => {
                 parsed.watch = true;
             }
+            "--no-cache" => {
+                parsed.no_cache = true;
+            }
+            "--verify" => {
+                parsed.verify = true;
+            }
             "--online" => {
                 parsed.online = true;
             }
@@ -310,6 +377,83 @@ pub fn parse(args: &[String]) -> Result<Parsed, CliError> {
             }
             "--help" | "-h" => {
                 parsed.help = true;
+            }
+            "--version" | "-V" => {
+                parsed.version = true;
+            }
+            "--target" => parsed.targets.push(take(args, &mut index, "--target")?),
+            "--dry-run" => {
+                parsed.dry_run = true;
+            }
+            "--yes" | "-y" => {
+                parsed.yes = true;
+            }
+            "--keep-cli" => {
+                parsed.keep_cli = true;
+            }
+            "--remove-cli" => {
+                parsed.remove_cli = true;
+            }
+            "--check" => {
+                parsed.check = true;
+            }
+            "--from" => {
+                let from = take(args, &mut index, "--from")?;
+                if parsed.from.is_some() {
+                    return Err(CliError::Usage("only one --from is allowed".into()));
+                }
+                parsed.from = Some(from);
+            }
+            "--manifest" => {
+                let manifest = take(args, &mut index, "--manifest")?;
+                if parsed.manifest.is_some() {
+                    return Err(CliError::Usage("only one --manifest is allowed".into()));
+                }
+                parsed.manifest = Some(manifest);
+            }
+            "--sha256" => {
+                let sha256 = take(args, &mut index, "--sha256")?;
+                if parsed.sha256.is_some() {
+                    return Err(CliError::Usage("only one --sha256 is allowed".into()));
+                }
+                parsed.sha256 = Some(sha256);
+            }
+            "--install-dir" => {
+                let dir = take(args, &mut index, "--install-dir")?;
+                if parsed.install_dir.is_some() {
+                    return Err(CliError::Usage("only one --install-dir is allowed".into()));
+                }
+                parsed.install_dir = Some(dir);
+            }
+            "--rules" => {
+                parsed.rules = Some(true);
+            }
+            "--no-rules" => {
+                parsed.rules = Some(false);
+            }
+            "--force" => {
+                parsed.force = true;
+            }
+            "--binary" => {
+                let binary = take(args, &mut index, "--binary")?;
+                if parsed.binary.is_some() {
+                    return Err(CliError::Usage("only one --binary is allowed".into()));
+                }
+                parsed.binary = Some(binary);
+            }
+            "--home" => {
+                let home = take(args, &mut index, "--home")?;
+                if parsed.home.is_some() {
+                    return Err(CliError::Usage("only one --home is allowed".into()));
+                }
+                parsed.home = Some(home);
+            }
+            "--cwd" => {
+                let cwd = take(args, &mut index, "--cwd")?;
+                if parsed.cwd.is_some() {
+                    return Err(CliError::Usage("only one --cwd is allowed".into()));
+                }
+                parsed.cwd = Some(cwd);
             }
             other => parsed.positional.push(other.to_string()),
         }
@@ -458,6 +602,30 @@ pub fn usage() -> String {
         "  ukma --run-tool <name> [--tool-args json]  run one tool and exit",
         "  ukma --mcp [--index-cwd <path>]          serve the MCP stdio protocol",
         "",
+        "setup (CodeGraph `install` / `init` / `uninstall` / `upgrade` parity):",
+        "  ukma init [dir]                          create .ukma/ and index the project",
+        "  ukma sync [dir] [--force]                incremental refresh of .ukma/index.db",
+        "  ukma sync [dir] --verify                 also hash unchanged stats (finds a",
+        "                                           same-size edit with a restored mtime)",
+        "  ukma status [dir] [--verify]             snapshot revision + pending files",
+        "  ukma daemon start|stop|status [dir]      shared per-project daemon",
+        "  ukma uninit [dir] --yes                  remove the .ukma/ directory",
+        "  ukma install [--target <id>] [--dry-run] [--no-rules]",
+        "                                           wire the MCP server into detected agents",
+        "  ukma uninstall [--target <id>] --yes [--keep-cli]",
+        "                                           remove the agent wiring and the CLI",
+        "                                           (--keep-cli keeps the binary)",
+        "  ukma upgrade [--check] [--from <file> [--sha256 <hex>]]",
+        "                                           install a newer ukma binary",
+        "  ukma --version                           print the version",
+        "",
+        "setup options: --target <id>|all --dry-run --yes --home <dir> --cwd <dir>",
+        "               --binary <path> --rules/--no-rules --install-dir <dir>",
+        "               --manifest <path-or-url>",
+        "",
+        "cache: --no-cache  ignore .ukma/index.db and rescan the tree",
+        "       --force     discard the cache and rescan (`ukma sync`)",
+        "",
         "options: --tenant <id> --project <id> --principal <id> --scope <scope>",
         "",
         "indexing (CodeGraph-style):",
@@ -518,10 +686,22 @@ pub fn run(
         return Ok(usage());
     }
 
+    if parsed.version {
+        return Ok(format!("ukma {}", env!("CARGO_PKG_VERSION")));
+    }
+
     let Some(command) = positional.first().cloned() else {
         return Ok(usage());
     };
     match command.as_str() {
+        "init" => setup_init(parsed),
+        "sync" => setup_sync(parsed),
+        "status" => setup_status(parsed),
+        "daemon" => setup_daemon(parsed),
+        "uninit" => setup_uninit(parsed),
+        "install" => setup_install(parsed),
+        "uninstall" => setup_uninstall(parsed),
+        "upgrade" => setup_upgrade(parsed),
         "health" => Ok(rest::health_json()),
         "manifest" => Ok(manifest::manifest_json()),
         "capabilities" => Ok(dispatch(
@@ -556,14 +736,375 @@ pub fn run(
                 .get(2)
                 .cloned()
                 .unwrap_or_else(|| "{}".to_string());
-            let input: Value = serde_json::from_str(&body)
+            let mut input: Value = serde_json::from_str(&body)
                 .map_err(|error| CliError::BadJson(error.to_string()))?;
+            // The `@cwd` alias works on every surface, `call` included.
+            if let Some(index) = cwd_index {
+                ukma_mcp::resolve_cwd_alias(&mut input, index);
+            }
             dispatch(gateway, &operation, input, &options)
         }
         other => Err(CliError::Usage(format!(
             "unknown command `{other}`; try ukma --help"
         ))),
     }
+}
+
+/// The setup context implied by `--home` / `--cwd` / `--binary`.
+fn setup_context(parsed: &Parsed) -> Result<setup::SetupContext, CliError> {
+    setup::SetupContext::resolve(
+        parsed.home.as_deref(),
+        parsed.cwd.as_deref(),
+        parsed.binary.as_deref(),
+    )
+    .map_err(|error| CliError::Setup(error.to_string()))
+}
+
+fn setup_error(error: setup::SetupError) -> CliError {
+    CliError::Setup(error.to_string())
+}
+
+/// The project directory a setup command acts on (the first positional after
+/// the command, defaulting to the working directory).
+fn setup_root(parsed: &Parsed) -> String {
+    parsed
+        .positional
+        .get(1)
+        .cloned()
+        .unwrap_or_else(|| ".".to_string())
+}
+
+fn setup_init(parsed: &Parsed) -> Result<String, CliError> {
+    let root = setup_root(parsed);
+    let report = setup::project::init(
+        std::path::Path::new(&root),
+        &parsed.workspaces,
+        &parsed.index_options(),
+    )
+    .map_err(setup_error)?;
+    Ok(format!(
+        "project   {}\nmanifest  {}\nsnapshot  {}\nrevision  {} ({} files, {} read)\nstate     {}\nnext: run `ukma install` to wire your agents; a bare `ukma --mcp` in the project picks the manifest up.",
+        report.root.display(),
+        report
+            .project_dir
+            .join(setup::project::MANIFEST_FILE)
+            .display(),
+        if report.cached {
+            setup::cache::index_db_path(&report.root).display().to_string()
+        } else {
+            "skipped (multi-root project)".to_string()
+        },
+        report.revision,
+        report.files,
+        report.read,
+        if report.created {
+            "created"
+        } else {
+            "refreshed"
+        },
+    ))
+}
+
+/// Incrementally refresh `.ukma/index.db` (`ukma sync`).
+fn setup_sync(parsed: &Parsed) -> Result<String, CliError> {
+    use storage_ports::snapshot::SnapshotStore;
+
+    let root = setup_root(parsed);
+    let root_path =
+        setup::project::resolve_root(std::path::Path::new(&root)).map_err(setup_error)?;
+    let options = setup::project::effective_options(&root_path, &parsed.index_options())
+        .map_err(setup_error)?;
+    let store = if parsed.force {
+        setup::cache::recreate(&root_path).map_err(setup_error)?
+    } else {
+        setup::cache::open_store(&root_path).map_err(setup_error)?
+    };
+    let report = setup::snapshot::sync_with(&root_path, &options, &store, parsed.verify)
+        .map_err(|error| CliError::Setup(error.to_string()))?;
+    Ok(format!(
+        "project   {}\nsnapshot  {}\nrevision  {} ({} files)\nchange    {} added, {} modified, {} touched, {} removed, {} unchanged\nread      {} of {} files ({})\n",
+        root_path.display(),
+        store.path().display(),
+        report.revision,
+        report.files,
+        report.added,
+        report.modified,
+        report.touched,
+        report.removed,
+        report.unchanged,
+        report.read,
+        report.files,
+        if report.full {
+            "full rescan".to_string()
+        } else if report.read == 0 {
+            "nothing to read".to_string()
+        } else if report.verified > 0 {
+            format!("incremental, {} verified by content", report.verified)
+        } else {
+            "incremental".to_string()
+        },
+    ))
+}
+
+/// Report the cached revision and the files that drifted (`ukma status`).
+fn setup_status(parsed: &Parsed) -> Result<String, CliError> {
+    let root = setup_root(parsed);
+    let root_path =
+        setup::project::resolve_root(std::path::Path::new(&root)).map_err(setup_error)?;
+    let options = setup::project::effective_options(&root_path, &parsed.index_options())
+        .map_err(setup_error)?;
+    let db = setup::cache::index_db_path(&root_path);
+    let store = if db.exists() {
+        Some(setup::cache::open_store(&root_path).map_err(setup_error)?)
+    } else {
+        None
+    };
+    let report = setup::snapshot::status_with(
+        &root_path,
+        &options,
+        store
+            .as_ref()
+            .map(|store| store as &dyn storage_ports::snapshot::SnapshotStore),
+        parsed.verify,
+    )
+    .map_err(|error| CliError::Setup(error.to_string()))?;
+
+    let mut text = format!("project   {}\n", report.root.display());
+    match (&report.meta, &report.store) {
+        (Some(meta), Some(path)) => {
+            let _ = writeln!(
+                text,
+                "snapshot  {}\nrevision  {} ({} files, updated {})",
+                path.display(),
+                meta.revision,
+                meta.files,
+                meta.updated_at
+            );
+            if let Some(store) = &store {
+                if let Ok(entries) = storage_ports::snapshot::ParseCache::len(store) {
+                    let _ = writeln!(text, "parses    {entries} cached parse(s)");
+                }
+            }
+        }
+        (None, Some(path)) => {
+            let _ = writeln!(
+                text,
+                "snapshot  {} (empty; run `ukma init`)",
+                path.display()
+            );
+        }
+        _ => {
+            let _ = writeln!(text, "snapshot  none (run `ukma init`)");
+        }
+    }
+    let _ = writeln!(
+        text,
+        "scope     {}\non disk   {} files",
+        if report.stale_scope {
+            "stale (scan options changed; run `ukma sync`)"
+        } else {
+            "current"
+        },
+        report.on_disk
+    );
+    if report.verified > 0 {
+        let _ = writeln!(
+            text,
+            "verify    {} file(s) hashed by content",
+            report.verified
+        );
+    }
+    let _ = writeln!(
+        text,
+        "daemon    {}",
+        match setup::daemon::status(&root_path) {
+            Some((handle, value)) => format!(
+                "running (pid {}, port {}, revision {})",
+                handle.pid,
+                handle.port,
+                value["revision"].as_str().unwrap_or("-")
+            ),
+            None => "not running (share one warm index with `ukma daemon start`)".to_string(),
+        }
+    );
+    if report.is_current() {
+        let _ = write!(text, "state     up to date");
+        return Ok(text);
+    }
+    let _ = write!(
+        text,
+        "state     {} file(s) pending sync",
+        report.pending.len()
+    );
+    if report.touched > 0 {
+        let _ = write!(text, " (+{} touched, content unchanged)", report.touched);
+    }
+    if !report.pending.is_empty() {
+        text.push_str("\n### Pending sync:");
+        for change in &report.pending {
+            let _ = write!(text, "\n  {:<9} {}", change.kind.label(), change.path);
+        }
+    }
+    Ok(text)
+}
+
+/// The shared per-project daemon (`ukma daemon start|stop|status`, plus the
+/// internal `serve` the starter spawns).
+fn setup_daemon(parsed: &Parsed) -> Result<String, CliError> {
+    let verb = parsed
+        .positional
+        .get(1)
+        .cloned()
+        .unwrap_or_else(|| "status".to_string());
+    let dir = parsed
+        .positional
+        .get(2)
+        .cloned()
+        .unwrap_or_else(|| ".".to_string());
+    let root = setup::project::resolve_root(std::path::Path::new(&dir)).map_err(setup_error)?;
+    let options =
+        setup::project::effective_options(&root, &parsed.index_options()).map_err(setup_error)?;
+    match verb.as_str() {
+        "serve" => {
+            // Blocks until shutdown idles out; the starter owns the handle file.
+            let code = setup::daemon::serve(&root, options, setup::daemon::idle_timeout())
+                .map_err(setup_error)?;
+            if code == 0 {
+                Ok(String::new())
+            } else {
+                Err(CliError::Setup("the daemon reported an error".into()))
+            }
+        }
+        "start" => {
+            let handle = setup::daemon::start(&root, &options).map_err(setup_error)?;
+            Ok(format!(
+                "project   {}\ndaemon    running (pid {}, port {})\nhandle    {}\nnext: `ukma --mcp` in this project now delegates tool calls to it.",
+                root.display(),
+                handle.pid,
+                handle.port,
+                setup::daemon::handle_path(&root).display(),
+            ))
+        }
+        "stop" => {
+            let stopped = setup::daemon::stop(&root).map_err(setup_error)?;
+            Ok(format!(
+                "project   {}\ndaemon    {}",
+                root.display(),
+                if stopped { "stopped" } else { "not running" }
+            ))
+        }
+        "status" => match setup::daemon::status(&root) {
+            Some((handle, value)) => Ok(format!(
+                "project   {}\ndaemon    running (pid {}, port {}, v{}, up since {})\nrevision  {} ({} files, {} sync(s), last {})\nwatcher   {}\nrequests  {}",
+                root.display(),
+                handle.pid,
+                handle.port,
+                handle.version,
+                handle.started_at,
+                value["revision"].as_str().unwrap_or("-"),
+                value["files"].as_u64().unwrap_or_default(),
+                value["syncs"].as_u64().unwrap_or_default(),
+                value["synced_at"].as_str().unwrap_or("-"),
+                value["watcher"].as_str().unwrap_or("-"),
+                value["requests"].as_u64().unwrap_or_default(),
+            )),
+            None => Ok(format!(
+                "project   {}\ndaemon    not running (start it with `ukma daemon start`)",
+                root.display()
+            )),
+        },
+        other => Err(CliError::Usage(format!(
+            "unknown daemon command `{other}`; try start, stop or status"
+        ))),
+    }
+}
+
+fn setup_uninit(parsed: &Parsed) -> Result<String, CliError> {
+    if !parsed.yes && !parsed.dry_run {
+        return Err(CliError::Setup(
+            "`ukma uninit` removes the .ukma/ project directory; \
+             re-run with `--yes` (or `--dry-run` to preview)"
+                .into(),
+        ));
+    }
+    let root = setup_root(parsed);
+    if parsed.dry_run {
+        let project_dir = std::path::Path::new(&root).join(setup::project::PROJECT_DIR);
+        let state = if project_dir.is_dir() {
+            "would remove"
+        } else {
+            "nothing to remove"
+        };
+        return Ok(format!(
+            "project   {}\nstate     {state} (dry run)",
+            project_dir.display()
+        ));
+    }
+    // A running daemon holds `.ukma/index.db` open (and would keep serving a
+    // project that no longer exists), so it goes first.
+    let root_path =
+        setup::project::resolve_root(std::path::Path::new(&root)).map_err(setup_error)?;
+    let stopped_daemon = setup::daemon::stop(&root_path).map_err(setup_error)?;
+
+    let report = setup::project::uninit(std::path::Path::new(&root)).map_err(setup_error)?;
+    Ok(format!(
+        "project   {}\ndaemon    {}\nstate     {}",
+        report.project_dir.display(),
+        if stopped_daemon {
+            "stopped"
+        } else {
+            "not running"
+        },
+        if report.removed {
+            "removed"
+        } else {
+            "nothing to remove"
+        }
+    ))
+}
+
+fn setup_install(parsed: &Parsed) -> Result<String, CliError> {
+    let ctx = setup_context(parsed)?;
+    let request = setup::install::InstallRequest {
+        targets: parsed.targets.clone(),
+        dry_run: parsed.dry_run,
+        rules: parsed.rules.unwrap_or(true),
+        index_root: parsed.index_cwd.clone().unwrap_or_else(|| ".".to_string()),
+    };
+    setup::install::install(&ctx, &request)
+        .map(|report| report.text())
+        .map_err(setup_error)
+}
+
+fn setup_uninstall(parsed: &Parsed) -> Result<String, CliError> {
+    let ctx = setup_context(parsed)?;
+    let request = setup::install::UninstallRequest {
+        targets: parsed.targets.clone(),
+        dry_run: parsed.dry_run,
+        // CodeGraph parity: `uninstall` removes the CLI too; `--keep-cli` opts
+        // out, and `--remove-cli` stays accepted as an explicit synonym.
+        remove_cli: parsed.remove_cli || !parsed.keep_cli,
+        keep_cli: parsed.keep_cli,
+        yes: parsed.yes,
+    };
+    setup::install::uninstall(&ctx, &request)
+        .map(|report| report.text())
+        .map_err(setup_error)
+}
+
+fn setup_upgrade(parsed: &Parsed) -> Result<String, CliError> {
+    let ctx = setup_context(parsed)?;
+    let request = setup::upgrade::UpgradeRequest {
+        check: parsed.check,
+        from: parsed.from.clone().map(std::path::PathBuf::from),
+        dir: parsed.install_dir.clone().map(std::path::PathBuf::from),
+        manifest: parsed.manifest.clone(),
+        sha256: parsed.sha256.clone(),
+        dry_run: parsed.dry_run,
+    };
+    setup::upgrade::run(&ctx, &request)
+        .map(|report| report.text())
+        .map_err(setup_error)
 }
 
 fn take(args: &[String], index: &mut usize, flag: &str) -> Result<String, CliError> {

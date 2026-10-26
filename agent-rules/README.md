@@ -1,21 +1,49 @@
 # UKMA rules for AI coding agents
 
-Pre-configured rule files that teach AI coding agents (Claude, Cursor,
-Windsurf, Codex, Cline) to use the UKMA MCP tools before falling back to
-grep / multi-file reads. Each file maps natural-language intent to the right
-`ukma_*` tool.
+Pre-configured rule files that teach AI coding agents (Claude, Cursor, Cline,
+Windsurf, Codex, Copilot, Gemini CLI, opencode, Kiro) to use the UKMA MCP tools
+before falling back to grep / multi-file reads. Each file maps natural-language
+intent to the right `ukma_*` tool.
 
 ## Setup
 
-One line per agent — copy the file into the agent's rules location:
+`ukma install` writes both halves — the MCP server entry and the rules file —
+for every agent it detects. Nothing needs to be copied by hand:
+
+```bash
+ukma install                  # only the agents detected on this machine
+ukma install --target cursor  # one agent (repeatable; `all` for every target)
+ukma install --dry-run        # show the plan without writing
+ukma install --no-rules       # wire the MCP server, skip the rules file
+```
+
+The same files can still be installed manually — one line per agent:
 
 ```bash
 cp agent-rules/claude/UKMA.md   ~/.claude/UKMA.md
-cp agent-rules/cursor/UKMA.md   ./.cursor/UKMA.md
+cp agent-rules/cursor/UKMA.md   ~/.cursor/UKMA.md
 cp agent-rules/windsurf/UKMA.md ~/.windsurf/UKMA.md
-cp agent-rules/codex/UKMA.md    ./.codex/UKMA.md
+cp agent-rules/codex/UKMA.md    ~/.codex/UKMA.md
 cp agent-rules/cline/UKMA.md    ~/.cline/UKMA.md
+cp agent-rules/common/UKMA.md   ~/.copilot/UKMA.md   # Copilot CLI, Gemini, opencode, Kiro
 ```
+
+| `--target` | MCP configuration | rules file |
+| --- | --- | --- |
+| `claude-code` | `~/.claude.json` (`mcpServers`) | `~/.claude/UKMA.md` |
+| `cursor` | `~/.cursor/mcp.json` | `~/.cursor/UKMA.md` |
+| `windsurf` | `~/.codeium/windsurf/mcp_config.json` | `~/.windsurf/UKMA.md` |
+| `codex` | `~/.codex/config.toml` (managed block) | `~/.codex/UKMA.md` |
+| `cline` | VS Code globalStorage `cline_mcp_settings.json` | `~/.cline/UKMA.md` |
+| `copilot-vscode` | `<project>/.vscode/mcp.json` | `<project>/.github/instructions/ukma.instructions.md` |
+| `copilot-cli` | `~/.copilot/mcp-config.json` | `~/.copilot/UKMA.md` |
+| `gemini-cli` | `~/.gemini/settings.json` | `~/.gemini/UKMA.md` |
+| `opencode` | `~/.config/opencode/opencode.json` | `~/.config/opencode/UKMA.md` |
+| `kiro` | `~/.kiro/settings/mcp.json` | `~/.kiro/UKMA.md` |
+| `jetbrains` | — | — (the plugin is a REST client, not an MCP client) |
+
+`ukma uninstall --yes` reverses all of it (and leaves a rules file you edited
+alone). `ukma uninstall --target kiro --yes` narrows the scope.
 
 ## Prerequisites
 
@@ -25,6 +53,11 @@ working tree as revision `@cwd`):
 ```bash
 ukma --mcp --index-cwd .
 ```
+
+Inside a project prepared by `ukma init`, a bare `ukma --mcp` is enough: the
+`.ukma/project.json` manifest supplies the roots, excludes and file cap, and
+`.ukma/index.db` supplies the snapshot (only changed files are read). Run
+`ukma status` to see whether the snapshot matches the working tree.
 
 All tools are read-only except the index/admin and memory write operations.
 Use `"commit_sha": "@cwd"` in tool arguments to target the indexed working

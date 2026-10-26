@@ -17,6 +17,7 @@ osv = ["code-intelligence/osv"]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
+storage-ports = { path = "../storage-ports" }
 ukma-contracts = { path = "../ukma-contracts" }
 code-intelligence = { path = "../code-intelligence" }
 embedding-engine = { path = "../embedding-engine" }

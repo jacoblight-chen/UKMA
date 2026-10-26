@@ -17,6 +17,12 @@ onnx = ["ukma-mcp/onnx"]
 osv = ["ukma-mcp/osv"]
 
 [dependencies]
+code-intelligence = { path = "../code-intelligence" }
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = "0.10"
+storage-ports = { path = "../storage-ports" }
+ukma-adapter-sqlite = { path = "../adapters/sqlite" }
 ukma-contracts = { path = "../ukma-contracts" }
 ukma-mcp = { path = "../ukma-mcp" }
+ureq = { version = "2", features = ["json"] }

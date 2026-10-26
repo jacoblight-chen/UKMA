@@ -32,6 +32,8 @@ use storage_ports::{
 };
 use ukma_contracts::ScopeRef;
 
+pub mod snapshot;
+
 const SCHEMA_VERSION: &str = "1";
 
 const DDL: &str = "

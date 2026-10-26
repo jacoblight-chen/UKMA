@@ -3222,9 +3222,15 @@ dependencies = [
 name = "ukma-cli"
 version = "0.1.0"
 dependencies = [
+ "code-intelligence",
+ "serde",
  "serde_json",
+ "sha2 0.10.9",
+ "storage-ports",
+ "ukma-adapter-sqlite",
  "ukma-contracts",
  "ukma-mcp",
+ "ureq",
 ]
 
 [[package]]
@@ -3290,6 +3296,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
+ "storage-ports",
  "traceability-engine",
  "ukma-contracts",
 ]

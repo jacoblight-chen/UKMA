@@ -63,9 +63,16 @@ const SKIPPED_FILE_SUFFIXES: &[&str] = &[
     ".pem", ".key", ".p12", ".pfx", ".crt", ".gpg", ".kdbx",
 ];
 
-/// Whether a file name should be skipped (binary / archive / OS metadata /
-/// secret). Case-insensitive.
-fn is_skipped_file(name: &str) -> bool {
+/// Whether a file name should be skipped (dot-prefixed, binary / archive / OS
+/// metadata / secret). Case-insensitive on the name itself.
+///
+/// This is the single definition of "not a source file" — the scanner and the
+/// persistent snapshot cache both call it, so they can never disagree about
+/// which files belong to a revision.
+pub fn is_skipped_file(name: &str) -> bool {
+    if name.starts_with('.') {
+        return true;
+    }
     let lower = name.to_ascii_lowercase();
     if SKIPPED_FILES.iter().any(|skipped| *skipped == lower) {
         return true;
@@ -73,6 +80,17 @@ fn is_skipped_file(name: &str) -> bool {
     SKIPPED_FILE_SUFFIXES
         .iter()
         .any(|suffix| lower.ends_with(suffix))
+}
+
+/// Whether a directory should be skipped: dot-prefixed names, build/cache
+/// trees, and the `cmake-build-*` family. Shared with the persistent cache for
+/// the same reason as [`is_skipped_file`].
+pub fn is_skipped_dir(name: &str) -> bool {
+    name.starts_with('.')
+        || SKIPPED_DIRS.contains(&name)
+        || SKIPPED_DIR_PREFIXES
+            .iter()
+            .any(|prefix| name.starts_with(prefix))
 }
 
 /// Knobs for a scan (CLI parity: `--exclude`, `--max-files`).
@@ -203,17 +221,12 @@ fn walk(
         let file_name = entry.file_name();
         let name = file_name.to_string_lossy();
         if path.is_dir() {
-            if name.starts_with('.')
-                || SKIPPED_DIRS.contains(&name.as_ref())
-                || SKIPPED_DIR_PREFIXES
-                    .iter()
-                    .any(|prefix| name.starts_with(prefix))
-            {
+            if is_skipped_dir(&name) {
                 continue;
             }
             walk(root, &path, options, files)?;
         } else if path.is_file() {
-            if name.starts_with('.') || is_skipped_file(&name) {
+            if is_skipped_file(&name) {
                 continue;
             }
             let metadata = fs::metadata(&path)?;
@@ -249,6 +262,32 @@ pub fn index_directory(root: &Path) -> io::Result<IndexedSources> {
 /// register the result as a dirty snapshot (a worktree is never a clean
 /// commit). For multiple roots the first root wins on a path collision.
 pub fn index_multi(roots: &[&Path], options: &IndexOptions) -> io::Result<IndexedSources> {
+    let merged = scan_roots(roots, options)?;
+    let count = merged.len();
+    // A content-addressed 40-char hex revision (RepoRevision requires a
+    // full 40-char hex SHA, so the id is the first 40 hex chars of the
+    // tree digest).
+    let commit_sha = revision_of(
+        merged
+            .iter()
+            .map(|file| (file.path.as_str(), file.content.as_str())),
+    );
+    let sources = InMemorySources::new().with_dirty_commit(&commit_sha, merged);
+    Ok(IndexedSources {
+        index: CwdIndex {
+            commit_sha,
+            files: count,
+        },
+        sources,
+    })
+}
+
+/// Scan several roots into one ordered, deduplicated file list.
+///
+/// The cap applies per root, a relative path seen in an earlier root wins, and
+/// the merged list is path-sorted — the same rules the snapshot cache applies,
+/// so a cached revision and a fresh scan agree.
+pub fn scan_roots(roots: &[&Path], options: &IndexOptions) -> io::Result<Vec<SourceFile>> {
     let mut merged: Vec<SourceFile> = Vec::new();
     for root in roots {
         for file in scan_with(root, options)? {
@@ -258,26 +297,7 @@ pub fn index_multi(roots: &[&Path], options: &IndexOptions) -> io::Result<Indexe
         }
     }
     merged.sort_by(|left, right| left.path.cmp(&right.path));
-    let mut digest = Sha256::new();
-    for file in &merged {
-        digest.update(file.path.as_bytes());
-        digest.update(b"\n");
-        digest.update(file.content.as_bytes());
-        digest.update(b"\n");
-    }
-    let count = merged.len();
-    // A content-addressed 40-char hex revision (RepoRevision requires a
-    // full 40-char hex SHA, so the id is the first 40 hex chars of the
-    // tree digest).
-    let commit_sha = hex_prefix(digest.finalize());
-    let sources = InMemorySources::new().with_dirty_commit(&commit_sha, merged);
-    Ok(IndexedSources {
-        index: CwdIndex {
-            commit_sha,
-            files: count,
-        },
-        sources,
-    })
+    Ok(merged)
 }
 
 /// Index a directory tree: scan it, compute the deterministic revision id and
@@ -322,6 +342,9 @@ fn collect_signature(
                 continue;
             }
             let metadata = fs::metadata(&path)?;
+            // Nanosecond mtime: a second of granularity misses an entire
+            // agent turn's worth of edits, so a watcher polling on this
+            // signature would keep serving the pre-edit index.
             let mtime = metadata
                 .modified()
                 .ok()
@@ -330,7 +353,7 @@ fn collect_signature(
                     modified
                         .duration_since(UNIX_EPOCH)
                         .ok()
-                        .map(|duration| duration.as_secs())
+                        .map(|duration| u64::try_from(duration.as_nanos()).unwrap_or(u64::MAX))
                 })
                 .unwrap_or(0);
             let relative = path
@@ -342,6 +365,23 @@ fn collect_signature(
         }
     }
     Ok(())
+}
+
+/// The deterministic revision id of a **path-sorted** file set: the first 40
+/// hex characters of the sha256 over `path\ncontent\n` for every file.
+///
+/// The scanner and the persistent snapshot cache both call this, so a cached
+/// snapshot and a fresh scan of the same tree produce the same id by
+/// construction.
+pub fn revision_of<'a>(files: impl IntoIterator<Item = (&'a str, &'a str)>) -> String {
+    let mut digest = Sha256::new();
+    for (path, content) in files {
+        digest.update(path.as_bytes());
+        digest.update(b"\n");
+        digest.update(content.as_bytes());
+        digest.update(b"\n");
+    }
+    hex_prefix(digest.finalize())
 }
 
 /// The first 40 hex characters of the digest (a full 40-char hex SHA, as

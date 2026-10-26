@@ -1,5 +1,6 @@
 target/
 .codegraph/
+.ukma/
 .vscode/.ropeproject
 *.pending
 *.tmp

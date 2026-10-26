@@ -21,6 +21,8 @@ pub mod handlers;
 pub mod index;
 pub mod instant;
 pub mod manifest;
+pub mod parse_cache;
+pub mod pending;
 pub mod rest;
 pub mod sdk;
 pub mod stdio;
@@ -43,13 +45,18 @@ pub use error::{DomainFailure, GatewayError};
 pub use gateway::{Gateway, GatewayOutcome, Handler};
 pub use handlers::{build, default_gateway, JobIndex, JobRecord, Services};
 pub use index::{
-    glob_match, index_directory, index_multi, resolve_cwd_alias, tree_signature, CwdIndex,
-    IndexOptions, IndexedSources,
+    glob_match, index_directory, index_multi, is_skipped_dir, is_skipped_file, resolve_cwd_alias,
+    revision_of, tree_signature, CwdIndex, IndexOptions, IndexedSources,
 };
 pub use manifest::{drift, manifest_json, tool_by_name, tools, Tool, ToolProfile};
+pub use parse_cache::{CachingParser, PARSE_CACHE_VERSION};
+pub use pending::{banner, PendingFile, PendingProbe, SnapshotProbe, SnapshotStat};
 pub use rest::{resolve, Route};
 pub use sdk::{ApiError, Client, ClientError, InProcess, Transport};
-pub use stdio::{run_stdio, run_stdio_profile, StdioSession};
+pub use stdio::{
+    run_stdio, run_stdio_profile, run_stdio_profile_with_probe, run_stdio_with, DaemonCall,
+    SessionOptions, StdioSession,
+};
 
 /// Build a gateway whose code domain is bound to an indexed working
 /// directory (CodeGraph-style `auto-index cwd`). Returns the gateway and the
@@ -202,6 +209,77 @@ impl SwappableIndexHandle {
     }
 }
 
+/// Everything needed to bind a live (`--watch`) session to an already
+/// materialized snapshot.
+pub struct HotSnapshot {
+    /// The revision the files add up to.
+    pub revision: String,
+    /// The snapshot's files.
+    pub files: Vec<code_intelligence::domain::SourceFile>,
+    /// The roots the watch loop re-scans.
+    pub roots: Vec<std::path::PathBuf>,
+    /// The scan options for those re-scans.
+    pub options: IndexOptions,
+    /// The search policy.
+    pub policy: code_intelligence::search::SearchPolicy,
+    /// The embedding backend.
+    pub embedder: Option<(std::sync::Arc<dyn EmbeddingPort>, String)>,
+    /// The backend mode after the RAM gate.
+    pub backend_mode: BackendMode,
+    /// The optional vulnerability source (`--online`).
+    pub vuln: Option<std::sync::Arc<dyn code_intelligence::pro::VulnerabilitySource>>,
+    /// The parser in front of the code domain (the parse cache, when wired).
+    pub parser: Option<std::sync::Arc<dyn code_intelligence::ParserPort>>,
+}
+
+/// Like [`gateway_with_indexed_embedding_hot`], but starting from a snapshot
+/// that is already materialized (the persisted cache), so a `--watch` session
+/// does not scan the tree it already has on disk.
+pub fn gateway_hot(snapshot: HotSnapshot) -> Result<(Gateway, SwappableIndexHandle), String> {
+    let HotSnapshot {
+        revision,
+        files,
+        roots,
+        options,
+        policy,
+        embedder,
+        backend_mode,
+        vuln,
+        parser,
+    } = snapshot;
+    let revision = revision.as_str();
+    let initial_sources = code_intelligence::service::InMemorySources::new()
+        .with_dirty_commit(revision, files)
+        .with_alias("@cwd", revision);
+    let files_for_pro = initial_sources.files_for(revision).unwrap_or_default();
+    let swappable = std::sync::Arc::new(code_intelligence::service::SwappableSources::new(
+        initial_sources,
+    ));
+    let mut pro = code_intelligence::pro::ProService::new();
+    if let Some(source) = vuln {
+        pro = pro.with_vulnerability_source(source);
+    }
+    let pro = std::sync::Arc::new(pro);
+    pro.index(revision, files_for_pro, Vec::new())
+        .expect("pro corpus indexing cannot fail for an empty symbol set");
+    let services = Services::with_embedding_backend_and_parser(
+        swappable.clone(),
+        policy,
+        embedder,
+        backend_mode,
+        parser,
+    )
+    .with_pro(std::sync::Arc::clone(&pro));
+    let gateway = build(&services)?;
+    let handle = SwappableIndexHandle {
+        sources: swappable,
+        pro,
+        roots,
+        options,
+    };
+    Ok((gateway, handle))
+}
+
 /// Like [`gateway_with_indexed_embedding`], but the code domain is bound to a
 /// [`code_intelligence::service::SwappableSources`] so `--watch` can hot-swap
 /// the index into the live gateway. Returns the gateway plus a handle that
@@ -214,36 +292,24 @@ pub fn gateway_with_indexed_embedding_hot(
     backend_mode: BackendMode,
     vuln: Option<std::sync::Arc<dyn code_intelligence::pro::VulnerabilitySource>>,
 ) -> Result<(Gateway, SwappableIndexHandle), String> {
-    let indexed = index::index_multi(roots, options)
+    let files = index::scan_roots(roots, options)
         .map_err(|error| format!("indexing {roots:?}: {error}"))?;
-    let initial_sources = indexed
-        .sources
-        .with_alias("@cwd", &indexed.index.commit_sha);
-    let files = initial_sources
-        .files_for(&indexed.index.commit_sha)
-        .unwrap_or_default();
-    let revision = indexed.index.commit_sha.clone();
-    let swappable = std::sync::Arc::new(code_intelligence::service::SwappableSources::new(
-        initial_sources,
-    ));
-    let mut pro = code_intelligence::pro::ProService::new();
-    if let Some(source) = vuln {
-        pro = pro.with_vulnerability_source(source);
-    }
-    let pro = std::sync::Arc::new(pro);
-    pro.index(&revision, files, Vec::new())
-        .expect("pro corpus indexing cannot fail for an empty symbol set");
-    let services =
-        Services::with_embedding_backend(swappable.clone(), policy, embedder, backend_mode)
-            .with_pro(std::sync::Arc::clone(&pro));
-    let gateway = build(&services)?;
-    let handle = SwappableIndexHandle {
-        sources: swappable,
-        pro,
-        roots: roots.iter().map(|r| r.to_path_buf()).collect(),
+    let revision = index::revision_of(
+        files
+            .iter()
+            .map(|file| (file.path.as_str(), file.content.as_str())),
+    );
+    gateway_hot(HotSnapshot {
+        revision,
+        files,
+        roots: roots.iter().map(|root| root.to_path_buf()).collect(),
         options: options.clone(),
-    };
-    Ok((gateway, handle))
+        policy,
+        embedder,
+        backend_mode,
+        vuln,
+        parser: None,
+    })
 }
 
 /// Watch the trees by polling mtimes and, on change, hot-swap the re-indexed

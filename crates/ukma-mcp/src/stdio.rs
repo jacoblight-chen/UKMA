@@ -28,6 +28,31 @@ pub const API_VERSION: &str = "1.2.3";
 pub struct StdioSession<'a> {
     gateway: &'a Gateway,
     profile: manifest::ToolProfile,
+    probe: Option<std::sync::Arc<dyn crate::pending::PendingProbe>>,
+    remote: Option<std::sync::Arc<dyn DaemonCall>>,
+}
+
+/// Delegates one tool call to a running project daemon.
+///
+/// The session keeps its own gateway and falls back to it whenever the daemon
+/// is unreachable, so delegation can only make things faster, never unavailable.
+pub trait DaemonCall: Send + Sync {
+    /// Run one envelope and return its response.
+    fn call(
+        &self,
+        envelope: &ukma_contracts::RequestEnvelope<serde_json::Value>,
+    ) -> Result<ukma_contracts::ResponseEnvelope<serde_json::Value>, String>;
+}
+
+/// Everything a session needs beyond the gateway itself.
+#[derive(Default)]
+pub struct SessionOptions {
+    /// The exposed tool surface.
+    pub profile: manifest::ToolProfile,
+    /// Staleness disclosure (see [`crate::pending`]).
+    pub probe: Option<std::sync::Arc<dyn crate::pending::PendingProbe>>,
+    /// Shared daemon, when one is running for this project.
+    pub remote: Option<std::sync::Arc<dyn DaemonCall>>,
 }
 
 impl<'a> StdioSession<'a> {
@@ -36,13 +61,45 @@ impl<'a> StdioSession<'a> {
         Self {
             gateway,
             profile: manifest::ToolProfile::default(),
+            probe: None,
+            remote: None,
         }
     }
 
     /// Bind a session to a gateway filtered by a named tool profile
     /// (CodeGraph `--profile` parity).
     pub fn with_profile(gateway: &'a Gateway, profile: manifest::ToolProfile) -> Self {
-        Self { gateway, profile }
+        Self {
+            gateway,
+            profile,
+            probe: None,
+            remote: None,
+        }
+    }
+
+    /// Bind a session with the full option set.
+    pub fn with_options(gateway: &'a Gateway, options: SessionOptions) -> Self {
+        Self {
+            gateway,
+            profile: options.profile,
+            probe: options.probe,
+            remote: options.remote,
+        }
+    }
+
+    /// Bind a session that also discloses staleness for the files a response
+    /// references (see [`crate::pending`]).
+    pub fn with_profile_and_probe(
+        gateway: &'a Gateway,
+        profile: manifest::ToolProfile,
+        probe: Option<std::sync::Arc<dyn crate::pending::PendingProbe>>,
+    ) -> Self {
+        Self {
+            gateway,
+            profile,
+            probe,
+            remote: None,
+        }
     }
 
     /// Handle one stream line (already trimmed). Returns the response to write,
@@ -120,23 +177,36 @@ impl<'a> StdioSession<'a> {
             ));
         }
         let context = dev_context(tool.operation_id, tool.required_scopes);
-        let response = self.gateway.dispatch(RequestEnvelope {
+        let envelope = RequestEnvelope {
             api_version: API_VERSION.into(),
             operation: tool.operation_id.to_string(),
             context,
             input: arguments,
-        });
+        };
+        let response = match &self.remote {
+            Some(remote) => match remote.call(&envelope) {
+                Ok(response) => response,
+                // The daemon is an optimisation: fall back to the local
+                // gateway rather than failing the call.
+                Err(_) => self.gateway.dispatch(envelope),
+            },
+            None => self.gateway.dispatch(envelope),
+        };
         match response.error {
             Some(error) => Some(self.api_error(id, &error.code, error.safe_message)),
             None => {
-                let text = serde_json::to_string_pretty(&response).unwrap_or_default();
-                Some(self.ok(
-                    id,
-                    json!({
-                        "content": [{ "type": "text", "text": text }],
-                        "isError": false
-                    }),
-                ))
+                let envelope = serde_json::to_value(&response).unwrap_or(Value::Null);
+                let text = serde_json::to_string_pretty(&envelope).unwrap_or_default();
+                // Staleness disclosure: an unchanged response shape (one text
+                // block) unless a referenced file changed since the snapshot.
+                let mut content = Vec::new();
+                if let Some(probe) = &self.probe {
+                    if let Some(banner) = crate::pending::banner(&probe.pending_for(&envelope)) {
+                        content.push(json!({ "type": "text", "text": banner }));
+                    }
+                }
+                content.push(json!({ "type": "text", "text": text }));
+                Some(self.ok(id, json!({ "content": content, "isError": false })))
             }
         }
     }
@@ -206,7 +276,31 @@ pub fn run_stdio(gateway: &Gateway) -> i32 {
 /// Run the stdio loop with the tool surface filtered by a named profile
 /// (CodeGraph `--profile` parity). Returns the process exit code.
 pub fn run_stdio_profile(gateway: &Gateway, profile: manifest::ToolProfile) -> i32 {
-    let session = StdioSession::with_profile(gateway, profile);
+    run_stdio_profile_with_probe(gateway, profile, None)
+}
+
+/// Run the stdio loop with a staleness probe: a `tools/call` response that
+/// references a file changed after the index snapshot is prefixed with an
+/// explicit warning (see [`crate::pending`]).
+pub fn run_stdio_profile_with_probe(
+    gateway: &Gateway,
+    profile: manifest::ToolProfile,
+    probe: Option<std::sync::Arc<dyn crate::pending::PendingProbe>>,
+) -> i32 {
+    run_stdio_with(
+        gateway,
+        SessionOptions {
+            profile,
+            probe,
+            remote: None,
+        },
+    )
+}
+
+/// Run the stdio loop with every session option (profile, staleness probe and
+/// optional shared daemon).
+pub fn run_stdio_with(gateway: &Gateway, options: SessionOptions) -> i32 {
+    let session = StdioSession::with_options(gateway, options);
     let stdin = std::io::stdin();
     let stdout = std::io::stdout();
     for line in stdin.lock().lines() {
@@ -247,6 +341,174 @@ mod tests {
         default_line(&format!(
             r#"{{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{{"name":"{name}","arguments":{arguments}}}}}"#
         ))
+    }
+
+    /// A probe that always reports one pending file (wiring test).
+    struct AlwaysPending;
+
+    impl crate::pending::PendingProbe for AlwaysPending {
+        fn pending_for(&self, _response: &Value) -> Vec<crate::pending::PendingFile> {
+            vec![crate::pending::PendingFile {
+                path: "src/a.rs".into(),
+                reason: "edited 800ms ago, pending sync".into(),
+            }]
+        }
+    }
+
+    /// A probe that never reports anything.
+    struct NeverPending;
+
+    impl crate::pending::PendingProbe for NeverPending {
+        fn pending_for(&self, _response: &Value) -> Vec<crate::pending::PendingFile> {
+            Vec::new()
+        }
+    }
+
+    fn call_with_probe(
+        probe: Option<std::sync::Arc<dyn crate::pending::PendingProbe>>,
+        name: &str,
+        arguments: &Value,
+    ) -> Value {
+        let gateway = crate::handlers::default_gateway();
+        let session =
+            StdioSession::with_profile_and_probe(&gateway, manifest::ToolProfile::default(), probe);
+        let line = format!(
+            r#"{{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{{"name":"{name}","arguments":{arguments}}}}}"#
+        );
+        let response = session.handle_line(&line).expect("a response");
+        serde_json::from_str(&response).expect("a well-formed response")
+    }
+
+    /// A daemon stub that answers with a marker, proving the session delegated.
+    struct MarkingDaemon;
+
+    impl crate::DaemonCall for MarkingDaemon {
+        fn call(
+            &self,
+            envelope: &ukma_contracts::RequestEnvelope<Value>,
+        ) -> Result<ukma_contracts::ResponseEnvelope<Value>, String> {
+            Ok(ukma_contracts::ResponseEnvelope {
+                api_version: "1".into(),
+                request_id: envelope.context.request_id.clone(),
+                trace_id: envelope.context.trace_id.clone(),
+                status: ukma_contracts::ResponseStatus::Ok,
+                data: Some(json!({ "served_by": "daemon" })),
+                error: None,
+                warnings: Vec::new(),
+                partial_reasons: Vec::new(),
+                snapshot_id: None,
+                index_generation: None,
+                freshness: ukma_contracts::Freshness::Current,
+                observed_revision: None,
+            })
+        }
+    }
+
+    /// A daemon stub that is always unreachable.
+    struct DeadDaemon;
+
+    impl crate::DaemonCall for DeadDaemon {
+        fn call(
+            &self,
+            _envelope: &ukma_contracts::RequestEnvelope<Value>,
+        ) -> Result<ukma_contracts::ResponseEnvelope<Value>, String> {
+            Err("connection refused".into())
+        }
+    }
+
+    fn session_call_with(remote: Option<std::sync::Arc<dyn crate::DaemonCall>>) -> Value {
+        let gateway = crate::handlers::default_gateway();
+        let session = StdioSession::with_options(
+            &gateway,
+            SessionOptions {
+                profile: manifest::ToolProfile::default(),
+                probe: None,
+                remote,
+            },
+        );
+        let response = session
+            .handle_line(
+                r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"ukma_system_capabilities_v1","arguments":null}}"#,
+            )
+            .expect("a response");
+        serde_json::from_str(&response).expect("a well-formed response")
+    }
+
+    #[test]
+    fn a_running_daemon_serves_the_tool_call() {
+        let value = session_call_with(Some(Arc::new(MarkingDaemon)));
+        let content = value["result"]["content"]
+            .as_array()
+            .expect("content blocks");
+        assert_eq!(content.len(), 1, "no banner: the envelope alone");
+        let text = content[0]["text"].as_str().expect("text");
+        assert!(text.contains("\"served_by\": \"daemon\""), "{text}");
+    }
+
+    #[test]
+    fn an_unreachable_daemon_falls_back_to_the_local_gateway() {
+        let value = session_call_with(Some(Arc::new(DeadDaemon)));
+        let text = value["result"]["content"][0]["text"]
+            .as_str()
+            .expect("text");
+        assert!(
+            text.contains("capabilities") || text.contains("\"status\":\"ok\""),
+            "the local gateway still answered: {text}"
+        );
+        assert!(!text.contains("connection refused"), "{text}");
+        assert_eq!(value["result"]["isError"], false);
+    }
+
+    #[test]
+    fn a_pending_reference_prepends_a_banner_and_keeps_the_envelope() {
+        let value = call_with_probe(
+            Some(std::sync::Arc::new(AlwaysPending)),
+            "ukma_system_capabilities_v1",
+            &json!(null),
+        );
+        let content = value["result"]["content"]
+            .as_array()
+            .expect("content blocks");
+        assert_eq!(content.len(), 2, "banner + envelope");
+        assert_eq!(content[0]["type"], "text");
+        let banner = content[0]["text"].as_str().expect("banner text");
+        assert!(banner.contains("src/a.rs"), "{banner}");
+        assert!(banner.contains("pending sync"), "{banner}");
+        assert!(banner.contains("Read them directly"), "{banner}");
+        assert_eq!(value["result"]["isError"], false);
+
+        // The envelope block is still exactly the JSON response.
+        let envelope: Value =
+            serde_json::from_str(content[1]["text"].as_str().expect("envelope")).expect("json");
+        assert_eq!(envelope["status"], "ok");
+        assert_eq!(envelope["api_version"], API_VERSION);
+    }
+
+    #[test]
+    fn a_fresh_response_keeps_the_single_block_shape() {
+        for probe in [
+            None,
+            Some(std::sync::Arc::new(NeverPending)
+                as std::sync::Arc<dyn crate::pending::PendingProbe>),
+        ] {
+            let value = call_with_probe(probe, "ukma_system_capabilities_v1", &json!(null));
+            let content = value["result"]["content"]
+                .as_array()
+                .expect("content blocks");
+            assert_eq!(content.len(), 1, "no banner when nothing is pending");
+            assert!(content[0]["text"].as_str().expect("text").starts_with('{'));
+        }
+    }
+
+    #[test]
+    fn the_probe_never_changes_a_protocol_error() {
+        let value = call_with_probe(
+            Some(std::sync::Arc::new(AlwaysPending)),
+            "ukma_nope_nope_v1",
+            &json!({}),
+        );
+        assert!(value["error"].is_object(), "{value}");
+        assert!(value["result"].is_null());
     }
 
     #[test]

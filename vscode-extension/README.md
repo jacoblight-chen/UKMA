@@ -22,6 +22,21 @@ npm run compile        # tsc -> out/
 Load the folder in the VS Code Extensions development host
 (“Run Extension”), or package a `.vsix` with `@vscode/vsce` and install it.
 
+## Or wire Copilot without the extension
+
+`ukma install` also writes a project-scoped `.vscode/mcp.json` (the same
+`McpStdioServerDefinition` shape this extension publishes), so Copilot picks the
+server up without installing anything from the marketplace:
+
+```powershell
+ukma install --target copilot-vscode --cwd .   # writes .vscode/mcp.json + instructions
+ukma uninstall --target copilot-vscode --yes   # reverses it
+```
+
+The difference: the extension starts/stops the server with the editor session
+(and offers the two commands below); the `.vscode/mcp.json` route is plain MCP
+and is owned by VS Code.
+
 ## Resolve the binary
 
 The editor launches `ukma` from `PATH` by default. If the binary lives

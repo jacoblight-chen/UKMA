@@ -352,8 +352,23 @@ impl Services {
         embedder: Option<(Arc<dyn EmbeddingPort>, String)>,
         backend_mode: BackendMode,
     ) -> Self {
+        Self::with_embedding_backend_and_parser(sources, policy, embedder, backend_mode, None)
+    }
+
+    /// Like [`Self::with_embedding_backend`], but the parser port is injected
+    /// (for example a `CachingParser` over the project's parse cache). `None`
+    /// keeps the built-in unified parser.
+    pub fn with_embedding_backend_and_parser(
+        sources: Arc<dyn code_intelligence::service::SourceSnapshotPort>,
+        policy: code_intelligence::search::SearchPolicy,
+        embedder: Option<(Arc<dyn EmbeddingPort>, String)>,
+        backend_mode: BackendMode,
+        parser: Option<Arc<dyn code_intelligence::ParserPort>>,
+    ) -> Self {
+        let parser: Arc<dyn code_intelligence::ParserPort> =
+            parser.unwrap_or_else(|| Arc::new(UnifiedParser::new()));
         let code = Arc::new(
-            CodeIntelligenceService::new(Arc::new(UnifiedParser::new()), sources)
+            CodeIntelligenceService::new(parser, sources)
                 .with_search_policy(policy)
                 .with_embedding_backend(embedder, backend_mode),
         );
