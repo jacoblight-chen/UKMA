@@ -32,6 +32,9 @@ env:
 jobs:
   package:
     name: package ${{ matrix.target }}
+    # A retired or exhausted runner image must not hang the whole release: the
+    # `publish` job cannot start until every leg finishes.
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -40,8 +43,10 @@ jobs:
             os: windows-latest
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
+          # `macos-13` is retired, so an Intel build queues forever; the
+          # supported Intel image is `macos-15-intel`.
           - target: x86_64-apple-darwin
-            os: macos-13
+            os: macos-15-intel
           - target: aarch64-apple-darwin
             os: macos-latest
     runs-on: ${{ matrix.os }}
