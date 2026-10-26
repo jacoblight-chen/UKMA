@@ -11,7 +11,8 @@ description = "Embedding/reranker ports and model profile registry (§7.4, §25.
 # ONNX Runtime dependency (self-contained). When enabled, `ort` loads the
 # ONNX Runtime at *runtime* (`load-dynamic`), so the build still needs no
 # native library; the runtime + model files are provisioned by the deployment.
-onnx = ["dep:ort"]
+# `serde_json` is a pre-existing workspace component (no new SBOM entry).
+onnx = ["dep:ort", "dep:serde_json", "dep:regex"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
@@ -19,3 +20,9 @@ storage-ports = { path = "../storage-ports" }
 # Optional, feature-gated. `load-dynamic` defers ONNX Runtime loading to
 # runtime (no build-time native library, no build-time download).
 ort = { version = "2.0.0-rc.15", optional = true, default-features = false, features = ["std", "load-dynamic", "api-31"] }
+# Only used by the HF-compatible BPE tokenizer under the `onnx` feature.
+serde_json = { version = "1", optional = true }
+# Pre-tokenization regexes (GPT-2 / LLaMA) are compiled from the deployment
+# provisioned `tokenizer.json` under the `onnx` feature. `regex` 1.x is an
+# existing workspace component (no new SBOM entry).
+regex = { version = "1", optional = true }

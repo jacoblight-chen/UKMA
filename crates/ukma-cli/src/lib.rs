@@ -172,7 +172,10 @@ pub struct Parsed {
     /// Structural-only ranking (`--graph-only`).
     pub graph_only: bool,
     /// The selectable embedding model (`--embedding-model`): `bge-small`,
-    /// `jina-code-v2`, `granite-97m`, `static`.
+    /// `jina-code-v2`, `granite-97m`, `qwen3-embedding-0.6b-int8`,
+    /// `bge-m3-int8`, `static` (aliases: `static-code`, `model2vec`). When
+    /// absent, the default model `qwen3-embedding-0.6b-int8` is selected
+    /// (see [`ukma_mcp::EmbeddingModel::DEFAULT`]).
     pub embedding_model: Option<String>,
     /// The domain filter for `tools`.
     pub domain: Option<String>,
@@ -364,7 +367,7 @@ pub fn parse(args: &[String]) -> Result<Parsed, CliError> {
                 let model = take(args, &mut index, "--embedding-model")?;
                 if ukma_mcp::EmbeddingModel::from_name(&model).is_none() {
                     return Err(CliError::Usage(
-                        "--embedding-model must be one of bge-small, jina-code-v2, granite-97m, static"
+                        "--embedding-model must be one of bge-small, jina-code-v2, granite-97m, qwen3-embedding-0.6b-int8, bge-m3-int8, static (aliases: static-code, model2vec)"
                             .into(),
                     ));
                 }
@@ -496,57 +499,122 @@ impl Parsed {
     }
 
     /// The effective mode after the RAM gate (CodeGraph
-    /// `CODEGRAPH_SKIP_MEMORY_CHECK` parity). Only an ONNX model whose gate
-    /// fails degrades to `GraphOnly`; `static` and the default never do.
+    /// `CODEGRAPH_SKIP_MEMORY_CHECK` parity). A model that requires the ONNX
+    /// runtime — including the default `qwen3-embedding-0.6b-int8` —
+    /// degrades to `GraphOnly` when its gate fails; `static` never does.
     pub fn backend_mode(&self) -> ukma_mcp::BackendMode {
-        if let Some(model) = self.embedding_model.as_deref() {
-            if let Some(m) = ukma_mcp::EmbeddingModel::from_name(model) {
-                if m.requires_onnx() {
-                    let probe = ukma_mcp::SystemMemoryProbe::new();
-                    let available = ukma_mcp::MemoryProbe::available_bytes(&probe);
-                    if !ukma_mcp::model_gate_passes(available) {
-                        return ukma_mcp::BackendMode::GraphOnly;
-                    }
-                }
+        let model = self.selected_model();
+        if model.requires_onnx() {
+            let probe = ukma_mcp::SystemMemoryProbe::new();
+            let available = ukma_mcp::MemoryProbe::available_bytes(&probe);
+            if !ukma_mcp::model_gate_passes(available) {
+                return ukma_mcp::BackendMode::GraphOnly;
             }
         }
         ukma_mcp::BackendMode::WithModel
     }
 
+    /// The effective selectable model: the one from `--embedding-model`, or
+    /// [`ukma_mcp::EmbeddingModel::DEFAULT`] (`qwen3-embedding-0.6b-int8`)
+    /// when none was specified.
+    pub fn selected_model(&self) -> ukma_mcp::EmbeddingModel {
+        self.embedding_model
+            .as_deref()
+            .and_then(ukma_mcp::EmbeddingModel::from_name)
+            .unwrap_or_default()
+    }
+
     /// The embedding port + selected profile and the effective mode
-    /// (CodeGraph `--embedding-model` parity). `None` keeps the static
-    /// channel; an unavailable ONNX profile degrades the semantic channel to
-    /// the static fallback at query time.
+    /// (CodeGraph `--embedding-model` parity). The selected model defaults
+    /// to `qwen3-embedding-0.6b-int8`; an unavailable ONNX profile degrades
+    /// the semantic channel to the static fallback at query time.
     pub fn embedding_backend(&self) -> EmbeddingBackend {
-        if let Some(model) = self.embedding_model.as_deref() {
-            if let Some(m) = ukma_mcp::EmbeddingModel::from_name(model) {
-                // Real ONNX Runtime (feature `onnx`): use the provisioned model
-                // when `UKMA_ONNX_MODEL_PATH` is set and the model loads.
-                #[cfg(feature = "onnx")]
-                if let Some(path) = std::env::var("UKMA_ONNX_MODEL_PATH")
-                    .ok()
-                    .filter(|s| !s.is_empty())
+        let m = self.selected_model();
+        // Static model2vec channel (feature `onnx`): `static` /
+        // `static-code` / `model2vec` use the provisioned lookup-table
+        // directory when present (CodeGraph `CODEGRAPH_STATIC_MODEL`
+        // convention, defaulting to
+        // `~/.codegraph/static_models/jina-code-static-256`); a
+        // missing or unreadable directory falls through to the
+        // deterministic static channel below.
+        #[cfg(feature = "onnx")]
+        if matches!(m, ukma_mcp::EmbeddingModel::Static) {
+            if let Some(dir) = ukma_mcp::resolve_static_model_dir().filter(|d| d.is_dir()) {
+                if let Ok(real) =
+                    ukma_mcp::Model2VecEmbedder::load(&dir, m.profile_id(), m.dimension())
                 {
-                    if let Ok(real) =
-                        ukma_mcp::RealOnnxEmbedder::load(&path, m.profile_id(), m.dimension())
-                    {
-                        return (
-                            Some((std::sync::Arc::new(real), m.profile_id().to_string())),
-                            self.backend_mode(),
-                        );
-                    }
+                    return (
+                        Some((std::sync::Arc::new(real), m.profile_id().to_string())),
+                        self.backend_mode(),
+                    );
                 }
-                // Fallback: deterministic/static embedder; the ONNX models degrade
-                // to the static channel when the runtime is absent.
-                let embedder: std::sync::Arc<dyn ukma_mcp::EmbeddingPort> =
-                    std::sync::Arc::new(ukma_mcp::OnnxEmbedder::new());
+            }
+        }
+        // Real ONNX Runtime (feature `onnx`): use the provisioned model
+        // when `UKMA_ONNX_MODEL_PATH` is set and the model loads.
+        // The model-matching tokenizer is taken from
+        // `UKMA_ONNX_TOKENIZER_PATH` or `tokenizer.json` beside the
+        // model file; without it the deterministic (non-semantic)
+        // whitespace tokenizer is used instead.
+        #[cfg(feature = "onnx")]
+        if let Some(path) = std::env::var("UKMA_ONNX_MODEL_PATH")
+            .ok()
+            .filter(|s| !s.is_empty())
+        {
+            // Per-model pooling + context window (ground truth from the
+            // each model's HF config / official pooling).
+            let (pooling, max_len) = match m {
+                ukma_mcp::EmbeddingModel::Qwen3Embedding06bInt8 => {
+                    (ukma_mcp::Pooling::LastToken, 8192)
+                }
+                ukma_mcp::EmbeddingModel::BgeM3Int8 => (ukma_mcp::Pooling::Mean, 8192),
+                ukma_mcp::EmbeddingModel::BgeSmall => (ukma_mcp::Pooling::Cls, 512),
+                ukma_mcp::EmbeddingModel::JinaCodeV2 => (ukma_mcp::Pooling::Mean, 8192),
+                ukma_mcp::EmbeddingModel::Granite97m => (ukma_mcp::Pooling::Cls, 32768),
+                _ => (ukma_mcp::Pooling::Mean, 8192),
+            };
+            let tok_path = std::env::var("UKMA_ONNX_TOKENIZER_PATH")
+                .ok()
+                .filter(|s| !s.is_empty())
+                .or_else(|| {
+                    std::path::Path::new(&path)
+                        .parent()
+                        .map(|p| p.join("tokenizer.json").to_string_lossy().into_owned())
+                });
+            let loaded = match tok_path {
+                Some(tp) => match ukma_mcp::HfTokenizer::from_file(&tp) {
+                    Ok(tok) => ukma_mcp::RealOnnxEmbedder::load_with_config(
+                        &path,
+                        m.profile_id(),
+                        m.dimension(),
+                        Box::new(tok),
+                        pooling,
+                        max_len,
+                    ),
+                    // Unreadable/unparseable tokenizer file: fall back
+                    // to the wiring tokenizer so a provisioned model
+                    // still loads.
+                    Err(_) => {
+                        ukma_mcp::RealOnnxEmbedder::load(&path, m.profile_id(), m.dimension())
+                    }
+                },
+                None => ukma_mcp::RealOnnxEmbedder::load(&path, m.profile_id(), m.dimension()),
+            };
+            if let Ok(real) = loaded {
                 return (
-                    Some((embedder, m.profile_id().to_string())),
+                    Some((std::sync::Arc::new(real), m.profile_id().to_string())),
                     self.backend_mode(),
                 );
             }
         }
-        (None, self.backend_mode())
+        // Fallback: deterministic/static embedder; the ONNX models degrade
+        // to the static channel when the runtime is absent.
+        let embedder: std::sync::Arc<dyn ukma_mcp::EmbeddingPort> =
+            std::sync::Arc::new(ukma_mcp::OnnxEmbedder::new());
+        (
+            Some((embedder, m.profile_id().to_string())),
+            self.backend_mode(),
+        )
     }
 
     /// The OSV online vulnerability source when `--online` is set and the
@@ -641,8 +709,11 @@ pub fn usage() -> String {
         "  --full-body-embedding / --no-full-body-embedding",
         "                            embed the symbol body (default: off)",
         "  --graph-only              structural (keyword-only) ranking",
-        "  --embedding-model <bge-small|jina-code-v2|granite-97m|static>",
-        "                            select the embedding model (default: static)",
+        "  --embedding-model <bge-small|jina-code-v2|granite-97m|qwen3-embedding-0.6b-int8|bge-m3-int8|static|static-code|model2vec>",
+        "                            select the embedding model (default:",
+        "                            qwen3-embedding-0.6b-int8; static-code/",
+        "                            model2vec are aliases of static and use",
+        "                            the provisioned model2vec directory)",
         "                            (ONNX models degrade to the static channel",
         "                             when the runtime is absent; CODEGRAPH_SKIP_",
         "                             MEMORY_CHECK bypasses the ~1.5GB RAM gate)",
@@ -1343,10 +1414,98 @@ mod tests {
     }
 
     #[test]
+    fn parse_accepts_the_static_model_aliases() {
+        for alias in ["static-code", "model2vec"] {
+            let parsed =
+                parse(&args(&["--embedding-model", alias])).expect("static alias is valid");
+            assert_eq!(parsed.embedding_model.as_deref(), Some(alias));
+            assert!(
+                matches!(parsed.backend_mode(), ukma_mcp::BackendMode::WithModel),
+                "{alias} never requires the ONNX RAM gate"
+            );
+            let (backend, _mode) = parsed.embedding_backend();
+            let Some((_, profile)) = backend.as_ref() else {
+                panic!("{alias} wires an embedder")
+            };
+            assert_eq!(profile, "static-256");
+        }
+    }
+
+    /// With the `onnx` feature, a `static`/alias whose model directory is
+    /// missing must still wire the deterministic static channel (no crash,
+    /// same profile) rather than refusing to start.
+    #[test]
+    #[cfg(feature = "onnx")]
+    fn static_alias_falls_back_when_no_model_dir() {
+        std::env::set_var(
+            "CODEGRAPH_STATIC_MODEL",
+            "definitely-not-a-static-model-dir",
+        );
+        let parsed = parse(&args(&["--embedding-model", "static"])).expect("valid");
+        let (backend, _mode) = parsed.embedding_backend();
+        let Some((_, profile)) = backend.as_ref() else {
+            panic!("deterministic static fallback wires")
+        };
+        assert_eq!(profile, "static-256");
+        std::env::remove_var("CODEGRAPH_STATIC_MODEL");
+    }
+
+    #[test]
     fn parse_rejects_an_unknown_embedding_model() {
         let error = parse(&args(&["--embedding-model", "bogus"]))
-            .expect_err("only the four model names are valid");
+            .expect_err("only the six model names (plus static aliases) are valid");
         assert_eq!(exit_code(&error), 2);
+        // A lookalike that is not an alias must be rejected.
+        let error = parse(&args(&["--embedding-model", "static_code"])).expect_err("not an alias");
+        assert_eq!(exit_code(&error), 2);
+    }
+
+    #[test]
+    fn parse_accepts_the_int8_onnx_embedding_models() {
+        for model in ["qwen3-embedding-0.6b-int8", "bge-m3-int8"] {
+            let parsed =
+                parse(&args(&["--embedding-model", model])).expect("valid INT8 ONNX model");
+            assert_eq!(parsed.embedding_model.as_deref(), Some(model));
+            // Both require the ONNX runtime, so the embedder wires the ONNX
+            // profile; without provisioned weights the semantic channel degrades
+            // to the static fallback at query time.
+            let (embedder, _mode) = parsed.embedding_backend();
+            assert!(embedder.is_some(), "{model} wires an embedder");
+        }
+    }
+
+    /// With no `--embedding-model`, the default model
+    /// (`qwen3-embedding-0.6b-int8`) is selected: `selected_model()` reports
+    /// it, and `embedding_backend()` wires its profile (degrading to the
+    /// deterministic static fallback when the ONNX runtime is absent).
+    #[test]
+    fn no_model_flag_selects_the_default_qwen3_model() {
+        let parsed = parse(&args(&[])).expect("no flags");
+        assert_eq!(
+            parsed.selected_model(),
+            ukma_mcp::EmbeddingModel::Qwen3Embedding06bInt8,
+            "the default model is qwen3-embedding-0.6b-int8"
+        );
+        let (embedder, _mode) = parsed.embedding_backend();
+        let Some((_, profile)) = embedder.as_ref() else {
+            panic!("the default model wires an embedder")
+        };
+        assert_eq!(
+            profile, "qwen3-embedding-0.6b-int8-1024",
+            "the default model wires the qwen3 INT8 profile"
+        );
+    }
+
+    /// An explicit `--embedding-model` overrides the default: `static` stays
+    /// `static-256` and never goes through the ONNX RAM gate.
+    #[test]
+    fn an_explicit_model_overrides_the_default() {
+        let parsed = parse(&args(&["--embedding-model", "static"])).expect("static");
+        assert_eq!(
+            parsed.selected_model(),
+            ukma_mcp::EmbeddingModel::Static,
+            "an explicit model overrides the default"
+        );
     }
 
     #[test]

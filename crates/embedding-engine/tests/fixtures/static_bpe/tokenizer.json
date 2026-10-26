@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "truncation": null,
+  "conversion_trie": null,
+  "pre_tokenizer": {"type": "ByteLevel", "add_prefix_space": true, "use_regex": false},
+  "normalizer": null,
+  "post_processor": null,
+  "decoder": null,
+  "model": {
+    "type": "BPE",
+    "dropout": null,
+    "unk_token": "c",
+    "vocab": {"a": 0, "b": 1, "ab": 2, "c": 3, " b": 4},
+    "merges": ["a b"]
+  }
+}

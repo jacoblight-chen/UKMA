@@ -3,7 +3,12 @@
 //! **No model is bundled.** The default embedder refuses with
 //! `MODEL_UNAVAILABLE`; a deterministic test double exists for wiring tests and
 //! is explicitly *not* semantic — it must never be used for retrieval quality
-//! claims or as `ML-003` evidence.
+//! claims or as `ML-003` evidence. The `static` channel (aliases `static-code`
+//! / `model2vec`) additionally uses a provisioned model2vec lookup-table
+//! directory (`CODEGRAPH_STATIC_MODEL` or the CodeGraph-compatible
+//! `~/.codegraph/static_models/jina-code-static-256`) when the `onnx`
+//! feature is enabled and the directory is present; otherwise it degrades to
+//! the deterministic channel.
 //!
 //! Profile identity is what makes vectors comparable (PROP-07, `DB-004`): model,
 //! revision, digest, tokenizer, dimension, metric, normalization and language
@@ -15,9 +20,21 @@ use serde::{Deserialize, Serialize};
 use storage_ports::{EmbeddingProfile, Metric};
 
 #[cfg(feature = "onnx")]
+mod onnx_proto;
+#[cfg(feature = "onnx")]
 mod onnx_runtime;
 #[cfg(feature = "onnx")]
-pub use onnx_runtime::{OnnxRuntime, RealOnnxEmbedder, Tokenizer, WhitespaceTokenizer};
+pub use onnx_runtime::{
+    HfTokenizer, HfTokenizerError, OnnxRuntime, Pooling, RealOnnxEmbedder, Tokenizer,
+    WhitespaceTokenizer,
+};
+#[cfg(feature = "onnx")]
+mod static_model;
+#[cfg(feature = "onnx")]
+pub use static_model::{
+    resolve_static_model_dir, Model2VecEmbedder, StaticConfig, StaticModel,
+    DEFAULT_STATIC_MODEL_NAME,
+};
 
 /// Embedding/reranker failure.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -44,6 +61,14 @@ pub enum EmbeddingError {
         /// Why.
         reason: String,
     },
+    /// A model artifact (config, tokenizer or weight file) is malformed or
+    /// uses a format this build cannot read.
+    UnsupportedFormat {
+        /// Artifact kind (e.g. `safetensors`, `static_config`).
+        kind: &'static str,
+        /// Why.
+        reason: String,
+    },
 }
 
 impl EmbeddingError {
@@ -54,6 +79,7 @@ impl EmbeddingError {
             EmbeddingError::ModelProfileMismatch { .. } => "MODEL_PROFILE_MISMATCH",
             EmbeddingError::UnknownProfile { .. } => "INVALID_ARGUMENT",
             EmbeddingError::InvalidArgument { .. } => "INVALID_ARGUMENT",
+            EmbeddingError::UnsupportedFormat { .. } => "INVALID_ARGUMENT",
         }
     }
 }
@@ -71,6 +97,9 @@ impl std::fmt::Display for EmbeddingError {
                 write!(f, "unknown profile `{profile_id}`")
             }
             EmbeddingError::InvalidArgument { field, reason } => write!(f, "{field}: {reason}"),
+            EmbeddingError::UnsupportedFormat { kind, reason } => {
+                write!(f, "unsupported {kind} format: {reason}")
+            }
         }
     }
 }
@@ -316,6 +345,10 @@ impl EmbeddingPort for HashEmbedder {
 }
 
 /// Named selectable embedding models (CodeGraph `--embedding-model` parity).
+///
+/// The default model is [`Qwen3Embedding06bInt8`]
+/// (`qwen3-embedding-0.6b-int8`, 1024 dimensions, INT8-quantized ONNX);
+/// see [`EmbeddingModel::default`] / [`EmbeddingModel::DEFAULT`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EmbeddingModel {
     /// bge-small: 384 dimensions, fast ONNX transformer.
@@ -324,22 +357,46 @@ pub enum EmbeddingModel {
     JinaCodeV2,
     /// granite-97m: 384 dimensions, 32K context.
     Granite97m,
-    /// static: model2vec 256 dimensions, no ONNX runtime.
+    /// static: model2vec 256 dimensions, no ONNX runtime. Selectable as
+    /// `static` (or the CodeGraph-compatible aliases `static-code` /
+    /// `model2vec`); when a static model directory is provisioned the real
+    /// model2vec lookup table is used, otherwise the deterministic
+    /// token-statistics channel answers.
     Static,
+    /// qwen3-embedding-0.6b-int8: 1024 dimensions, INT8-quantized ONNX.
+    /// This is the **default** selectable model.
+    Qwen3Embedding06bInt8,
+    /// bge-m3-int8: 1024 dimensions, INT8-quantized ONNX, multilingual.
+    BgeM3Int8,
 }
 
 impl EmbeddingModel {
-    /// The four selectable model names.
-    pub const NAMES: &'static [&'static str] =
-        &["bge-small", "jina-code-v2", "granite-97m", "static"];
+    /// The default selectable model: `qwen3-embedding-0.6b-int8` (1024
+    /// dimensions, INT8-quantized ONNX). Used when no model is explicitly
+    /// selected (CodeGraph `--embedding-model` parity).
+    pub const DEFAULT: Self = Self::Qwen3Embedding06bInt8;
 
-    /// Parse a model name; `None` when unrecognised.
+    /// The six selectable model names.
+    pub const NAMES: &'static [&'static str] = &[
+        "bge-small",
+        "jina-code-v2",
+        "granite-97m",
+        "static",
+        "qwen3-embedding-0.6b-int8",
+        "bge-m3-int8",
+    ];
+
+    /// Parse a model name; `None` when unrecognised. `static-code` and
+    /// `model2vec` are CodeGraph-compatible aliases of `static` (the same
+    /// model2vec lookup-table channel).
     pub fn from_name(name: &str) -> Option<Self> {
         match name {
             "bge-small" => Some(EmbeddingModel::BgeSmall),
             "jina-code-v2" => Some(EmbeddingModel::JinaCodeV2),
             "granite-97m" => Some(EmbeddingModel::Granite97m),
-            "static" => Some(EmbeddingModel::Static),
+            "static" | "static-code" | "model2vec" => Some(EmbeddingModel::Static),
+            "qwen3-embedding-0.6b-int8" => Some(EmbeddingModel::Qwen3Embedding06bInt8),
+            "bge-m3-int8" => Some(EmbeddingModel::BgeM3Int8),
             _ => None,
         }
     }
@@ -351,6 +408,8 @@ impl EmbeddingModel {
             EmbeddingModel::JinaCodeV2 => "jina-code-v2-768",
             EmbeddingModel::Granite97m => "granite-97m-384",
             EmbeddingModel::Static => "static-256",
+            EmbeddingModel::Qwen3Embedding06bInt8 => "qwen3-embedding-0.6b-int8-1024",
+            EmbeddingModel::BgeM3Int8 => "bge-m3-int8-1024",
         }
     }
 
@@ -361,12 +420,22 @@ impl EmbeddingModel {
             EmbeddingModel::JinaCodeV2 => 768,
             EmbeddingModel::Granite97m => 384,
             EmbeddingModel::Static => 256,
+            EmbeddingModel::Qwen3Embedding06bInt8 => 1024,
+            EmbeddingModel::BgeM3Int8 => 1024,
         }
     }
 
     /// Whether the model requires the ONNX runtime (false for `static`).
     pub fn requires_onnx(self) -> bool {
         !matches!(self, EmbeddingModel::Static)
+    }
+}
+
+impl Default for EmbeddingModel {
+    /// The default model is `qwen3-embedding-0.6b-int8` (see
+    /// [`EmbeddingModel::DEFAULT`]).
+    fn default() -> Self {
+        Self::DEFAULT
     }
 }
 
@@ -380,6 +449,8 @@ pub fn standard_registry() -> ModelRegistry {
         EmbeddingModel::JinaCodeV2,
         EmbeddingModel::Granite97m,
         EmbeddingModel::Static,
+        EmbeddingModel::Qwen3Embedding06bInt8,
+        EmbeddingModel::BgeM3Int8,
     ] {
         let profile = ModelProfile {
             profile_id: model.profile_id().to_string(),
@@ -402,8 +473,9 @@ pub fn standard_registry() -> ModelRegistry {
 ///
 /// Honest capability boundary: `static` is always available (model2vec-style,
 /// no ONNX runtime). The ONNX models (`bge-small`, `jina-code-v2`,
-/// `granite-97m`) are available only when their runtime + weight files have
-/// been provisioned; otherwise every call is `MODEL_UNAVAILABLE`. A provisioned
+/// `granite-97m`, `qwen3-embedding-0.6b-int8`, `bge-m3-int8`) are available
+/// only when their runtime + weight files have been provisioned; otherwise
+/// every call is `MODEL_UNAVAILABLE`. A provisioned
 /// model yields a deterministic embedding at the profile dimension so wiring
 /// (dimension checks, profile identity) can be exercised without a real model.
 #[derive(Debug, Clone, Default)]
@@ -435,6 +507,8 @@ impl OnnxEmbedder {
             "bge-small-384" => 384,
             "jina-code-v2-768" => 768,
             "granite-97m-384" => 384,
+            "qwen3-embedding-0.6b-int8-1024" => 1024,
+            "bge-m3-int8-1024" => 1024,
             _ => 256,
         }
     }
@@ -791,21 +865,84 @@ mod tests {
             EmbeddingModel::from_name("static").unwrap().dimension(),
             256
         );
+        assert_eq!(
+            EmbeddingModel::from_name("qwen3-embedding-0.6b-int8")
+                .unwrap()
+                .dimension(),
+            1024
+        );
+        assert_eq!(
+            EmbeddingModel::from_name("bge-m3-int8")
+                .unwrap()
+                .dimension(),
+            1024
+        );
         assert!(!EmbeddingModel::from_name("static").unwrap().requires_onnx());
         assert!(EmbeddingModel::from_name("bge-small")
+            .unwrap()
+            .requires_onnx());
+        assert!(EmbeddingModel::from_name("qwen3-embedding-0.6b-int8")
+            .unwrap()
+            .requires_onnx());
+        assert!(EmbeddingModel::from_name("bge-m3-int8")
             .unwrap()
             .requires_onnx());
         assert!(EmbeddingModel::from_name("bogus").is_none());
     }
 
+    /// The default model is `qwen3-embedding-0.6b-int8` (1024 dimensions,
+    /// INT8 ONNX), reachable through both the `Default` impl and the
+    /// `DEFAULT` constant, and resolvable by name.
     #[test]
-    fn standard_registry_holds_the_four_selectable_models() {
+    fn embedding_model_default_is_qwen3_embedding_06b_int8() {
+        let default = EmbeddingModel::default();
+        assert_eq!(default, EmbeddingModel::DEFAULT);
+        assert_eq!(default, EmbeddingModel::Qwen3Embedding06bInt8);
+        assert_eq!(
+            default.profile_id(),
+            "qwen3-embedding-0.6b-int8-1024",
+            "the default resolves to the qwen3 INT8 profile"
+        );
+        assert_eq!(default.dimension(), 1024);
+        assert!(
+            default.requires_onnx(),
+            "the default requires the ONNX runtime"
+        );
+        assert_eq!(
+            EmbeddingModel::from_name("qwen3-embedding-0.6b-int8")
+                .expect("the default name parses"),
+            EmbeddingModel::default(),
+            "the default name round-trips to the default"
+        );
+    }
+
+    #[test]
+    fn standard_registry_holds_the_six_selectable_models() {
         let registry = standard_registry();
-        assert_eq!(registry.all().len(), 4);
+        assert_eq!(registry.all().len(), 6);
         assert_eq!(registry.get("bge-small-384").unwrap().dimension, 384);
         assert_eq!(registry.get("jina-code-v2-768").unwrap().dimension, 768);
         assert_eq!(registry.get("granite-97m-384").unwrap().dimension, 384);
         assert_eq!(registry.get("static-256").unwrap().dimension, 256);
+        assert_eq!(
+            registry
+                .get("qwen3-embedding-0.6b-int8-1024")
+                .unwrap()
+                .dimension,
+            1024
+        );
+        assert_eq!(registry.get("bge-m3-int8-1024").unwrap().dimension, 1024);
+    }
+
+    #[test]
+    fn re_registering_a_profile_with_a_different_dimension_is_rejected() {
+        let mut registry = standard_registry();
+        let mut altered = registry.get("bge-m3-int8-1024").unwrap().clone();
+        altered.dimension = 384;
+        let error = registry.register(altered).unwrap_err();
+        assert_eq!(error.code(), "MODEL_PROFILE_MISMATCH");
+        // The original registration is untouched.
+        assert_eq!(registry.get("bge-m3-int8-1024").unwrap().dimension, 1024);
     }
 
     #[test]
@@ -817,7 +954,13 @@ mod tests {
             .unwrap();
         assert_eq!(static_vectors[0].len(), 256);
         // ONNX models are unavailable by default (no runtime / weights).
-        for profile_id in ["bge-small-384", "jina-code-v2-768", "granite-97m-384"] {
+        for profile_id in [
+            "bge-small-384",
+            "jina-code-v2-768",
+            "granite-97m-384",
+            "qwen3-embedding-0.6b-int8-1024",
+            "bge-m3-int8-1024",
+        ] {
             let error = embedder
                 .embed(profile_id, &["hello world".into()])
                 .unwrap_err();
@@ -842,6 +985,36 @@ mod tests {
         assert_eq!(vectors[0], repeat[0]);
         let norm: f32 = vectors[0].iter().map(|v| v * v).sum::<f32>().sqrt();
         assert!((norm - 1.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn onnx_embedder_provisioned_1024_models_embed_at_the_profile_dimension() {
+        let embedder = OnnxEmbedder::new()
+            .with_provisioned("qwen3-embedding-0.6b-int8-1024")
+            .with_provisioned("bge-m3-int8-1024");
+        for (profile_id, name) in [
+            (
+                "qwen3-embedding-0.6b-int8-1024",
+                "qwen3-embedding-0.6b-int8",
+            ),
+            ("bge-m3-int8-1024", "bge-m3-int8"),
+        ] {
+            assert!(
+                embedder.model_available(profile_id),
+                "{name} is provisioned"
+            );
+            let vectors = embedder
+                .embed(profile_id, &["traversal graph".into()])
+                .unwrap();
+            assert_eq!(vectors[0].len(), 1024, "{name} is 1024-dim");
+            // Deterministic + normalised.
+            let repeat = embedder
+                .embed(profile_id, &["traversal graph".into()])
+                .unwrap();
+            assert_eq!(vectors[0], repeat[0]);
+            let norm: f32 = vectors[0].iter().map(|v| v * v).sum::<f32>().sqrt();
+            assert!((norm - 1.0).abs() < 1e-5, "{name} is normalised");
+        }
     }
 
     #[test]
