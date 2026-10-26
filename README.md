@@ -1,23 +1,156 @@
-# UKMA v1.2.3 — Rust 實作工作區
+# UKMA
 
-這是依 [`docs/UKMA_v1.2.3_Full_Spec.md`](docs/UKMA_v1.2.3_Full_Spec.md) 以 **Rust 實作** 的正式工作區：不是 Python runtime，也不是「已完成」的 CodeGraph 遷移（遷移狀態見 `docs/migration/ledger/`；MIG-01 已依 ADR-063 永久決策）。
+**Supercharge Claude Code, Cursor, Windsurf, Codex, Cline, GitHub Copilot (VS Code / CLI), Gemini CLI, opencode, Kiro, Hermes Agent, and Antigravity with Semantic Code Intelligence**
 
-## 目前狀態（2026-10-25，全部可機器驗證）
+**預建的 code · 文件 · 記憶 · 追溯知識圖譜 —— 單一本地 Rust 二進位**
+
+[![Rust](https://img.shields.io/badge/kernel-Rust-orange.svg)](#license) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE) [![No Node.js required](https://img.shields.io/badge/Node.js-not%20required-brightgreen.svg)](#get-started)
+
+[![Windows](https://img.shields.io/badge/Windows-supported-blue.svg)](#get-started) [![macOS](https://img.shields.io/badge/macOS-supported-blue.svg)](#get-started) [![Linux](https://img.shields.io/badge/Linux-supported-blue.svg)](#get-started)
+
+**UKMA 平台**：125 個註冊操作、5 種 surface（MCP / CLI / HTTP / VS Code / GitHub Action）、3 種可替換儲存 Profile，全部走同一個 gateway。
+
+### [權威規格（Full Spec v1.2.3）→](docs/UKMA_v1.2.3_Full_Spec.md)
+
+### Contents
+
+- [1. 系統介紹](#1-系統介紹)
+- [2. 系統架構](#2-系統架構)
+- [3. 系統功能](#3-系統功能)
+- [目前狀態](#目前狀態)
+- [環境要求](#環境要求)
+- [Get Started（安裝、接線、初始化、卸載）](#get-started)
+- [共享 daemon](#5-共享-daemon)
+- [快速開始](#快速開始)
+- [啟動與執行](#啟動與執行)
+- [Language Support](#language-support)
+- [CLI 旗標與 profile](#cli-旗標與-profile)
+- [CodeGraph 對照（parity）](#codegraph-對照-parity)
+- [儲存 Profile](#儲存-profile)
+- [合約與代碼生成](#合約與代碼生成)
+- [驗收命令](#驗收命令)
+- [文檔地圖](#文檔地圖)
+- [不變式](#不變式)
+- [誠實邊界](#誠實邊界)
+- [License](#license)
+
+---
+
+## 1. 系統介紹
+
+UKMA（**U**nified **K**nowledge & **M**emory **A**rchitecture）是一個**統一 Intelligence Runtime**：在單一 Rust 進程上，為 AI coding agent 同時提供四種知識域的預建圖譜與上下文組裝能力——
+
+- **Code Intelligence**：38 語言 tree-sitter 結構抽取 → 符號／呼叫／依賴圖，16 個 CodeGraph parity 操作 ＋ 29 個 CodeGraph Pro 相容操作；
+- **Document Intelligence**：Markdown / PDF（文本層）/ DOCX 抽取、文件關係與來源版本，17 個操作（含 `generate_architecture_doc`，由代碼事實渲染架構文件）；
+- **Fractal Memory（WM / EM / SM / PM）**：working / episodic / semantic / procedural 四層記憶，FSRS 間隔重複、TTL 衰減、三級折疊、RL 驅逐、context budget 與分頁、agent fractal 隔離、跨語言檢索，28 個操作；
+- **Traceability Engine**：Requirement → Component → Symbol → TestCase → Evidence 狀態機，結果必然帶來源版本與可信度，13 個操作。
+
+當 agent 需要理解代碼時，通常得用 grep、glob、Read 一個檔案一個檔案地爬，手工重建呼叫路徑與依賴。UKMA 把這些結構預先建好：**agent 問一個問題，一次呼叫就拿到需要的源碼、符號間的呼叫路徑與跨域關聯**（`get_ai_context` / `get_edit_context` / `get_curated_context` / `pr_context` …）。
+
+設計原則（spec §1 / §6 / §14）：
+
+1. **契約優先**：`contracts/`（operation registry、error / scope / event registry、JSON Schema）是唯一事實來源；wire schema 由 Rust 類型生成（ADR-058），漂移由 `ukma-contract-check` 在 Rust 中驗證；
+2. **Database-agnostic**：domain 不依賴任何具體資料庫；Graph / Vector / Full-text / Metadata / Artifacts / Outbox 全部經可替換 Storage Ports（ADR-021～024），vendor SDK 只允許出現在 `adapters/*`；
+3. **100% 本地**：本體是單一 Rust 二進位，**不需要 Node.js、也不需要 Python**（選用的 `npx` 啟動器只負責下載並 exec 同一個二進位）；
+4. **多 surface、同一 gateway**：MCP server、CLI、HTTP server、VS Code 擴充、GitHub Action 全部走同一個 gateway；scope／授權／冪等／錯誤碼都由 registry 派生；
+5. **安全與隔離**：租戶／項目隔離、單一 Writer Owner（fencing）、樂觀並發（etag CAS）、冪等鍵、outbox 語義、37 個封閉錯誤碼。
+
+**定位（誠實聲明）**：UKMA 是依 [`docs/UKMA_v1.2.3_Full_Spec.md`](docs/UKMA_v1.2.3_Full_Spec.md) 以 Rust 實作的正式工作區，是 Phase 6 的**延伸**，**不是**「已完成」的 CodeGraph 遷移——遷移狀態見 `docs/migration/ledger/`（MIG-01 已依 ADR-063 永久決策）。Full Spec 是唯一自足的規範契約：實作不需要取得或閱讀任何 Fractal Memory Architecture 文件、先前 UKMA 版本或舊規格附錄。
+
+**非目標**（spec §1.2）：
+
+- 不宣稱任意自然語言文件可完全、無誤抽取正式規格；LLM 抽取須有驗證狀態；
+- 不要求所有 backend 支援同一原生查詢語言、全域 ACID 或相同效能；
+- 不要求 CodeGraph 內部 API / 檔案結構與上游一致；僅保留須保留的外部行為與演算法語義；
+- 不將 agent 記憶衰減規則用來刪除權威代碼／文件；不允許未授權自行執行文件中的指令。
+
+## 2. 系統架構
+
+全域架構與依賴方向（spec §3）：
+
+```mermaid
+flowchart TB
+  HOST[DSH / CLI / IDE / API Consumer] --> GW[API / MCP Gateway]
+  GW --> APP[Application Orchestrator + AuthZ]
+  APP --> CIE[Code Intelligence]
+  APP --> DIE[Document Intelligence]
+  APP --> MEM[Fractal Memory Domain]
+  APP --> TR[Traceability]
+  CIE --> CORE[Shared Core: Graph / Retrieval / Indexing / Embedding / Context]
+  DIE --> CORE
+  MEM --> CORE
+  TR --> CORE
+  CORE --> PORTS[Storage Ports + Router + Capability Negotiation]
+  PORTS --> DB1[(Embedded Backends)]
+  PORTS --> DB2[(SQL Backends)]
+  PORTS --> DB3[(Graph / Vector Backends)]
+```
+
+依賴方向規則（spec §3）：
+
+- 內層 `ukma-types`、`ukma-contracts` **不得**依賴 domain crates 或 vendor SDK；
+- `code-intelligence` / `document-intelligence` / `memory-domain` / `traceability` 只能透過 Shared Core Ports 做跨域資料存取；
+- vendor SDK 僅允許在 `adapters/*`；API Gateway 不得繞過 ACL 或直接查底層資料庫；
+- Graph DB native query 僅透過具語意等效保證的 adapter 執行。
+
+### Workspace 分層（30 個 members）
+
+| 層 | Crate |
+|---|---|
+| 合約 | `ukma-contracts`（wire 類型 + 生成的 OPERATIONS）、`ukma-types` |
+| 域引擎 | `code-intelligence`（38 語言註冊表 + parser 端口）、`document-intelligence`（MD / PDF 文本層 / DOCX，17 操作）、`memory-domain`（Fractal Memory：FSRS/TTL、折疊、驅逐、分頁，MAPI-01..28）、`traceability-engine`（TraceLink 狀態機，13 操作） |
+| 共享核心 | `graph-engine`（GraphStore + Traversal Planner）、`retrieval-engine`（HNSW + vector port）、`embedding-engine`（+ RerankerPort）、`indexing-engine`、`context-engine`（預算/驅逐/折疊/分頁）、`intelligence-core` |
+| 儲存 | `storage-ports`、`storage-router`、`adapters/{filesystem,embedded,sqlite,postgres,qdrant,neo4j}` |
+| 運行時 | `ukma-code-runtime`（dev-only file adapter + outbox 整合測試）、`ukma-security` |
+| 表面 | `ukma-mcp`（gateway＋MCP stdio 伺服器＋`@cwd` 工作目錄索引）、`ukma-cli`（單一 `ukma` 二進位）、`apps/ukma-server`、`vscode-extension/`、`github-action/` |
+| 驗證與工具 | `ukma-integration`（gate：coverage_matrix、claim_level、port_parity、release_evidence…）、`ukma-contract-check`、`ukma-bench`、`ukma-wire-schema`、`ukma-release-evidence` |
+
+`code-intelligence` 特性：`parser-rust`（預設）、`parser-s2-batch1/2/4`（預設，共 37 個 tree-sitter 語法）、`schema`（schemars 輸出）。8 個偏差語言的 pinned crate 見 ADR-063。
+
+### Storage Ports 與 Adapters
+
+`storage-ports` 定義 6 個端口：`MetadataPort`、`FullTextPort`、`VectorPort`、`ArtifactPort`、`OutboxPort`，外加 `SchemaVersionPort` / `Migration` / `CapabilityProbe`；`GraphStore` 在 `graph-engine`。6 個 adapter（`crates/adapters/`）：`filesystem`（內容位址 artifact）、`embedded`（文件支撐 metadata + durable outbox）、`sqlite`、`postgres`、`qdrant`（REST）、`neo4j`（HTTP 交易 API）。缺少可工作的 adapter 時 MUST `UNAVAILABLE_ADAPTER`，不得假裝可用。
+
+### 資料流（快照 → 解析 → 索引 → 組裝 → 服務）
+
+1. **快照**：`ukma init` / `ukma sync` 把整棵樹的快照寫進 `.ukma/index.db`（SQLite、WAL）：每個檔案一列 `(size, mtime_ns, sha256, content)` + revision metadata；增量 sync 預篩只讀 `(size, mtime)` 變了的檔，parse 結果以**內容雜湊**為鍵持久化（`--verify` 逐檔比對內容雜湊，抓同尺寸＋時間戳被還原的編輯）。
+2. **解析**：38 語言註冊表 + 37 個 tree-sitter 語法的宣告式 spec（每語言一個 spec、一個通用引擎——新增語言是資料變更，不是新邏輯）；8 個偏差語言以 pinned 非 baseline crate 實作（ADR-063，golden fixture 量測）。
+3. **索引**：圖＋混合索引——static-embedding（詞元統計向量）＋ BM25 全文＋ HNSW 近鄰（`retrieval-engine`），不依賴外部 embedding 模型或 ONNX 執行時；`--watch` / daemon 的 watcher 偵測變更後增量重建。
+4. **組裝**：`context-engine` 負責 context budget、三級折疊、RL 驅逐與分頁，把 agent 需要的上下文一次組裝出來；memory 層遵循同一套 budget 契約（spec §22.1 唯一計算式）。
+5. **服務**：gateway 從 registry 派生 scope / 授權 / 冪等 / 錯誤碼；租戶與項目由請求頭強制（`x-ukma-tenant-id`、`x-ukma-project-id`、`x-ukma-principal-id`、`x-ukma-scopes`、`x-ukma-trace-id`）；單一 Writer Owner（同一 `(tenant, project, domain, entity_id)` 同時恰有一個受 fencing 保護的權威 Writer）。
+
+## 3. 系統功能
+
+- **125 個註冊操作**（code 33 / document 17 / memory 28 / traceability 13 / system 5 / pro 29），全部註冊於 `contracts/api/operation-registry.yaml`；每個操作的 request / response schema、scope、preconditions、狀態機、consistency modes、冪等、並發、錯誤碼、事件、storage ports、測試 ID 都由 registry 定義並代碼生成。
+- **Code Intelligence（code 33 ＋ pro 29）**：
+  - 38 語言註冊表（37 個 tree-sitter 語法；8 個偏差語言 pinned 並以 golden fixture 量測，ADR-063）；
+  - **16 個 CodeGraph parity 操作**：複雜度熱點、循環依賴、熱路徑、死 import、模組摘要、模式 / 錯誤訊息搜尋、依簽名搜尋、進入點、相關測試聯結、增量檔案索引、PR 差異上下文、AI / 編輯 / 策展上下文組裝、文件來源清單、架構文件渲染；
+  - **29 個 CodeGraph Pro 相容操作**（10 結構分析＋19 安全分析；重新實作而非原始碼移植；安全為啟發式偵測、標記候選模式，不取代 SAST/DAST/依賴掃瞄；`--online` 走 OSV 遠端依賴查詢，transport 失敗 degrade 為 manifest-only）。
+- **Document Intelligence（document 17）**：Markdown / PDF（文本層）/ DOCX 抽取、文件關係與來源版本追蹤、`list_doc_sources`、`generate_architecture_doc`。
+- **Fractal Memory（memory 28，MAPI-01..28）**：WM / EM / SM / PM 四層；FSRS 間隔重複＋TTL 衰減；三級折疊（**領域知識不受記憶 TTL / 折疊影響**）；RL 驅逐策略；context budget 與分頁；agent fractal 隔離；跨語言檢索；整合 pipeline（consolidation）與 trust 分級。
+- **Traceability（traceability 13）**：TraceLink 狀態機；Requirement → Component → Symbol → TestCase → Evidence 全鏈可追溯；結果帶來源版本與可信度；`document.ingest.accepted` / `code.revision.stale` 等事件以 36 個封閉 payload schema 發出。
+- **混合搜尋**：static-embedding（詞元統計向量）＋ BM25 全文＋ HNSW 近鄰，離線可用；`--embedding-model` 可選 `static-256`（預設、無外部權重）/ `bge-small`（384d）/ `jina-code-v2`（768d）/ `granite-97m`（384d）/ `qwen3-embedding-0.6b-int8`（1024d、INT8）/ `bge-m3-int8`（1024d、INT8）。ONNX 為**真實 runtime**（feature `onnx`，`ort` `load-dynamic` 於運行時載入 ONNX Runtime 並推論），但 UKMA 不自帶 ONNX Runtime 庫與模型權重（由部署側提供）；不可用時語意通道 degrade 至 static fallback。
+- **5 種 surface、同一個 gateway**：
+  - **MCP server**：`ukma --mcp`（stdio）；125 個工具的 scope / 授權 / 冪等 / 錯誤碼全由 registry 派生；`--profile` 過濾工具表面（`all` / `core` / `graph` / `memory` / `security`）。
+  - **CLI**：單一 `ukma` 二進位（`health` / `manifest` / `capabilities` / `routes` / `tools` / `install` / `upgrade` / `init` / `sync` / `status` / `daemon` / `uninit` / `uninstall`）。
+  - **HTTP server**：Profile A 開發預設——無 async runtime、單執行緒、`Connection: close`；REST 面 `POST /api/v1/{domain}/{operation}`（讀取也是 POST）＋ `GET /api/v1/health`、`GET /api/v1/jobs/{job_id}`。
+  - **VS Code 擴充** 與 **GitHub Action**（另見 `jetbrains/` 完整、可建置結構；Gradle / IntelliJ build 未納入本倉庫驗收 gate）。
+- **12 個 agent 接線目標**：`claude-code`、`cursor`、`windsurf`、`codex`、`cline`、`copilot-vscode`、`copilot-cli`、`gemini-cli`、`opencode`、`kiro`、`hermes`、`antigravity`——merge 寫入、重跑 no-op。
+- **共享 daemon**：每專案一份 warm index，跨 session 共用；只委派 `tools/call`（stdio 仍由各自 session 擁有），失敗必回退、身份驗證（loopback＋bearer token）、事件偵測（Windows `ReadDirectoryChangesW`、其他平台 poll）。
+- **契約閉合**：37 個封閉錯誤碼、24 個 scope、36 個事件；`ukma-contract-check` 在 Rust 中驗證（目前 9404 checks / 0 failed）；wire schema 由 Rust 類型生成並 `--check` 驗證。
+- **可重現效能量測**：`ukma-bench`（FM-010）走公開 API 存 episodes、做查詢；報告明寫量測了什麼（RSS、磁碟、1M episodes benchmark）**與沒有**量測什麼（VRAM、第二個後端、embedding 模型）。
+- **發布鏈**：GitHub Release（SHA-256 驗證資產）＋ npm `ukma-cli`（trusted publishing / OIDC，附 provenance）；SBOM（CycloneDX）以 Ed25519 簽章固定。
+
+## 目前狀態（2026-10-27，全部可機器驗證）
 
 | 項目 | 狀態 | 驗證方式 |
 |---|---|---|
-| 85 個操作（code 27 / document 16 / memory 25 / traceability 13 / system 4） | 全部實作並註冊於 registry | `contracts/api/operation-registry.yaml`、`ukma-server --operations` |
-| 37 個錯誤碼（封閉集） | registry 與實作一致 | `cargo run -p ukma-contract-check`（8470 checks / 0 failed） |
-| §29.4 40 項 + §17.1 29 類行為 ID | 85/85 covered（0 partial / 0 gap） | `contracts/testing/test-coverage.json` + `coverage_matrix` gate |
+| 125 個操作（code 33 / document 17 / memory 28 / traceability 13 / system 5 / pro 29） | 全部實作並註冊於 registry | `contracts/api/operation-registry.yaml`、`ukma --operations` |
+| 37 個錯誤碼（封閉集） | registry 與實作一致 | `cargo run -p ukma-contract-check`（9404 checks / 0 failed） |
+| §17.1 29 類＋§29.4 40 項行為 ID（共 69） | `coverage_matrix` gate 全綠 | `cargo test -p ukma-integration --test coverage_matrix` |
 | 聲明層級 | `implementation_compliant` 與 `production_ready` 由證據**推導**為 true | `claim_level` gate、`docs/implementation-status.yaml` |
 | 儲存端口 | 6 個 trait + GraphStore；Profile A/B 已實作，Profile C adapter 真實且配置驅動 | `crates/storage-ports`、`crates/adapters/*`、ADR-057/061/062 |
-| 測試 | 1084 passed / 0 failed | `cargo test --workspace --all-targets` |
-
-**誠實邊界**（已記錄的決策，不是缺口）：
-- **JsonFileAdapter 僅供開發**：無跨進程安全/耐久性保證；持久化用 Profile B（SQLite）或 Profile C（PostgreSQL + Qdrant + Neo4j）。
-- **Profile C 三方等價**建立在 ADR-062 一次運行的已檢入證據上（本機無 Docker/psql/Qdrant/Neo4j）。
-- **8 種語言語法偏差**（7 個 pinned 非 baseline crate + kotlin ng fork）以 golden fixture 量測，非對照上游行為（ADR-063）。
-- PDF 不含 OCR（ADR-048：明確 partial）；VRAM 未量測（已量測 RSS 與磁碟）。
+| 測試 | 1236 passed / 2 failed（2 個＝`release_evidence` 的 SBOM digest 與簽名過期；發布簽章金鑰不在本倉庫，需以金鑰重新簽章） | `cargo test --workspace --all-targets --no-fail-fast` |
 
 ## 環境要求
 
@@ -26,7 +159,7 @@
 - **Linux/macOS**：rustup 安裝 Rust stable，確認 C/C++ 編譯器與 linker 已安裝。
 - 建構與運行 Rust **不需要 Python**；`scripts/gen_contracts.py` 僅 CI 的 codegen-reproducibility 步驟需要 python3。
 
-## 安裝、接線、初始化、卸載（CodeGraph 四步對照）
+## Get Started（安裝、接線、初始化、卸載，CodeGraph 四步對照）
 
 與 CodeGraph 相同的四步，全部由同一個 `ukma` 二進位提供；**本體不需要 Node.js，也不需要 Python**（只有選用的 `npx` 啟動器需要 Node ≥ 18，而它只是下載並 exec 同一個二進位）。
 
@@ -93,43 +226,13 @@ ukma sync --force              # 丟掉快取、整棵樹重掃
 ukma daemon start              # 選用：讓多個 session 共用一份 warm index
 ```
 
-`ukma init`／`ukma sync` 把整棵樹的快照寫進 `.ukma/index.db`（SQLite、WAL）：每個檔案一列 `(size, mtime_ns, sha256, content)`，另加 snapshot metadata（revision、檔案數、掃描範圍指紋）。之後在專案內跑 `ukma --mcp`（或不帶 `--index-cwd` 的 `--run-tool`／`call`）會**先用快取**：只有 `(size, mtime)` 變了的檔案會被讀取與重新雜湊，其餘直接沿用；stderr 會印 `ukma: snapshot cache: N read, M reused`。`--no-cache` 可強制回到純掃描。多根專案（`ukma init --workspace <dir>`）也走同一顆快取：每個 root 各自套上限、相對路徑以**先出現的 root 勝出**、最後按路徑排序——與掃描器的合併規則逐條相同，所以快取 revision 與 fresh scan 相等。`--mcp --watch` 也從快取起跑（不重掃一次已讀過的樹）。索引仍是 dirty snapshot，但**跨進程持久化、增量、且多根**。
+`ukma init`／`ukma sync` 把整棵樹的快照寫進 `.ukma/index.db`（SQLite、WAL）：每個檔案一列 `(size, mtime_ns, sha256, content)`，另加 snapshot metadata（revision、檔案數、掃描範圍）。`ukma status` 顯示 revision、scope、parse 條目數、`### Pending sync:`、daemon 狀態；daemon 端的 pending 以 `ukma daemon status` 的 revision／syncs 呈現，不逐檔列出。
 
-**git 感知**：快照只按 `(size, mtime)` 追蹤檔案，不知道版本控制狀態。`ukma init`／`ukma sync` 會一併對專案 root 跑 `git`，把結果寫進 `.ukma/git-state.json`（schema-versioned 的 sidecar）；`ukma status` 讀取它，daemon 暖索引刷新時 best-effort 更新。它在檔案快照之外多一層 git 語意——HEAD、branch（或 detached commit）、以及 staged／unstaged／untracked 的檔案清單：
+**MCP 回應 banner**：`tools/call` 回應會附上 pending 檔案的 banner（**只 stat 回應中提到的路徑**，比對快照記錄的 `(size, mtime)`，不做逐次全樹掃描）。這是 **additive** 的 MCP 內容變更（多一個文字區塊），已取得 owner 核准；信封與 125 操作 registry／schema 未改動。取捨與盲點：
 
-- `ukma init`／`ukma sync`／`ukma status` 的輸出多一列 `git`，例如 `repo @ main (abc1234): 1 staged, 2 unstaged, 3 untracked`；非 repo 是 `not a git repository`，`git` 缺失或 repo 損毀是 `git unavailable: …`（**永不 panic**，回傳 typed 狀態）。
-- 索引自身的 `.ukma/` 目錄被排除，所以狀態反映的是專案而非工具產物。
-- 這是**純 CLI 端**：不動 `SnapshotStore` port、不動任何 backend、不動 wire API（ADR-021），65 操作 registry 未改。
-- 索引仍是「上次 sync 時的快照」（由 daemon + 觀察器保持新鮮），但現在帶 git 語意，接近 codegraph 的索引語意。
-
-`ukma status` 是唯讀的：列出快取持有的 revision、掃描範圍（`current` / `stale`）、快取中的 parse 數量，以及「與工作樹不同」的檔案（`### Pending sync:`），不寫任何東西。加上 `--verify` 時連 stat 沒動的檔案也會讀取比對。
-
-**parse 結果也持久化**（同一顆 `.ukma/index.db`）：`ParsedSource` 以 `(parser 版本, 語言, 路徑, 內容 sha256)` 為鍵，所以
-
-- 未改動的檔案：**完全不重解析**（跨進程，實測第二個進程 `0 parsed`）；
-- 改動的檔案：內容雜湊改變 → 重新解析（實測只重解析那一個檔）；
-- 解析器升級：`PARSE_CACHE_VERSION` 一改，舊條目自動不再命中；
-- 解析失敗**不進快取**（暫時性失敗必須保持可見），壞掉的 payload 會退回真解析而不是讓查詢失敗。
-
-`--run-tool`／`call` 結束時 stderr 會印 `ukma: parse cache: N reused, M parsed`；`--mcp` 啟動時印既有條目數。
-
-**Stale 檔案的可見性（banner）**：索引是 session 開始時的樹快照；若某個回應**引用的檔案**在快照之後被改過或刪除，回應會被明確標記，而不是讓 agent 拿到靜默過期的內容：
-
-- **MCP `tools/call`**：成功回應的 `content` 陣列在需要時變成兩個區塊——第一個是 `⚠️ Some files referenced below changed after the index snapshot …` 文字，第二個仍是原本的 JSON 信封。**信封本身完全不變**（欄位、schema、`isError` 都不動）；沒有 pending 檔案時仍然只有一個區塊（既有客戶端行為不變）。
-- **CLI**：`--run-tool`／`call` 把 banner 印到 **stderr**（stdout 永遠是純 JSON）。
-- 成本：**只 stat 回應中提到的路徑**（比對快照記錄的 `(size, mtime)`），不做逐次全樹掃描。
-
-banner 的成本取捨（不是缺口）：
-
-- **只 stat 回應中提到的路徑**：回應沒提到的 pending 檔案不會被列出（換取每次呼叫零全樹掃描）；要完整清單請用 `ukma status` 的 `### Pending sync:`（`--verify` 可連 stat 沒動的檔案一起驗）。
-- stat 判斷本身的盲點（同尺寸＋時間戳被還原）由 `ukma sync --verify`／`ukma status --verify` 補上：它**讀每個檔案**比對內容雜湊。banner 維持 stat 級成本，因為每次 `tools/call` 都重讀所有引用檔案的代價更高。
-- 這是**additive** 的 MCP 內容變更（多一個文字區塊），已取得 owner 核准；信封與 85 操作 registry／schema 未改動。
-
-快取的新鮮度：
-
-- 預設靠 `(size, mtime_ns)` 判斷（與 `git status` 相同的取捨），增量因此不需要讀檔。
-- 需要「連 stat 都沒動的編輯」也抓出來時：`ukma sync --verify`／`ukma status --verify` 會**逐檔讀取並比對內容雜湊**，把這類改動標成 `modified`（報告會寫 `N verified by content`）。這是 opt-in，因為它放棄了增量的好處。
-- `.ukma/index.db` 只是快取，可隨時刪除（`ukma sync --force` 即重建，parse 條目一併清掉）；不要提交進版本庫。
+- 回應沒提到的 pending 檔案不會被列出（換取每次呼叫零全樹掃描）；要完整清單請用 `ukma status` 的 `### Pending sync:`（`--verify` 可連 stat 沒動的檔案一起驗）。
+- stat 判斷本身的盲點（同尺寸＋時間戳被還原）由 `ukma sync --verify`／`ukma status --verify` 補上：它**讀每個檔案**比對內容雜湊。
+- 快取新鮮度：預設靠 `(size, mtime_ns)` 判斷（與 `git status` 相同的取捨）；`.ukma/index.db` 只是快取，可隨時刪除（`ukma sync --force` 即重建，parse 條目一併清掉）；**不要提交進版本庫**。
 
 ### 4. 卸載
 
@@ -156,7 +259,7 @@ UKMA_DAEMON_POLL_SECS=5 ukma daemon start     # 沒有原生 watcher 時的輪�
 
 啟動後，在專案內執行的 `ukma --mcp` 會自動委派，stderr 印 `ukma: delegating tool calls to the project daemon`；**沒有 daemon 時行為完全不變**。
 
-- **變更偵測**：Windows 上用 `ReadDirectoryChangesW`（真事件，閒置零成本）；其他平台用 `UKMA_DAEMON_POLL_SECS`（預設 2 秒）的 stat 輪詢。事件有 300ms debounce（編譯器連寫上千檔只觸發一次 refresh），另外 30 秒一次安全輪詢補漏。樹一變就增量 `sync` 並換掉 gateway（不重開 session）；`ukma daemon status` 的 `watcher`／`syncs`／`revision` 會反映。
+- **變更偵測**：Windows 上用 `ReadDirectoryChangesW`（真事件，閒置零成本）；其他平台用 `UKMA_DAEMON_POLL_SECS`（預設 2 秒）的 stat 輪詢。事件有 300ms debounce（編譯器連寫上千檔只觸發一次 refresh），另外 30 秒一次安全輪詢補漏。樹一變就增量 `sync` 並換掉 gateway（不重開 session）。
 - **並行**：一個連線一個 thread，慢查詢或沉默的客戶端不會擋住其他 session（warm state 仍由 `Mutex` 序列化，保證同一份 index 不被並改）。
 - **誰可以委派**：只有「所有索引／搜尋選項都是預設值」的 session（沒 `--exclude`／`--max-files`／`--index-cwd`／`--workspace`／`--embedding-model`／`--graph-only`／`--no-cache`／`--watch`／`--online`）。否則各自建 gateway——**委派不得改變答案**。
 - **失敗一定回退**：daemon 連不上、token 不對、回應壞掉 → 該次呼叫改用 session 自己的 gateway（結果仍然正確，只是沒有加速），stderr 不會靜默。
@@ -174,21 +277,20 @@ UKMA_DAEMON_POLL_SECS=5 ukma daemon start     # 沒有原生 watcher 時的輪�
 git clone https://github.com/jacoblight-chen/UKMA.git && cd UKMA
 cargo check --workspace --all-targets   # 確認編譯
 cargo run -p ukma-server -- --health    # 健康負載
-cargo run -p ukma-cli -- tools          # 列出 85 個操作
+cargo run -p ukma-cli -- tools          # 列出 125 個操作
 ```
 
-### 驗收命令（與 CI `contract-closure.yml` 同款）
+### 範例與工具
 
 ```shell
-cargo fmt --all -- --check
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace --all-targets            # 預期 1084 passed / 0 failed
-cargo run -p ukma-contract-check              # 預期 8470 checks / 0 failed
-cargo test -p ukma-integration --test coverage_matrix --test claim_level
-cargo test -p code-intelligence --test s2_coverage
+cargo run -p ukma-code-runtime --example quickstart   # JsonFileAdapter 最小閉環
+cargo run -p code-intelligence --example parsed       # 解析範例（另有 cst / nodes）
+cargo run -p ukma-bench -- --episodes 2000 --queries 500 --out bench.json
+cargo run -p ukma-wire-schema -- --check             # wire.schema.json 與 Rust 類型對齊
+cargo run -p ukma-release-evidence -- --check        # SBOM/inventory 派生文件對齊
 ```
 
-`scripts/verify_rust.ps1` / `verify_rust.sh` 是上述 cargo gate 的包裝腳本。
+`ukma-bench` 是可重現的效能 harness（FM-010）：走公開 API 存 episodes、做查詢，報告明寫量測了什麼、**沒有**量測什麼（RSS/VRAM、第二個後端、embedding 模型）。
 
 ## 啟動與執行
 
@@ -205,6 +307,7 @@ cargo run -p ukma-server -- --help
 ```
 
 REST 面（spec §31.2）：
+
 - 所有 domain 操作都是 `POST /api/v1/{domain}/{operation}`（讀取也是 POST）
 - `GET /api/v1/health`、`GET /api/v1/jobs/{job_id}`
 - 請求頭：`x-ukma-tenant-id`、`x-ukma-project-id`、`x-ukma-principal-id`、`x-ukma-scopes`（逗號分隔）、`x-ukma-trace-id`
@@ -232,76 +335,52 @@ CLI 已合併為單一 `ukma` 二進位（`cargo build -p ukma-cli --release` �
 cargo run -p ukma-cli -- health               # 健康負載
 cargo run -p ukma-cli -- manifest            # tool manifest
 cargo run -p ukma-cli -- capabilities        # system.capabilities
-cargo run -p ukma-cli -- tools [--domain memory]
-cargo run -p ukma-cli -- routes             # REST 路由表
-cargo run -p ukma-cli -- describe memory.store_episode
-cargo run -p ukma-cli -- call memory.search '{"query":{...}}' \
-  [--tenant t] [--project p] [--principal u] [--scope s]
+cargo run -p ukma-cli -- routes              # 真實 REST 路由
+cargo run -p ukma-cli -- tools               # 125 個操作
+cargo run -p ukma-cli -- --mcp               # MCP stdio 伺服器
 ```
 
-`describe` 與 `call` 的 JSON 結構以 `wire.schema.json` 為準。
+## Language Support
 
-### 3. CodeGraph 式執行（Tier 0–3）
+38 個語言進入同一個註冊表、同一個通用 tree-sitter 抽取引擎，**不需要逐語言設定**：Rust、Python、Go、Java、JavaScript / TypeScript、C、C++、C#、PHP、Ruby、Scala、Swift、Kotlin、Clojure、CSS、Elixir、Elm、Erlang、Fortran、Bash、Solidity 等。每語言一個宣告式 spec（節點 kind → 符號／呼叫／定義抽取規則），新增語言是資料變更、不是新邏輯。8 個語法偏差語言（7 個 pinned 非 baseline crate ＋ kotlin ng fork）以 golden fixture 量測（ADR-063）。
 
-與 CodeGraph 同款的執行路徑，四層全部實作：
+## CLI 旗標與 profile
 
-| Tier | 能力 | 命令 |
-|---|---|---|
-| 0 | 單工具直跑（跑完即結束） | `ukma --run-tool <name> --tool-args '<json>'` |
-| 1 | MCP stdio 伺服器（JSON-RPC 2.0、MCP `2024-11-05`、serverInfo `ukma`/`1.2.3`） | `ukma --mcp` |
-| 2 | 自動索引工作目錄（內容位址 revision、`@cwd` 別名、dirty snapshot） | `ukma --index-cwd <path>`、`ukma-server --index-cwd <path>` |
-| 2+ | 索引選項＋搜尋策略（多根、tool-surface profile、exclude、檔案上限、watch、split-identifiers、full-body、graph-only） | `ukma --workspace <path>` `--profile <all\|core\|graph\|memory\|security>` `--exclude <glob>` `--max-files <n>` `--watch` `--split-identifiers` `--full-body-embedding` `--graph-only` |
-| 3 | VS Code 擴充＋ GitHub Action（PR 審查） | `vscode-extension/`、`github-action/` |
+**索引選項**（`ukma --mcp`／`ukma init`／`ukma sync` 共用）：
 
-```shell
-# Tier 0 + 2：索引目錄後以 @cwd 別名執行工具
-ukma --index-cwd . --run-tool system.capabilities --tool-args '{}'
-# stderr: ukma: indexed N files at revision <40-hex>
-# stdout: 渲染的 envelope
-
-# Tier 1：stdio MCP（initialize / tools/list / tools/call）
-echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"t","version":"1"}}}' | ukma --mcp
-```
-
-`@cwd` 別名在**所有**表面都可用（HTTP、CLI、MCP）：source port 註冊別名後，`code.analyze_repository` 的 `revision.commit_sha` 可直接傳 `"@cwd"`（需 `"dirty_policy": "snapshot"`）。索引是當前樹的**dirty snapshot**（worktree 從不是 clean commit），內容位址（sha256 前 40 hex），不做耐久性/跨進程聲明；**內建排除集**（~47 目錄 ＋ 二進位/存檔/OS 金鑱/機密檔 glob）、隱藏目錄、>256KiB 檔案被略過（見上方 Tier 2+ 索引選項）。
-
-**Tier 3 — VS Code 擴充**（`vscode-extension/`）：`npm install && npm run compile` 後以 Extensions 開發宿主開啟；擴充把 `ukma --mcp --index-cwd <workspace>` 以 `McpStdioServerDefinition` 釋出給編輯器，85 個工具全部進入 Copilot（二進位預設從 PATH 解析，可設 `ukma.serverPath`）。
-
-**Tier 3 — GitHub Action**（`github-action/`）：composite action 建置 `ukma`、`--index-cwd` 索引 checkout、`--run-tool` 跑一個工具並把結果貼成 PR 評論（用法與範例 workflow 見 `github-action/README.md`）。
-
-**Tier 2+ 索引選項**（CodeGraph 式索引 CLI，與 `--index-cwd` 可併用）：
-```shell
-ukma --index-cwd . --workspace <extra-root> \
-     --exclude '**/*.md' --max-files 2000 --watch \
-     --full-body-embedding --graph-only
-```
-- `--workspace <path>`（可重複）：額外根目錄，合併後以 path 去重（碰撞時第一個根勝出）。
-- `--exclude <glob>`（可重複）：附加略過 glob（支援 `*`、`?`、`**`），疊加在**內建排除集**之上。內建排除集與 CodeGraph 對齊：~47 個 build/cache/IDE/IaC/sensitive 目錄（`target`、`node_modules`、`vendor`、`venv`、`dist`、`build`、`out`、`__pycache__`、`DerivedData`、`Pods`、`xcuserdata`、`cmake-build-*` 及 `.git`/`.venv`/`.tox`/`.mypy_cache` 等隱藏目錄），加上二進位/原生庫（`*.o *.a *.so *.dylib *.dll *.lib *.exe *.bin *.obj *.pdb`）、存檔（`*.zip *.tar *.gz *.jar *.class *.pyc *.wasm`）、OS 金鑱（`thumbs.db`、`desktop.ini`）與**機密檔**（`*.pem *.key *.p12 *.pfx *.crt *.gpg *.kdbx`、`id_rsa` 等）。
+- `--workspace <dir>`：可重複多根；合併多根、path 去重（第一個根勝出）。
+- `--exclude <glob>`：可重複，附加在內建排除集（~47 目錄＋二進位/機密 glob）之上。
 - `--max-files <n>`：索引檔案數上限（在內建 skip 之後截斷）。
 - `--watch`：以 mtime 輪詢（2s）偵測變更並重新索引。**兩種語意**：（a）`--mcp --watch`（含根目錄）→ 建立**可熱切換** gateway，把重新索引**熱切換**到活著的 stdio MCP session（CodeGraph `--watch` parity，已升級為 live hot-swap）；（b）`--watch`（非 MCP，含根目錄）→ 一次指令跑完後輪詢重索引（落盤、非熱切換）。
 
 **Tier 2+ 搜尋/嵌入策略**（CodeGraph `--split-identifiers` / `--full-body-embedding` / `--graph-only` 對齊，僅對索引後的樹生效）：
+
 - `--split-identifiers` / `--no-split-identifiers`：camelCase 識別字切分（`getUserById` → `get user by id`）；**預設切分**（維持既有 tokeniser）。
 - `--full-body-embedding` / `--no-full-body-embedding`：把符號的**原始碼函式體**納入語料庫再嵌入（依 `definition` 行範圍自索引來源擷取）；**預設關**（維持既有 name/qualified/signature 語料庫；與 CodeGraph 預設 `true` 不同，為保留既有行為）。
 - `--graph-only`：僅結構（keyword/BM25）排序，略過 static-semantic 通道；**預設關**。
 
 **`--profile` 工具表面過濾**（CodeGraph `--profile` 對齊，搭配 `--mcp` 過濾曝露的 MCP 工具；不是 exclude 預設集）：
-- `all`（預設）：全部 85 個工具。
+
+- `all`（預設）：全部 125 個工具。
 - `core`：8 個搜尋/上下文工具（`find_symbols`、`get_symbol`、`get_ai_context`、`get_edit_context`、`get_curated_context`、`search_by_pattern`、`search_by_error`、`find_by_signature`）。
 - `graph`：17 個結構/圖/impact/PR 工具（callers/callees/deps/impact/compare/circular/hot/dead/entry/related/complexity/module/index_files/pr_context/analyze_repository/get_analysis_job/find_references）。
-- `memory`：25 個 `memory.*` ＋ 16 個 `document.*` 工具。
+- `memory`：28 個 `memory.*` ＋ 17 個 `document.*` 工具。
 - `security`：社群版**空**（UKMA 不實作 CodeGraph Pro 的 security 工具）。
 - 不在 profile 內的工具：`tools/list` 不列出、`tools/call` 以 `-32602 not in active profile` 拒絕。
 
-### CodeGraph 對照（parity）
+**`--embedding-model` 與 memory gate（CodeGraph 對齊）**：CLI 接受 `static-256`（預設、無外部權重、離線）、`bge-small`（384d）、`jina-code-v2`（768d）、`granite-97m`（384d）、`qwen3-embedding-0.6b-int8`（1024d、INT8 量化）、`bge-m3-int8`（1024d、INT8 量化）。ONNX 為**真實 runtime**（feature `onnx`，`ort` `load-dynamic` 於運行時載入 ONNX Runtime 並推論），但 UKMA 不自帶 ONNX Runtime 庫與模型權重（由部署側提供）；ONNX 不可用時語意通道 degrade 至 static fallback。`CODEGRAPH_SKIP_MEMORY_CHECK` 為 ONNX ~1.5GB RAM gate 開關：未設定時啟動前探測可用記憶體，不足時 degrade 至 `GraphOnly`；設定後略過 gate（用於已知記憶體充足的部署）。
 
-UKMA 實作了 CodeGraph 的核心執行路徑（Tier 0–3）、16 個 CodeGraph parity 操作與 **27 個 CodeGraph Pro 相容 operations**（10 結構分析＋17 安全分析，相容而非移植），使 CodeGraph 的常用人格能在 UKMA 上運行。
+**AI agent 規則檔**（CodeGraph 對齊）：`agent-rules/` 提供 Claude、Cursor、Windsurf、Codex、Cline 五份專屬規則檔，加上 `agent-rules/common/UKMA.md`（供 Copilot CLI、Gemini CLI、opencode、Kiro 使用）；`ukma install` 會把它們寫到各 agent 的規則位置（`--no-rules` 可略過），手動 `cp agent-rules/<agent>/UKMA.md` 仍然可用。用法與 intent→tool 對照表見 `agent-rules/README.md`。
+
+## CodeGraph 對照（parity）
+
+UKMA 實作了 CodeGraph 的核心執行路徑（Tier 0–3）、16 個 CodeGraph parity 操作與 **29 個 CodeGraph Pro 相容 operations**（10 結構分析＋19 安全分析，相容而非移植），使 CodeGraph 的常用人格能在 UKMA 上運行。
 
 **已覆蓋（16 個 parity 操作）**：
 
 | 域 | 操作 | 對應 CodeGraph 能力 |
 |---|---|---|
-| code (CAPI-14..27) | `analyze_complexity` | 複雜度報告（圈複雜度熱點） |
+| code | `analyze_complexity` | 複雜度報告（圈複雜度熱點） |
 | code | `find_circular_deps` | 循環依賴偵測 |
 | code | `find_hot_paths` | 熱路徑（高扇入/扇出） |
 | code | `find_dead_imports` | 死 import 偵測 |
@@ -314,7 +393,7 @@ UKMA 實作了 CodeGraph 的核心執行路徑（Tier 0–3）、16 個 CodeGrap
 | code | `pr_context` | PR 差異上下文（base→head） |
 | code | `get_ai_context` / `get_edit_context` | AI/編輯上下文組裝 |
 | code | `get_curated_context` | 策展上下文 |
-| document (DAPI-15..16) | `list_doc_sources` | 文件來源清單 |
+| document | `list_doc_sources` | 文件來源清單 |
 | document | `generate_architecture_doc` | 由代碼事實渲染架構文件 |
 
 搜尋以**混合**方式實作：static-embedding（詞元統計向量）＋ BM25 全文 ＋ HNSW 近鄰（`retrieval-engine`），不依賴外部 embedding 模型或 ONNX 執行時。
@@ -327,11 +406,11 @@ UKMA 實作了 CodeGraph 的核心執行路徑（Tier 0–3）、16 個 CodeGrap
 | `--exclude` | 可重複 glob | 附加在內建排除集之上 |
 | `--max-files` | 檔案上限（預設 5000） | 索引上限（多根時每個 root 各自計算） |
 | `--watch` | mtime 輪詢重索引 | 2s 輪詢、重索引；`--mcp --watch`（含根）→ 從快照快取起跑並 live hot-swap |
-| `--profile` | **工具表面過濾**（all/core/graph/memory/security） | 同一語意：過濾 MCP 工具表面（core=8、graph=17、memory=41、security=空） |
+| `--profile` | **工具表面過濾**（all/core/graph/memory/security） | 同一語意：過濾 MCP 工具表面（core=8、graph=17、memory=45、security=空） |
 | `--split-identifiers` | camelCase 切分（預設 on） | `tokenize`（切分）vs `tokenize_raw`（不切分） |
 | `--full-body-embedding` | 函式體嵌入（CodeGraph 預設 on） | 依 `definition` 行範圍自來源擷取函式體納入語料庫（UKMA 預設 off，保留既有行為） |
 | `--graph-only` | 僅結構、無嵌入 | 僅 keyword/BM25 通道排序 |
-| 內建排除集 | ~47 目錄 ＋ 二進位/機密 glob | 同集（見 Tier 2+ 索引選項） |
+| 內建排除集 | ~47 目錄 ＋ 二進位/機密 glob | 同集 |
 
 **Setup 命令 parity**（CodeGraph `install` / `init` / `uninstall` / `uninit` / `upgrade` 對齊，均已實作＋Rust 測試）：
 
@@ -343,43 +422,28 @@ UKMA 實作了 CodeGraph 的核心執行路徑（Tier 0–3）、16 個 CodeGrap
 | `codegraph init`（建 `.codegraph/` 並建圖） | `ukma init [dir] [--workspace/--exclude/--max-files]` | 建 `.ukma/` manifest ＋ `.ukma/index.db` 快照；索引仍標記為 dirty snapshot |
 | `codegraph sync`（增量、只重解析變更檔） | `ukma sync [--force] [--verify]`（stat 預篩 ＋ content hash，只讀變更檔；parse 結果以內容雜湊為鍵持久化） | 多根專案同樣走快取；`--verify` 逐檔驗內容；`ukma status` 顯示 pending |
 | `codegraph status`（節點/邊/檔案數、pending） | `ukma status [--verify]`（revision、scope、parse 條目數、`### Pending sync:`、daemon 狀態） | daemon 端的 pending 以 `ukma daemon status` 的 revision／syncs 呈現，不逐檔列出 |
-| `codegraph daemon`（長駐、跨 session 共用、`CODEGRAPH_NO_DAEMON=1` 關閉） | `ukma daemon start\|stop\|status` ＋ `UKMA_DAEMON_IDLE_SECS`／`UKMA_DAEMON_POLL_SECS` | 只委派 `tools/call`（stdio 仍由各 session 擁有，見下方設計選擇）；環境變數式關閉不需要——沒 daemon 時自動回退 |
+| `codegraph daemon`（長駐、跨 session 共用、`CODEGRAPH_NO_DAEMON=1` 關閉） | `ukma daemon start\|stop\|status` ＋ `UKMA_DAEMON_IDLE_SECS`／`UKMA_DAEMON_POLL_SECS` | 只委派 `tools/call`（stdio 仍由各 session 擁有）；環境變數式關閉不需要——沒 daemon 時自動回退 |
 | `codegraph uninstall` / `uninit` | `ukma uninstall --yes [--keep-cli\|--remove-cli]` / `ukma uninit --yes` | 預設同時刪 CLI（與 CodeGraph 相同），`--keep-cli` 保留；手改規則檔不會被刪；`uninit` 先停 daemon 再刪 `.ukma/` |
 
 **CodeGraph Pro 相容 operations（27 個，相容而非移植）**：
 
-UKMA 以 `pro` domain 提供 27 個 read-only 的 CodeGraph Pro 相容 operations（`code:read` scope、`immutable_snapshot` 並發、`PRO-01...PRO-27` 測試集）。`--profile security` 暴露 17 個安全分析器；`ukma_system_capabilities` 回報 `pro: 27`。
+UKMA 以 `pro` domain 提供 29 個 read-only 的 CodeGraph Pro 相容 operations（`code:read` scope、`immutable_snapshot` 並發、`PRO-01...PRO-27` 測試集；S10 追加 `pro.security_orchestrated_scan` 與 `pro.security_codeql_warmup`）。`--profile security` 暴露 19 個安全分析器；`ukma_system_capabilities` 回報 `pro: 29`。
 
-| 類別 | 操作（10 結構分析 / 17 安全分析，registry `domain.operation`） |
+| 類別 | 操作（registry `domain.operation`） |
 |---|---|
-| 結構分析 | `pro.analyze_coupling`、`pro.find_unused_code`、`pro.find_duplicates`、`pro.find_similar`、`pro.cluster_symbols`、`pro.compare_symbols`、`pro.cross_project_search`、`pro.mine_git_history`、`pro.mine_git_history_for_file`、`pro.search_git_history` |
-| 安全分析 | `pro.scan_security`、`pro.security_control_flow`、`pro.security_trace_data_flow`、`pro.security_generate_sbom`、`pro.security_audit_deps`、`pro.security_check_unchecked_returns`、`pro.security_check_resource_leaks`、`pro.security_check_misconfig`、`pro.security_check_input_validation`、`pro.security_check_error_exposure`、`pro.security_scan_iac`、`pro.security_check_licenses`、`pro.security_check_secrets_entropy`、`pro.security_detect_injection`、`pro.security_check_search_path`、`pro.security_check_crypto`、`pro.security_export_sarif` |
-
-**`--embedding-model` 與 memory gate（CodeGraph 對齊）**：CLI 接受 `static-256`（預設、無外部權重、離線）、`bge-small`（384d）、`jina-code-v2`（768d）、`granite-97m`（384d）、`qwen3-embedding-0.6b-int8`（1024d、INT8 量化）、`bge-m3-int8`（1024d、INT8 量化）。ONNX 為**真實 runtime**（feature `onnx`，`ort` `load-dynamic` 於運行時載入 ONNX Runtime 並推論），但 UKMA 不自帶 ONNX Runtime 庫與模型權重（由部署側提供）；ONNX 不可用時語意通道 degrade 至 static fallback。`CODEGRAPH_SKIP_MEMORY_CHECK` 為 ONNX ~1.5GB RAM gate 開關：未設定時啟動前探測可用記憶體，不足時 degrade 至 `GraphOnly`；設定後略過 gate（用於已知記憶體充足的部署）。
-
-**AI agent 規則檔**（CodeGraph 對齊）：`agent-rules/` 提供 Claude、Cursor、Windsurf、Codex、Cline 五份專屬規則檔，加上 `agent-rules/common/UKMA.md`（供 Copilot CLI、Gemini CLI、opencode、Kiro 使用）；`ukma install` 會把它們寫到各 agent 的規則位置（`--no-rules` 可略過），手動 `cp agent-rules/<agent>/UKMA.md` 仍然可用。用法與 intent→tool 對照表見 `agent-rules/README.md`。
+| 結構分析（10） | `pro.analyze_coupling`、`pro.find_unused_code`、`pro.find_duplicates`、`pro.find_similar`、`pro.cluster_symbols`、`pro.compare_symbols`、`pro.cross_project_search`、`pro.mine_git_history`、`pro.mine_git_history_for_file`、`pro.search_git_history` |
+| 安全分析（19） | `pro.scan_security`、`pro.security_control_flow`、`pro.security_trace_data_flow`、`pro.security_generate_sbom`、`pro.security_audit_deps`、`pro.security_check_unchecked_returns`、`pro.security_check_resource_leaks`、`pro.security_check_misconfig`、`pro.security_check_input_validation`、`pro.security_check_error_exposure`、`pro.security_scan_iac`、`pro.security_check_licenses`、`pro.security_check_secrets_entropy`、`pro.security_detect_injection`、`pro.security_check_search_path`、`pro.security_check_crypto`、`pro.security_export_sarif`、`pro.security_orchestrated_scan`、`pro.security_codeql_warmup` |
 
 **限制（外部依賴或刻意選擇，不是待辦）**：
-- **CodeGraph Pro**：UKMA 提供 27 個 Pro **相容 operations（重新實作，非原始碼移植）**。安全分析為**啟發式偵測**（模式覆蓋較廣，標記候選模式、**不證明**漏洞存在），亦不取代 SAST/DAST/依賴掃瞄；`--online`（feature `osv`）執行 OSV/依賴遠端查詢（網路操作，不在離線範圍），transport 失敗時 degrade 為 manifest-only。UKMA 不實作 CodeGraph Pro 的商業訂閱能力。
-- **ONNX embedding 模型**：**真實 runtime**（feature `onnx`，`ort` `load-dynamic` 於運行時載入 ONNX Runtime、開啟模型、推論、正規化 embedding）已實作，但 UKMA **不自帶** ONNX Runtime 庫、模型權重與 model-matching tokenizer——皆由部署側提供；不可用時 degrade 至 static fallback。`--embedding-model` 可選 `static-256`（預設）/ `bge-small`（384d）/ `jina-code-v2`（768d）/ `granite-97m`（384d）/ `qwen3-embedding-0.6b-int8`（1024d、INT8）/ `bge-m3-int8`（1024d、INT8）；`CODEGRAPH_SKIP_MEMORY_CHECK` 為 ONNX ~1.5GB RAM gate 開關。
+
+- **CodeGraph Pro**：UKMA 提供 Pro **相容 operations（重新實作，非原始碼移植）**。安全分析為**啟發式偵測**（模式覆蓋較廣，標記候選模式、**不證明**漏洞存在），亦不取代 SAST/DAST/依賴掃瞄；`--online`（feature `osv`）執行 OSV/依賴遠端查詢（網路操作，不在離線範圍），transport 失敗時 degrade 為 manifest-only。UKMA 不實作 CodeGraph Pro 的商業訂閱能力。
+- **ONNX embedding 模型**：**真實 runtime**（feature `onnx`，`ort` `load-dynamic`）已實作，但 UKMA **不自帶** ONNX Runtime 庫、模型權重與 model-matching tokenizer——皆由部署側提供；不可用時 degrade 至 static fallback。
 - **JetBrains 外掛**：提供**完整、可建置結構**（startup activity、tool window、action、薄 REST client，皆註冊於 `plugin.xml`）；Gradle/IntelliJ build **未在本倉庫驗收 gate 執行**（需 IntelliJ SDK 下載），不宣稱可分發 .zip 已完成。
-- **不需要新增 crate**：本倉庫的 SBOM（405 components）以 Ed25519 簽章固定，私鑰不入庫，因此不能為了「更漂亮的實作」新增套件（例如跨平台 watcher crate）。這正是 daemon 用 Win32 `ReadDirectoryChangesW`（Windows）＋可調輪詢（其他平台）而不是 `notify` 的原因；HTTP 下載則重用已在 workspace 內的 `ureq`。
+- **不需要新增 crate**：本倉庫的 SBOM 以 Ed25519 簽章固定，私鑰不入庫，因此不能為了「更漂亮的實作」新增套件（例如跨平台 watcher crate）。這正是 daemon 用 Win32 `ReadDirectoryChangesW`（Windows）＋可調輪詢（其他平台）而不是 `notify` 的原因；HTTP 下載則重用已在 workspace 內的 `ureq`。
 - **`--watch`（非 MCP）**：沒有活著的 session 可熱切換，因此就是落盤重索引；`--mcp --watch` 才是熱切換，且現在**從快照快取起跑**。
 - **耐久性/跨進程**：in-memory 索引是當前樹的 dirty snapshot（無耐久性聲明）；持久化走 Profile B（SQLite）或 Profile C（PostgreSQL＋Qdrant＋Neo4j）。
 
-### 4. 範例與工具
-
-```shell
-cargo run -p ukma-code-runtime --example quickstart   # JsonFileAdapter 最小閉環
-cargo run -p code-intelligence --example parsed       # 解析範例（另有 cst / nodes）
-cargo run -p ukma-bench -- --episodes 2000 --queries 500 --out bench.json
-cargo run -p ukma-wire-schema -- --check             # wire.schema.json 與 Rust 類型對齊
-cargo run -p ukma-release-evidence -- --check        # SBOM/inventory 派生文件對齊
-```
-
-`ukma-bench` 是可重現的效能 harness（FM-010）：走公開 API 存 episodes、做查詢，報告明寫量測了什麼、**沒有**量測什麼（RSS/VRAM、第二個後端、embedding 模型）。
-
-### 5. 儲存 Profile
+## 儲存 Profile
 
 | Profile | 後端 | 用途 |
 |---|---|---|
@@ -387,21 +451,7 @@ cargo run -p ukma-release-evidence -- --check        # SBOM/inventory 派生文�
 | B | SQLite（`rusqlite` bundled、WAL、真 SQL 交易，ADR-057） | 無需伺服器的單機持久化 |
 | C | PostgreSQL + Qdrant + Neo4j（真實、配置驅動，ADR-061） | 生產混合部署 |
 
-6 個 adapter（`crates/adapters/`）：`filesystem`（內容位址 artifact）、`embedded`（文件支撐 metadata + durable outbox）、`sqlite`、`postgres`、`qdrant`（REST）、`neo4j`（HTTP 交易 API）。端口在 `crates/storage-ports`：`MetadataPort`、`FullTextPort`、`VectorPort`、`ArtifactPort`、`OutboxPort` + `SchemaVersionPort`/`Migration`/`CapabilityProbe`，另加 `GraphStore`（`crates/graph-engine`）。
-
-## Workspace 組成（30 個 members）
-
-| 層 | Crate |
-|---|---|
-| 合約 | `ukma-contracts`（wire 類型 + 生成的 OPERATIONS）、`ukma-types` |
-| 域引擎 | `code-intelligence`（38 語言註冊表 + parser 端口）、`document-intelligence`（MD/PDF 文本層/DOCX，16 操作）、`memory-domain`（Fractal Memory：FSRS/TTL、折疊、驅逐、分頁，MAPI-01..25）、`traceability-engine`（TraceLink 狀態機，13 操作） |
-| 共享核心 | `graph-engine`、`retrieval-engine`（HNSW + vector port）、`embedding-engine`（+ RerankerPort）、`indexing-engine`、`context-engine`（預算/驅逐/折疊/分頁）、`intelligence-core` |
-| 儲存 | `storage-ports`、`storage-router`、`adapters/{filesystem,embedded,sqlite,postgres,qdrant,neo4j}` |
-| 運行時 | `ukma-code-runtime`（dev-only file adapter + outbox 整合測試）、`ukma-security` |
-| 表面 | `ukma-mcp`（gateway＋MCP stdio 伺服器＋`@cwd` 工作目錄索引：scope/授權/冪等/錯誤碼全由 registry 派生）、`ukma-cli`（單一 `ukma` 二進位）、`ukma-server`（`apps/`）、`vscode-extension/`、`github-action/` |
-| 驗證與工具 | `ukma-integration`（gate：coverage_matrix、claim_level、port_parity、release_evidence…）、`ukma-contract-check`、`ukma-bench`、`ukma-wire-schema`、`ukma-release-evidence` |
-
-`code-intelligence` 特性：`parser-rust`（預設）、`parser-s2-batch1/2/4`（預設，共 37 個 tree-sitter 語法）、`schema`（schemars 輸出）。8 個偏差語言的 pinned crate 見 ADR-063。
+**JsonFileAdapter 僅供開發**：無跨進程安全/耐久性保證；持久化用 Profile B（SQLite）或 Profile C（PostgreSQL + Qdrant + Neo4j）。**Profile C 三方等價**建立在 ADR-062 一次運行的已檢入證據上（本機無 Docker/psql/Qdrant/Neo4j）。
 
 ## 合約與代碼生成
 
@@ -409,17 +459,42 @@ cargo run -p ukma-release-evidence -- --check        # SBOM/inventory 派生文�
 - `wire.schema.json` 由 Rust 類型生成（ADR-058）：`cargo run -p ukma-wire-schema` 重新生成，`--check` 驗證。
 - SBOM / 第三方 inventory 是**派生**文件（ADR-059）：`ukma-release-evidence` 重寫、`--check` 驗證、`sign`/`verify` 處理 Ed25519 摘要（金鑰在倉庫外）。
 
+## 驗收命令（與 CI `contract-closure.yml` 同款）
+
+```shell
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace --all-targets            # 2026-10-27：1236 passed / 2 failed（SBOM 簽章過期，見「目前狀態」）
+cargo run -p ukma-contract-check              # 9404 checks / 0 failed
+cargo test -p ukma-integration --test coverage_matrix --test claim_level
+cargo test -p code-intelligence --test s2_coverage
+```
+
+`scripts/verify_rust.ps1` / `verify_rust.sh` 是上述 cargo gate 的包裝腳本。
+
 ## 文檔地圖
 
 - `docs/UKMA_v1.2.3_Full_Spec.md` — 權威規格
-- `docs/UKMA_v1.2.3_IMPLEMENTATION_PLAN.md` — 計畫、缺口分析與 Gate 對照（§7.1 全綠）
+- `docs/UKMA_v1.2.3_IMPLEMENTATION_PLAN.md` — 計畫、缺口分析與 Gate 對照
+- `docs/PHASE6R_IMPLEMENTATION_PLAN.md` / `PHASE7_CODEGRAPH_MIGRATION_PLAN.md` / `PHASE8_GAP_CLOSURE_PLAN.md` / `PHASE_6_REPORT.md` — 階段計畫與報告
 - `docs/implementation-status.yaml` — 聲明層級與 gate（由 `claim_level` gate 機器校驗）
 - `docs/adr/`（ADR-001…063）、`docs/testing/`（覆蓋矩陣）、`docs/performance/`（基線）、`docs/migration/`（S2 ledger + 狀態）
-- `docs/publishing.md` — 發佈 runbook（npm `ukma-cli` + GitHub Release、trusted publishing、首發踩坑、回滾、版本升級與 tag）
+- `docs/publishing.md` — 發佈 runbook（npm `ukma-cli` + GitHub Release、trusted publishing、回滾、版本升級與 tag）
 - `.github/copilot-instructions.md` — 項目級 Copilot 指引；`.vscode/` — tasks、debugger、擴充建議
-- VS Code：開啟 `UKMA-Phase6R.code-workspace`（或 **File → Open Folder** 開工作區根），**Terminal → Run Task → Cargo: Check / Cargo: Test / Cargo: Run Example**；用 Copilot Chat 搭配 `.github/copilot-instructions.md` 做 scoped 變更
+- VS Code：開啟 `UKMA-Phase6R.code-workspace`（或 **File → Open Folder** 開工作區根），**Terminal → Run Task → Cargo: Check / Cargo: Test / Cargo: Run Example**
 
 ## 不變式（每個新行為都必須維持）
 
 租戶/項目隔離、樂觀並發（etag CAS）、冪等鍵、outbox 語義、錯誤碼封閉集、domain 不依賴 backend SDK（ADR-021）、domain 知識不受記憶 TTL/折疊影響、每個新行為需附 Rust 正/負/授權/版本/失敗路徑測試。
 
+## 誠實邊界
+
+- **JsonFileAdapter 僅供開發**：無跨進程安全/耐久性保證；持久化用 Profile B（SQLite）或 Profile C（PostgreSQL + Qdrant + Neo4j）。
+- **Profile C 三方等價**建立在 ADR-062 一次運行的已檢入證據上（本機無 Docker/psql/Qdrant/Neo4j）。
+- **8 種語言語法偏差**（7 個 pinned 非 baseline crate + kotlin ng fork）以 golden fixture 量測，非對照上游行為（ADR-063）。
+- **PDF 不含 OCR**（ADR-048：明確 partial）；**VRAM 未量測**（已量測 RSS 與磁碟）。
+- **SBOM 簽章**：SBOM digest 與 Ed25519 簽名在 2026-10-27 過期（`release_evidence` 2 個測試因此失敗）；簽章金鑰不在本倉庫，需以金鑰重新簽章後恢復 0 failed。
+
+## License
+
+Apache-2.0（見 [LICENSE](LICENSE) 與 [NOTICE](NOTICE)）；SBOM（CycloneDX）以 Ed25519 簽章固定於 release evidence。
