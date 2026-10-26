@@ -200,28 +200,55 @@ foreach ($f in 'latest.json', 'ukma-x86_64-pc-windows-msvc.exe', 'ukma-x86_64-pc
 
 ## 7. 版本升級與 tag（之後每次發版）
 
+> **關鍵**：升版會改變 SBOM 字節 → 既有的 Ed25519 簽名必然失效。所以每次發版都必須
+> 「重新生成 SBOM + 重新簽名」，否則 `check` 會報 `sbom.signature.json` stale、
+> `cargo test` 的 release-evidence gate 會失敗。（0.1.1 首次照此流程走過。）
+
 ```shell
-# 1. 升版本（單一來源：CLI crate）
-#    crates/ukma-cli/Cargo.toml  version = "0.1.1"
+# 1. 升版本（單一來源：CLI crate；以下以 0.1.2 為例）
+#    crates/ukma-cli/Cargo.toml  version = "0.1.2"
 cargo check --workspace --all-targets          # 確認 lockfile / 版本一致
 
-# 2. 驗收（與 CI 相同）
+# 2. 重新生成 SBOM / inventory / digest（版本改變 → 字節改變；舊簽名因 sha256 不符自動丟棄）
+cargo run -q -p ukma-release-evidence -- regenerate
+
+# 3. 重新簽名（用保存在倉庫外的 Ed25519 私鑰；簽名公鑰寫回 sbom.signature.json）
+cargo run -q -p ukma-release-evidence -- sign --key <私鑰檔>
+
+# 4. 再跑一次 regenerate（sign 省略了 signature_bytes，需再 derive 一次讓 sbom.digest.json 一致）
+cargo run -q -p ukma-release-evidence -- regenerate
+
+# 5. 驗收（與 CI 相同；verify 確認簽名有效）
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets
 cargo run -q -p ukma-release-evidence -- check
+cargo run -q -p ukma-release-evidence -- verify
 
-# 3. 提交 + 打 tag（tag 是唯一觸發點）
-git commit -am "chore(cli): bump ukma to 0.1.1"
-git tag v0.1.1
-git push origin main v0.1.1
+# 6. 提交 + 打 tag（tag 是唯一觸發點）
+git add -A
+git commit -m "chore(cli): bump ukma to 0.1.2"
+git tag v0.1.2
+git push origin main v0.1.2
 ```
 
 push tag 後自動發生：
 
 1. `release` workflow 建四個平台的 zip、裸 binary、`.sha256`、`latest.json` → GitHub Release。
-2. `npm` job 用 OIDC（或 `NPM_TOKEN` fallback）把 `npm/package.json` 版本設成 `0.1.1` 後發佈，
+2. `npm` job 用 OIDC（或 `NPM_TOKEN` fallback）把 `npm/package.json` 版本設成 `0.1.2` 後發佈，
    再輪詢確認 registry 真的解析得到。
+
+> 注意：tag 必須等於 crate 版本，否則 release gate 會失敗（`the tag must match the crate version`）。
+
+### 簽名金鑰管理
+
+- 金鑰對用 `cargo run -p ukma-release-evidence -- generate-key --out <file>` 生成
+  （64 位 hex 私鑰 + 簽名公鑰）。**私鑰保存在倉庫外**（例如 `F:\ukma-sbom-key.txt`），不要提交。
+- 重新簽名時用**同一把**私鑰 → 簽名公鑰不變；若改用新金鑰對，`sbom.signature.json` 的
+  `public_key` 會跟著變（屬正常，verify 仍會通過）。
+- 任何 SBOM 字節改變（含升版、依賴變更）都必須重新簽名；`check` 會偵測 stale 簽名。
+- 若 `check` 在 `sign` 後報 `sbom.digest.json drifted`：那是 `sign` 省略 `signature_bytes`
+  所致，**再跑一次 `regenerate`（步驟 4）即可**，不必重新 `sign`。
 
 **不需要**手動改 `npm/package.json` 的版本——CI 與 helper 都會從 tag 對齊。手動發佈時才需要
 `-Tag` / `--tag`。
