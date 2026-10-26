@@ -37,16 +37,19 @@ pub enum ConfigFormat {
     JsonOpencode,
     /// A TOML file extended with a managed `[mcp_servers.ukma]` block.
     TomlBlock,
+    /// A YAML file whose `mcp_servers:` map gains a `ukma:` entry (Hermes).
+    YamlMcpServers,
 }
 
 impl ConfigFormat {
-    /// The JSON container key holding the servers, when the format is JSON.
+    /// The container key holding the servers, when the format has one.
     pub fn container(&self) -> Option<&'static str> {
         match self {
             ConfigFormat::JsonMcpServers => Some("mcpServers"),
             ConfigFormat::JsonVsCodeServers => Some("servers"),
             ConfigFormat::JsonOpencode => Some("mcp"),
             ConfigFormat::TomlBlock => None,
+            ConfigFormat::YamlMcpServers => Some("mcp_servers"),
         }
     }
 }
@@ -60,6 +63,12 @@ pub enum ConfigPath {
     Project(&'static str),
     /// VS Code's platform-specific global-storage directory (Cline).
     ClineStorage,
+    /// `$HERMES_HOME/config.yaml`, else `<home>/.hermes/config.yaml`.
+    HermesHome,
+    /// Antigravity's MCP config: the unified `~/.gemini/config/mcp_config.json`
+    /// once Antigravity migrated, else the legacy
+    /// `~/.gemini/antigravity/mcp_config.json`.
+    AntigravityMcp,
     /// Not configurable over MCP.
     Unsupported,
 }
@@ -105,11 +114,25 @@ impl Agent {
     /// The resolved configuration path, or `None` when the agent is not
     /// configurable over MCP.
     pub fn config_path(&self, ctx: &SetupContext) -> Option<PathBuf> {
+        self.all_config_paths(ctx).into_iter().next()
+    }
+
+    /// Every path this agent's UKMA entry may live at.
+    ///
+    /// Almost every agent has one; Antigravity has two (it migrated its config
+    /// path), so `ukma uninstall` sweeps both instead of leaving an entry
+    /// behind in the location a different version of the IDE reads.
+    pub fn all_config_paths(&self, ctx: &SetupContext) -> Vec<PathBuf> {
         match self.config {
-            ConfigPath::Home(rel) => Some(join(&ctx.home, rel)),
-            ConfigPath::Project(rel) => Some(join(&ctx.cwd, rel)),
-            ConfigPath::ClineStorage => Some(join(&ctx.home, cline_storage_rel())),
-            ConfigPath::Unsupported => None,
+            ConfigPath::Home(rel) => vec![join(&ctx.home, rel)],
+            ConfigPath::Project(rel) => vec![join(&ctx.cwd, rel)],
+            ConfigPath::ClineStorage => vec![join(&ctx.home, cline_storage_rel())],
+            ConfigPath::HermesHome => vec![hermes_config_path(ctx)],
+            ConfigPath::AntigravityMcp => {
+                let (preferred, other) = antigravity_config_paths(ctx);
+                vec![preferred, other]
+            }
+            ConfigPath::Unsupported => Vec::new(),
         }
     }
 
@@ -128,6 +151,19 @@ impl Agent {
             ConfigPath::Home(rel) => join(&ctx.home, rel).exists(),
             ConfigPath::Project(rel) => join(&ctx.cwd, rel).exists(),
             ConfigPath::ClineStorage => join(&ctx.home, cline_storage_rel()).exists(),
+            ConfigPath::HermesHome => {
+                let path = hermes_config_path(ctx);
+                path.exists() || path.parent().map(std::path::Path::exists).unwrap_or(false)
+            }
+            ConfigPath::AntigravityMcp => {
+                let (preferred, other) = antigravity_config_paths(ctx);
+                preferred.exists()
+                    || other.exists()
+                    // Antigravity creates `~/.gemini/config/.migrated` when it
+                    // upgrades, before it writes any MCP config.
+                    || join(&ctx.home, ".gemini/config/.migrated").exists()
+                    || join(&ctx.home, ".gemini/antigravity").exists()
+            }
             ConfigPath::Unsupported => false,
         })
     }
@@ -152,11 +188,51 @@ fn cline_storage_rel() -> &'static str {
     }
 }
 
+/// `$HERMES_HOME/config.yaml`, falling back to `<home>/.hermes/config.yaml`.
+///
+/// `HERMES_HOME` wins when it is set: Hermes itself honours it, so writing
+/// anywhere else would configure a directory the agent never reads.
+pub fn hermes_config_path(ctx: &SetupContext) -> PathBuf {
+    let override_root = std::env::var_os("HERMES_HOME")
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from);
+    hermes_config_path_from(ctx, override_root.as_deref())
+}
+
+/// [`hermes_config_path`] for an explicit override (pure, so tests need no
+/// process-wide environment mutation).
+pub fn hermes_config_path_from(
+    ctx: &SetupContext,
+    override_root: Option<&std::path::Path>,
+) -> PathBuf {
+    match override_root {
+        Some(root) => join(root, "config.yaml"),
+        None => join(&ctx.home, ".hermes/config.yaml"),
+    }
+}
+
+/// Antigravity's preferred config path, plus the other one.
+///
+/// Antigravity migrated from `~/.gemini/antigravity/mcp_config.json` to a
+/// unified `~/.gemini/config/mcp_config.json`; the marker file
+/// `~/.gemini/config/.migrated` (or the unified file itself) means the migration
+/// happened. Both are returned so an uninstall can sweep the one that is not
+/// preferred.
+pub fn antigravity_config_paths(ctx: &SetupContext) -> (PathBuf, PathBuf) {
+    let unified = join(&ctx.home, ".gemini/config/mcp_config.json");
+    let legacy = join(&ctx.home, ".gemini/antigravity/mcp_config.json");
+    let migrated = join(&ctx.home, ".gemini/config/.migrated").exists() || unified.exists();
+    if migrated {
+        (unified, legacy)
+    } else {
+        (legacy, unified)
+    }
+}
+
 /// Every agent UKMA knows about.
 ///
-/// `antigravity` and the `hermes` agent are deliberately absent: UKMA has no
-/// verified configuration format for them, and inventing one would produce a
-/// config the agent silently ignores.
+/// `jetbrains` is in the table so detection can explain why it is skipped: it is
+/// a REST client, not an MCP client.
 pub const AGENTS: &[Agent] = &[
     Agent {
         id: "claude-code",
@@ -277,6 +353,32 @@ pub const AGENTS: &[Agent] = &[
         note: "",
     },
     Agent {
+        id: "hermes",
+        name: "Hermes Agent",
+        detect: &[ConfigPath::HermesHome],
+        config: ConfigPath::HermesHome,
+        format: ConfigFormat::YamlMcpServers,
+        // Hermes has no instructions file UKMA can write without guessing: its
+        // behaviour comes from `$HERMES_HOME` config, not from a rules document.
+        rules: None,
+        rules_prefix: "",
+        rules_body: COMMON_RULES,
+        note: "",
+    },
+    Agent {
+        id: "antigravity",
+        name: "Antigravity IDE",
+        detect: &[ConfigPath::AntigravityMcp],
+        config: ConfigPath::AntigravityMcp,
+        format: ConfigFormat::JsonMcpServers,
+        // The IDE shares `~/.gemini/GEMINI.md` with the Gemini CLI; that file
+        // belongs to the user, so UKMA does not write it.
+        rules: None,
+        rules_prefix: "",
+        rules_body: COMMON_RULES,
+        note: "",
+    },
+    Agent {
         id: "jetbrains",
         name: "JetBrains IDEs",
         detect: &[],
@@ -325,10 +427,12 @@ pub fn server_entry(
     let binary = ctx.binary.display().to_string();
     let args = server_args(index_root);
     match format {
-        ConfigFormat::JsonMcpServers | ConfigFormat::TomlBlock => json!({
-            "command": binary,
-            "args": args,
-        }),
+        ConfigFormat::JsonMcpServers | ConfigFormat::TomlBlock | ConfigFormat::YamlMcpServers => {
+            json!({
+                "command": binary,
+                "args": args,
+            })
+        }
         ConfigFormat::JsonVsCodeServers => json!({
             "type": "stdio",
             "command": binary,
@@ -388,7 +492,10 @@ mod tests {
             {
                 let relative = match relative {
                     ConfigPath::Home(rel) | ConfigPath::Project(rel) => *rel,
-                    ConfigPath::ClineStorage | ConfigPath::Unsupported => continue,
+                    ConfigPath::ClineStorage
+                    | ConfigPath::HermesHome
+                    | ConfigPath::AntigravityMcp
+                    | ConfigPath::Unsupported => continue,
                 };
                 let path = PathBuf::from(relative);
                 assert!(
@@ -474,5 +581,78 @@ mod tests {
         let copilot = find("copilot-vscode").expect("copilot is in the table");
         assert!(copilot.rules_prefix.starts_with("---\n"));
         assert!(copilot.rules_prefix.contains("applyTo"));
+    }
+
+    #[test]
+    fn hermes_writes_the_documented_yaml_config() {
+        let agent = find("hermes").expect("hermes is in the table");
+        assert!(agent.is_supported());
+        assert_eq!(agent.format, ConfigFormat::YamlMcpServers);
+        assert_eq!(agent.format.container(), Some("mcp_servers"));
+        assert_eq!(agent.rules, None, "Hermes has no rules file UKMA can write");
+
+        let ctx = context();
+        let path = agent.config_path(&ctx).expect("a config path");
+        assert!(path.ends_with(".hermes/config.yaml"), "{}", path.display());
+    }
+
+    #[test]
+    fn hermes_honours_the_home_override() {
+        let override_dir = std::env::temp_dir().join("ukma-hermes-override");
+        assert_eq!(
+            hermes_config_path_from(&context(), Some(&override_dir)),
+            override_dir.join("config.yaml")
+        );
+        assert_eq!(
+            hermes_config_path_from(&context(), None),
+            PathBuf::from("/home/tester/.hermes/config.yaml")
+        );
+    }
+
+    #[test]
+    fn antigravity_prefers_the_unified_config_once_migrated() {
+        let home = std::env::temp_dir().join(format!("ukma-antigravity-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&home);
+        std::fs::create_dir_all(&home).expect("home");
+        let ctx = SetupContext {
+            home: home.clone(),
+            cwd: home.join("project"),
+            binary: home.join("bin/ukma"),
+        };
+        let agent = find("antigravity").expect("antigravity is in the table");
+        assert!(agent.is_supported());
+
+        // Before the migration marker: the legacy path is the one written.
+        let (preferred, other) = antigravity_config_paths(&ctx);
+        assert!(
+            preferred.ends_with("antigravity/mcp_config.json"),
+            "{}",
+            preferred.display()
+        );
+        assert!(other.ends_with(".gemini/config/mcp_config.json"));
+        assert!(
+            !agent.is_detected(&ctx),
+            "nothing points at Antigravity yet"
+        );
+
+        // The marker (or the unified file) flips the preference, and both paths
+        // stay in the sweep list so an uninstall cleans the old one too.
+        std::fs::create_dir_all(home.join(".gemini/config")).expect("config dir");
+        std::fs::write(home.join(".gemini/config/.migrated"), b"").expect("marker");
+        let (preferred, other) = antigravity_config_paths(&ctx);
+        assert!(preferred.ends_with(".gemini/config/mcp_config.json"));
+        assert!(other.ends_with("antigravity/mcp_config.json"));
+        assert_eq!(agent.all_config_paths(&ctx).len(), 2);
+        assert!(agent.is_detected(&ctx));
+        let _ = std::fs::remove_dir_all(&home);
+    }
+
+    #[test]
+    fn the_antigravity_entry_carries_no_type_field() {
+        // Antigravity rejects a `type: "stdio"` entry, so the plain MCP shape is
+        // the correct one for it.
+        let entry = server_entry(ConfigFormat::JsonMcpServers, &context(), ".");
+        assert!(entry.get("type").is_none(), "{entry}");
+        assert_eq!(entry["command"], "/usr/local/bin/ukma");
     }
 }

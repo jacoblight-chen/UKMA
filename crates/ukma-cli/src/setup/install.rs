@@ -287,6 +287,15 @@ fn install_agent(
         ConfigFormat::TomlBlock => {
             config::install_toml(&path, &ctx.binary, &request.server_args(), request.dry_run)?
         }
+        ConfigFormat::YamlMcpServers => config::install_yaml(
+            &path,
+            ConfigFormat::YamlMcpServers
+                .container()
+                .expect("a container"),
+            &ctx.binary,
+            &request.server_args(),
+            request.dry_run,
+        )?,
         format => config::install_json(
             &path,
             format,
@@ -329,12 +338,18 @@ fn install_agent(
     })
 }
 
+/// Remove the UKMA wiring from one agent.
+///
+/// Every path the agent's entry may live at is swept: Antigravity moved its
+/// config file, and an entry left in the old location would keep the IDE wired
+/// after an "uninstall".
 fn uninstall_agent(
     ctx: &SetupContext,
     agent: &Agent,
     request: &UninstallRequest,
 ) -> Result<AgentAction, SetupError> {
-    let Some(path) = agent.config_path(ctx) else {
+    let paths = agent.all_config_paths(ctx);
+    if paths.is_empty() {
         return Ok(AgentAction {
             id: agent.id,
             name: agent.name,
@@ -342,12 +357,30 @@ fn uninstall_agent(
             path: None,
             detail: agent.note.to_string(),
         });
-    };
-    let plan = match agent.format {
-        ConfigFormat::TomlBlock => config::remove_toml(&path, request.dry_run)?,
-        format => config::remove_json(&path, format, request.dry_run)?,
-    };
-    let mut detail = String::new();
+    }
+    let mut changed_any = false;
+    let mut notes: Vec<String> = Vec::new();
+    let mut first: Option<PathBuf> = None;
+    for path in &paths {
+        let plan = match agent.format {
+            ConfigFormat::TomlBlock => config::remove_toml(path, request.dry_run)?,
+            ConfigFormat::YamlMcpServers => config::remove_yaml(
+                path,
+                ConfigFormat::YamlMcpServers
+                    .container()
+                    .expect("a container"),
+                request.dry_run,
+            )?,
+            format => config::remove_json(path, format, request.dry_run)?,
+        };
+        if first.is_none() {
+            first = Some(plan.path.clone());
+        }
+        changed_any |= plan.changed;
+        if !plan.detail.is_empty() {
+            notes.push(plan.detail.clone());
+        }
+    }
     let mut rules_changed = false;
     if let Some(rules_path) = agent.rules_path(ctx) {
         let rules = config::remove_rules(
@@ -358,12 +391,12 @@ fn uninstall_agent(
         )?;
         rules_changed = rules.changed;
         if rules.changed {
-            detail = format!("rules removed {}", rules_path.display());
+            notes.push(format!("rules removed {}", rules_path.display()));
         } else if !rules.detail.is_empty() {
-            detail = rules.detail.clone();
+            notes.push(rules.detail.clone());
         }
     }
-    let action = if plan.changed || rules_changed {
+    let action = if changed_any || rules_changed {
         if request.dry_run {
             Action::Planned
         } else {
@@ -376,8 +409,8 @@ fn uninstall_agent(
         id: agent.id,
         name: agent.name,
         action,
-        path: Some(plan.path),
-        detail,
+        path: first,
+        detail: notes.join("; "),
     })
 }
 

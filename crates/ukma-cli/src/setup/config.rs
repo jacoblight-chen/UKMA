@@ -349,6 +349,281 @@ pub fn remove_rules(
     })
 }
 
+// ------------------------------------------------------------------- YAML ---
+
+/// A YAML file split into lines, keeping the file's own line breaks.
+struct YamlText {
+    lines: Vec<String>,
+    eol: &'static str,
+}
+
+impl YamlText {
+    fn parse(text: &str) -> Self {
+        let eol = if text.contains("\r\n") { "\r\n" } else { "\n" };
+        let mut lines: Vec<String> = text
+            .split('\n')
+            .map(|line| line.trim_end_matches('\r').to_string())
+            .collect();
+        while lines.last().map(String::is_empty).unwrap_or(false) {
+            lines.pop();
+        }
+        Self { lines, eol }
+    }
+
+    fn render(&self) -> String {
+        if self.lines.is_empty() {
+            return String::new();
+        }
+        let mut text = self.lines.join(self.eol);
+        text.push_str(self.eol);
+        text
+    }
+}
+
+fn indent_of(line: &str) -> usize {
+    line.len() - line.trim_start_matches(' ').len()
+}
+
+/// `key` or `key: value` at exactly `indent` spaces; `None` when the line is
+/// blank, a comment, or indented differently.
+fn yaml_key_at(line: &str, indent: usize) -> Option<(&str, &str)> {
+    let trimmed = line.trim_start_matches(' ');
+    if trimmed.is_empty() || trimmed.starts_with('#') {
+        return None;
+    }
+    if line.len() - trimmed.len() != indent {
+        return None;
+    }
+    let (key, rest) = trimmed.split_once(':')?;
+    let key = key.trim_end();
+    if key.is_empty() || key.contains(' ') {
+        return None;
+    }
+    Some((key, rest.trim()))
+}
+
+/// The index range of the block `container:` introduces (children only).
+///
+/// A block YAML container owns every following line that is blank or indented;
+/// the range ends at the first non-blank line at column 0.
+fn yaml_block_range(lines: &[String], container: usize) -> (usize, usize) {
+    let mut end = container + 1;
+    for (offset, line) in lines.iter().enumerate().skip(container + 1) {
+        if line.trim().is_empty() || indent_of(line) > 0 {
+            end = offset + 1;
+        } else {
+            break;
+        }
+    }
+    (container + 1, end)
+}
+
+/// One line of the managed entry, as `(indent, text)`.
+fn yaml_entry_lines(binary: &Path, args: &[String]) -> Vec<String> {
+    let mut lines = vec![
+        "  ukma:".to_string(),
+        format!(
+            "    command: {}",
+            yaml_scalar(&binary.display().to_string())
+        ),
+        "    args:".to_string(),
+    ];
+    for arg in args {
+        lines.push(format!("      - {}", yaml_scalar(arg)));
+    }
+    lines
+}
+
+/// A single-quoted YAML scalar: single quotes are the one form that needs no
+/// escaping beyond doubling the quote itself, so a Windows path stays literal.
+fn yaml_scalar(text: &str) -> String {
+    format!("'{}'", text.replace('\'', "''"))
+}
+
+/// The key names a nested entry line declares (indent `base`).
+fn yaml_entry_keys(lines: &[String], base: usize) -> Vec<String> {
+    lines
+        .iter()
+        .filter_map(|line| yaml_key_at(line, base).map(|(key, _)| key.to_string()))
+        .collect()
+}
+
+/// Merge a `ukma:` entry into the `mcp_servers:` map of a YAML file.
+///
+/// The file's own key order, comments and every other server are preserved: only
+/// the `ukma:` entry is added or replaced. A `mcp_servers:` written as a one-line
+/// mapping is refused — rewriting it would reformat the user's file.
+pub fn install_yaml(
+    path: &Path,
+    container: &str,
+    binary: &Path,
+    args: &[String],
+    dry_run: bool,
+) -> Result<Plan, SetupError> {
+    let created = !path.exists();
+    let existing = if created {
+        String::new()
+    } else {
+        fs::read_to_string(path).map_err(|error| io_error("read", path, &error))?
+    };
+    let text = YamlText::parse(&existing);
+    let entry = yaml_entry_lines(binary, args);
+
+    let container_index = text
+        .lines
+        .iter()
+        .position(|line| matches!(yaml_key_at(line, 0), Some((key, _)) if key == container));
+    let after = match container_index {
+        None => {
+            let mut lines = text.lines.clone();
+            if !lines.is_empty() {
+                lines.push(String::new());
+            }
+            lines.push(format!("{container}:"));
+            lines.extend(entry);
+            YamlText {
+                lines,
+                eol: text.eol,
+            }
+            .render()
+        }
+        Some(index) => {
+            let (_, value) = yaml_key_at(&text.lines[index], 0).expect("the key was just matched");
+            if !value.is_empty() {
+                return Err(SetupError::Config {
+                    path: path.to_path_buf(),
+                    detail: format!(
+                        "`{container}` is a one-line mapping (line {}); add the ukma entry \
+                         to it yourself, or write `{container}` as a block and re-run",
+                        index + 1
+                    ),
+                });
+            }
+            let (start, end) = yaml_block_range(&text.lines, index);
+            let existing_entry = (start..end).find(|offset| {
+                matches!(yaml_key_at(&text.lines[*offset], 2), Some((key, _)) if key == "ukma")
+            });
+            match existing_entry {
+                Some(begin) => {
+                    // Replace only the two keys we own; an entry carrying
+                    // anything else (timeouts, env, enabled) is the user's.
+                    let entry_end = ((begin + 1)..end)
+                        .find(|offset| {
+                            !text.lines[*offset].trim().is_empty()
+                                && indent_of(&text.lines[*offset]) <= 2
+                        })
+                        .unwrap_or(end);
+                    let keys = yaml_entry_keys(&text.lines[begin..entry_end], 4);
+                    if keys.iter().any(|key| key != "command" && key != "args") {
+                        return Ok(Plan {
+                            path: path.to_path_buf(),
+                            changed: false,
+                            created: false,
+                            detail: "the existing ukma entry sets extra keys; left as written"
+                                .into(),
+                        });
+                    }
+                    let mut lines = text.lines.clone();
+                    lines.splice(begin..entry_end, entry);
+                    YamlText {
+                        lines,
+                        eol: text.eol,
+                    }
+                    .render()
+                }
+                None => {
+                    let mut lines = text.lines.clone();
+                    lines.splice(start..start, entry);
+                    YamlText {
+                        lines,
+                        eol: text.eol,
+                    }
+                    .render()
+                }
+            }
+        }
+    };
+    let changed = after != existing;
+    if changed && !dry_run {
+        write_text(path, &after)?;
+    }
+    Ok(Plan {
+        path: path.to_path_buf(),
+        changed,
+        created,
+        detail: String::new(),
+    })
+}
+
+/// Remove the `ukma:` entry from a YAML file's `mcp_servers:` map.
+pub fn remove_yaml(path: &Path, container: &str, dry_run: bool) -> Result<Plan, SetupError> {
+    if !path.exists() {
+        return Ok(Plan::unchanged(path));
+    }
+    let existing = fs::read_to_string(path).map_err(|error| io_error("read", path, &error))?;
+    let mut text = YamlText::parse(&existing);
+    let Some(index) = text
+        .lines
+        .iter()
+        .position(|line| matches!(yaml_key_at(line, 0), Some((key, _)) if key == container))
+    else {
+        return Ok(Plan::unchanged(path));
+    };
+    if !yaml_key_at(&text.lines[index], 0)
+        .map(|(_, value)| value.is_empty())
+        .unwrap_or(false)
+    {
+        return Ok(Plan {
+            path: path.to_path_buf(),
+            changed: false,
+            created: false,
+            detail: format!("`{container}` is a one-line mapping; left untouched"),
+        });
+    }
+    let (start, end) = yaml_block_range(&text.lines, index);
+    let Some(begin) = (start..end).find(
+        |offset| matches!(yaml_key_at(&text.lines[*offset], 2), Some((key, _)) if key == "ukma"),
+    ) else {
+        return Ok(Plan::unchanged(path));
+    };
+    let entry_end = ((begin + 1)..end)
+        .find(|offset| {
+            !text.lines[*offset].trim().is_empty() && indent_of(&text.lines[*offset]) <= 2
+        })
+        .unwrap_or(end);
+    let keys = yaml_entry_keys(&text.lines[begin..entry_end], 4);
+    if keys.iter().any(|key| key != "command" && key != "args") {
+        return Ok(Plan {
+            path: path.to_path_buf(),
+            changed: false,
+            created: false,
+            detail: "the ukma entry sets extra keys; left in place".into(),
+        });
+    }
+    text.lines.drain(begin..entry_end);
+    // An empty `mcp_servers:` key with no other server is dead weight.
+    let (start, end) = yaml_block_range(&text.lines, index);
+    let has_children = text.lines[start..end]
+        .iter()
+        .any(|line| !line.trim().is_empty() && !line.trim_start().starts_with('#'));
+    if !has_children {
+        text.lines.remove(index);
+        while text.lines.last().map(String::is_empty).unwrap_or(false) {
+            text.lines.pop();
+        }
+    }
+    let after = text.render();
+    if after != existing && !dry_run {
+        write_text(path, &after)?;
+    }
+    Ok(Plan {
+        path: path.to_path_buf(),
+        changed: after != existing,
+        created: false,
+        detail: String::new(),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -467,5 +742,204 @@ mod tests {
     fn the_rules_text_is_newline_terminated() {
         assert_eq!(rules_text("", "body"), "body\n");
         assert_eq!(rules_text("---\n", "body\n"), "---\nbody\n");
+    }
+
+    // ---------------------------------------------------------------- YAML ---
+
+    fn scratch(tag: &str) -> PathBuf {
+        let path = std::env::temp_dir().join(format!(
+            "ukma-config-{tag}-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|elapsed| elapsed.as_nanos())
+                .unwrap_or(0)
+        ));
+        let _ = fs::remove_dir_all(&path);
+        fs::create_dir_all(&path).expect("scratch");
+        path
+    }
+
+    fn yaml_args() -> Vec<String> {
+        vec!["--mcp".to_string(), "--index-cwd".to_string(), ".".into()]
+    }
+
+    #[test]
+    fn the_yaml_install_creates_the_container_and_is_idempotent() {
+        let dir = scratch("yaml-create");
+        let path = dir.join("config.yaml");
+        let plan = install_yaml(
+            &path,
+            "mcp_servers",
+            Path::new("/usr/local/bin/ukma"),
+            &yaml_args(),
+            false,
+        )
+        .expect("install");
+        assert!(plan.changed && plan.created);
+
+        let text = fs::read_to_string(&path).expect("read");
+        assert_eq!(
+            text,
+            "mcp_servers:\n  ukma:\n    command: '/usr/local/bin/ukma'\n    args:\n      - '--mcp'\n      - '--index-cwd'\n      - '.'\n"
+        );
+
+        let again = install_yaml(
+            &path,
+            "mcp_servers",
+            Path::new("/usr/local/bin/ukma"),
+            &yaml_args(),
+            false,
+        )
+        .expect("install twice");
+        assert!(!again.changed, "a second install changes nothing");
+        assert_eq!(fs::read_to_string(&path).expect("read"), text);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn the_yaml_install_preserves_every_other_server_and_key() {
+        let dir = scratch("yaml-preserve");
+        let path = dir.join("config.yaml");
+        fs::write(
+            &path,
+            "# Hermes config\nmodel: hermes-3\nmcp_servers:\n  other:\n    command: other-bin\n    args: ['serve']\nplatform_toolsets:\n  cli: []\n",
+        )
+        .expect("seed");
+
+        let plan = install_yaml(
+            &path,
+            "mcp_servers",
+            Path::new("/opt/ukma"),
+            &yaml_args(),
+            false,
+        )
+        .expect("install");
+        assert!(plan.changed);
+        let text = fs::read_to_string(&path).expect("read");
+        assert!(
+            text.starts_with("# Hermes config\nmodel: hermes-3\n"),
+            "{text}"
+        );
+        assert!(
+            text.contains("  other:\n    command: other-bin\n    args: ['serve']\n"),
+            "{text}"
+        );
+        assert!(
+            text.contains("  ukma:\n    command: '/opt/ukma'\n"),
+            "{text}"
+        );
+        assert!(text.ends_with("platform_toolsets:\n  cli: []\n"), "{text}");
+
+        // Removing takes the entry and nothing else.
+        let removed = remove_yaml(&path, "mcp_servers", false).expect("remove");
+        assert!(removed.changed);
+        assert_eq!(
+            fs::read_to_string(&path).expect("read"),
+            "# Hermes config\nmodel: hermes-3\nmcp_servers:\n  other:\n    command: other-bin\n    args: ['serve']\nplatform_toolsets:\n  cli: []\n"
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn the_yaml_install_appends_a_missing_container() {
+        let dir = scratch("yaml-append");
+        let path = dir.join("config.yaml");
+        fs::write(&path, "model: hermes-3\n").expect("seed");
+        install_yaml(
+            &path,
+            "mcp_servers",
+            Path::new("/opt/ukma"),
+            &yaml_args(),
+            false,
+        )
+        .expect("install");
+        let text = fs::read_to_string(&path).expect("read");
+        assert_eq!(
+            text,
+            "model: hermes-3\n\nmcp_servers:\n  ukma:\n    command: '/opt/ukma'\n    args:\n      - '--mcp'\n      - '--index-cwd'\n      - '.'\n"
+        );
+
+        // The entry is the only child, so removing it takes the container too.
+        assert!(
+            remove_yaml(&path, "mcp_servers", false)
+                .expect("remove")
+                .changed
+        );
+        assert_eq!(
+            fs::read_to_string(&path).expect("read"),
+            "model: hermes-3\n"
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_one_line_mapping_is_refused_rather_than_reformatted() {
+        let dir = scratch("yaml-inline");
+        let path = dir.join("config.yaml");
+        let seed = "mcp_servers: {other: {command: other-bin}}\n";
+        fs::write(&path, seed).expect("seed");
+
+        let error = install_yaml(
+            &path,
+            "mcp_servers",
+            Path::new("/opt/ukma"),
+            &yaml_args(),
+            false,
+        )
+        .expect_err("an inline mapping is refused");
+        assert!(matches!(error, SetupError::Config { .. }), "{error}");
+        assert_eq!(
+            fs::read_to_string(&path).expect("read"),
+            seed,
+            "the file is untouched"
+        );
+        let unchanged = remove_yaml(&path, "mcp_servers", false).expect("remove");
+        assert!(!unchanged.changed);
+        assert!(unchanged.detail.contains("one-line mapping"));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_user_entry_with_extra_keys_is_left_alone() {
+        let dir = scratch("yaml-extra");
+        let path = dir.join("config.yaml");
+        let seed = "mcp_servers:\n  ukma:\n    command: custom\n    args: ['x']\n    timeout: 90\n";
+        fs::write(&path, seed).expect("seed");
+
+        let plan = install_yaml(
+            &path,
+            "mcp_servers",
+            Path::new("/opt/ukma"),
+            &yaml_args(),
+            false,
+        )
+        .expect("install");
+        assert!(!plan.changed);
+        assert!(plan.detail.contains("left as written"), "{}", plan.detail);
+        assert_eq!(fs::read_to_string(&path).expect("read"), seed);
+
+        let removed = remove_yaml(&path, "mcp_servers", false).expect("remove");
+        assert!(!removed.changed);
+        assert!(removed.detail.contains("left in place"));
+        assert_eq!(fs::read_to_string(&path).expect("read"), seed);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_dry_run_yaml_install_writes_nothing() {
+        let dir = scratch("yaml-dry");
+        let path = dir.join("config.yaml");
+        let plan = install_yaml(
+            &path,
+            "mcp_servers",
+            Path::new("/opt/ukma"),
+            &yaml_args(),
+            true,
+        )
+        .expect("dry run");
+        assert!(plan.changed && plan.created);
+        assert!(!path.exists(), "a dry run must not create the file");
+        let _ = fs::remove_dir_all(&dir);
     }
 }

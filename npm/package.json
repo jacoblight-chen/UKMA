@@ -1,0 +1,30 @@
+{
+  "name": "ukma-cli",
+  "version": "0.1.0",
+  "description": "UKMA launcher for npm/npx: downloads the platform binary and runs it (no code-graph logic here)",
+  "bin": {
+    "ukma": "bin/ukma.js"
+  },
+  "files": [
+    "bin/ukma.js",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jacoblight-chen/UKMA.git"
+  },
+  "homepage": "https://github.com/jacoblight-chen/UKMA#readme",
+  "keywords": [
+    "code-graph",
+    "mcp",
+    "codegraph",
+    "ukma"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

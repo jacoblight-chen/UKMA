@@ -3,7 +3,8 @@
 Pre-configured rule files that teach AI coding agents (Claude, Cursor, Cline,
 Windsurf, Codex, Copilot, Gemini CLI, opencode, Kiro) to use the UKMA MCP tools
 before falling back to grep / multi-file reads. Each file maps natural-language
-intent to the right `ukma_*` tool.
+intent to the right `ukma_*` tool. Hermes Agent and Antigravity IDE are wired
+without a rules file (see the table below for why).
 
 ## Setup
 
@@ -40,10 +41,14 @@ cp agent-rules/common/UKMA.md   ~/.copilot/UKMA.md   # Copilot CLI, Gemini, open
 | `gemini-cli` | `~/.gemini/settings.json` | `~/.gemini/UKMA.md` |
 | `opencode` | `~/.config/opencode/opencode.json` | `~/.config/opencode/UKMA.md` |
 | `kiro` | `~/.kiro/settings/mcp.json` | `~/.kiro/UKMA.md` |
+| `hermes` | `$HERMES_HOME/config.yaml` (or `~/.hermes/config.yaml`), `mcp_servers` block | — (Hermes has no rules file UKMA can write) |
+| `antigravity` | `~/.gemini/config/mcp_config.json`, else `~/.gemini/antigravity/mcp_config.json` | — (shares `~/.gemini/GEMINI.md` with the Gemini CLI; left to the user) |
 | `jetbrains` | — | — (the plugin is a REST client, not an MCP client) |
 
 `ukma uninstall --yes` reverses all of it (and leaves a rules file you edited
-alone). `ukma uninstall --target kiro --yes` narrows the scope.
+alone). `ukma uninstall --target kiro --yes` narrows the scope. Antigravity's
+uninstall sweeps **both** of its config paths, because the IDE moved its config
+file mid-life.
 
 ## Prerequisites
 

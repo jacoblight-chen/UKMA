@@ -7,11 +7,11 @@
 | 項目 | 狀態 | 驗證方式 |
 |---|---|---|
 | 85 個操作（code 27 / document 16 / memory 25 / traceability 13 / system 4） | 全部實作並註冊於 registry | `contracts/api/operation-registry.yaml`、`ukma-server --operations` |
-| 37 個錯誤碼（封閉集） | registry 與實作一致 | `cargo run -p ukma-contract-check`（6579 checks / 0 failed） |
+| 37 個錯誤碼（封閉集） | registry 與實作一致 | `cargo run -p ukma-contract-check`（8470 checks / 0 failed） |
 | §29.4 40 項 + §17.1 29 類行為 ID | 85/85 covered（0 partial / 0 gap） | `contracts/testing/test-coverage.json` + `coverage_matrix` gate |
 | 聲明層級 | `implementation_compliant` 與 `production_ready` 由證據**推導**為 true | `claim_level` gate、`docs/implementation-status.yaml` |
 | 儲存端口 | 6 個 trait + GraphStore；Profile A/B 已實作，Profile C adapter 真實且配置驅動 | `crates/storage-ports`、`crates/adapters/*`、ADR-057/061/062 |
-| 測試 | 1067 passed / 0 failed | `cargo test --workspace --all-targets` |
+| 測試 | 1084 passed / 0 failed | `cargo test --workspace --all-targets` |
 
 **誠實邊界**（已記錄的決策，不是缺口）：
 - **JsonFileAdapter 僅供開發**：無跨進程安全/耐久性保證；持久化用 Profile B（SQLite）或 Profile C（PostgreSQL + Qdrant + Neo4j）。
@@ -28,7 +28,7 @@
 
 ## 安裝、接線、初始化、卸載（CodeGraph 四步對照）
 
-與 CodeGraph 相同的四步，全部由同一個 `ukma` 二進位提供；**不需要 Node.js，也不需要 Python**。
+與 CodeGraph 相同的四步，全部由同一個 `ukma` 二進位提供；**本體不需要 Node.js，也不需要 Python**（只有選用的 `npx` 啟動器需要 Node ≥ 18，而它只是下載並 exec 同一個二進位）。
 
 ### 1. 安裝 CLI
 
@@ -52,9 +52,17 @@ sh scripts/install.sh --from-file target/release/ukma
 sh scripts/install.sh --uninstall
 ```
 
+```shell
+# 已經有 Node？用 npx（等同 CodeGraph 的 `npx @colbymchenry/codegraph`）
+npx ukma-cli                   # 下載平台二進位後直接跑 `ukma install`
+npx ukma-cli init              # 其他子命令一樣轉發
+```
+
 用管線執行時**不能帶旗標**（`iex` 與 `sh` 都不傳參數）；需要 `-FromFile`／`--dir`／`-WhatIf` 等就從 checkout 跑。安裝目錄預設 Windows `%LOCALAPPDATA%\UKMA\bin`、其他 `~/.local/bin`（`-Dir` / `--dir` 可覆寫），並加入使用者 PATH（`-NoPath` / `--no-path` 可略過）。下載路徑會驗證 release 發佈的 SHA-256；**下載失敗不會在 PATH 或磁碟留下任何東西**（安裝目錄若由本次建立且仍為空會一併移除），目標位置若有損壞的舊檔會被視為「未安裝」而不是讓安裝器崩潰。
 
-升級：`ukma upgrade`（`--check` 只看有無新版；`--from <file> [--sha256 <hex>]` 離線更換；`--dry-run` 只顯示）。固定版本：`ukma upgrade --manifest https://github.com/jacoblight-chen/UKMA/releases/download/v0.2.0/latest.json`。下載走**進程內 HTTP 客戶端**（`ureq`，10s 連線／300s 總逾時），**不需要系統 `curl`**。release 版面契約：`ukma-<triple>.zip`（內含 `ukma` / `ukma.exe`）＋ `ukma-<triple>.zip.sha256`，以及 `latest.json`（`{"version": "...", "assets": {"<triple>": {"url": ..., "sha256": ...}}}`），`ukma upgrade` 讀取後者；`.github/workflows/release.yml` 在推送 `v*` tag 時產出這三種資產。
+`npx` 啟動器（[npm/](F:/UKMA/npm)）**只有下載與 exec**，沒有任何 code-graph 邏輯：`$UKMA_BIN` 可直接指定現成二進位（不下載），`$UKMA_BIN_DIR`（預設 `~/.ukma/bin`）放快取；SHA-256 不符或下載失敗會清掉半成品並回報。發佈由 release workflow 在設定 `NPM_TOKEN` 時執行，否則明確跳過。
+
+升級：`ukma upgrade`（`--check` 只看有無新版；`--from <file> [--sha256 <hex>]` 離線更換；`--dry-run` 只顯示）。固定版本：`ukma upgrade --manifest https://github.com/jacoblight-chen/UKMA/releases/download/v0.2.0/latest.json`。下載走**進程內 HTTP 客戶端**（`ureq`，10s 連線／300s 總逾時），**不需要系統 `curl`**。release 版面契約：`ukma-<triple>.zip`（內含 `ukma` / `ukma.exe`）＋ `ukma-<triple>.zip.sha256`、裸二進位 `ukma-<triple>[.exe]` ＋ `.sha256`（給 `npx` 用），以及 `latest.json`（`{"version": "...", "assets": {"<triple>": {"url": ..., "sha256": ...}}}`），`ukma upgrade` 讀取後者；`.github/workflows/release.yml` 在推送 `v*` tag 時產出這些資產。
 
 ### 2. 接線 agent（自動偵測、merge 寫入）
 
@@ -65,7 +73,13 @@ ukma install --dry-run         # 只顯示會改什麼，不寫檔
 ukma install --no-rules        # 只寫 MCP 設定，不寫規則檔
 ```
 
-每個設定檔都是 **merge**：其他 server、其他金鑰原樣保留；重跑為 no-op。支援 `claude-code`、`cursor`、`windsurf`、`codex`、`cline`、`copilot-vscode`、`copilot-cli`、`gemini-cli`、`opencode`、`kiro`；`jetbrains` 是 REST client 而非 MCP client，會被標記為 skipped 並說明原因。
+每個設定檔都是 **merge**：其他 server、其他金鑰原樣保留；重跑為 no-op。支援 12 個目標：`claude-code`、`cursor`、`windsurf`、`codex`、`cline`、`copilot-vscode`、`copilot-cli`、`gemini-cli`、`opencode`、`kiro`、`hermes`、`antigravity`。
+
+- **Hermes Agent**：寫 `$HERMES_HOME/config.yaml`（預設 `~/.hermes/config.yaml`）的 `mcp_servers:` 區塊，其他 server 與鍵原樣保留；`mcp_servers:` 若寫成單行 mapping 會**拒絕修改**並說明原因，而不是把使用者的檔案重排。項目自帶 `command`／`args` 以外的鍵（timeout、env、`enabled`）時視為使用者所有，只回報不覆寫。
+- **Antigravity IDE**：寫 Antigravity 的 MCP 設定，且**不加 `type` 欄位**（Antigravity 會拒絕帶 `type` 的項目）。偏好 `~/.gemini/config/mcp_config.json`（已遷移：有 `~/.gemini/config/.migrated` 或該檔存在），否則寫舊路徑 `~/.gemini/antigravity/mcp_config.json`；`ukma uninstall` **兩條路徑都掃**，避免舊位置留下接線。
+- `jetbrains` 是 REST client 而非 MCP client，會被標記為 skipped 並說明原因。
+
+Hermes 與 Antigravity 沒有 UKMA 專屬規則檔（Hermes 的行為來自 `$HERMES_HOME` 設定；Antigravity 與 Gemini CLI 共用 `~/.gemini/GEMINI.md`，那是我方不該覆寫的使用者檔案），因此這兩個目標只寫 MCP 設定。
 
 ### 3. 初始化專案
 
@@ -161,7 +175,7 @@ cargo run -p ukma-cli -- tools          # 列出 85 個操作
 ```shell
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace --all-targets            # 預期 1067 passed / 0 failed
+cargo test --workspace --all-targets            # 預期 1084 passed / 0 failed
 cargo run -p ukma-contract-check              # 預期 8470 checks / 0 failed
 cargo test -p ukma-integration --test coverage_matrix --test claim_level
 cargo test -p code-intelligence --test s2_coverage
@@ -316,9 +330,9 @@ UKMA 實作了 CodeGraph 的核心執行路徑（Tier 0–3）、16 個 CodeGrap
 
 | CodeGraph | UKMA | 差異（誠實邊界） |
 |---|---|---|
-| `install.sh` / `install.ps1` / npm | `scripts/install.sh` / `scripts/install.ps1`（含 SHA-256 驗證、`--from-file` 離線安裝、PATH 設定） | 無 npm 套件（未發佈到 registry）；離線走 `--from-file` |
+| `install.sh` / `install.ps1` / npm | `scripts/install.sh` / `scripts/install.ps1`（含 SHA-256 驗證、`--from-file` 離線安裝、PATH 設定）＋ `npm/`（`npx ukma-cli`） | 一行安裝與 `npx` 啟動器都有；`npx` 只是下載＋exec 同一個二進位，發佈需 repo 設定 `NPM_TOKEN` |
 | `codegraph upgrade` | `ukma upgrade [--check] [--from <file>] [--sha256 <hex>]` | 下載在進程內完成（`ureq`），**不需要 `curl`**；`--from` 供完全離線的環境 |
-| `codegraph install`（自動偵測 9+ agent） | `ukma install [--target <id>\|all] [--dry-run] [--no-rules]` | 10 個 agent 目標；`antigravity` / `hermes` 未有可驗證的設定格式，**不支援** |
+| `codegraph install`（自動偵測 9+ agent） | `ukma install [--target <id>\|all] [--dry-run] [--no-rules]` | 12 個可設定目標（含 `hermes`、`antigravity`）；`jetbrains` 標記 skipped（REST client） |
 | `codegraph init`（建 `.codegraph/` 並建圖） | `ukma init [dir] [--workspace/--exclude/--max-files]` | 建 `.ukma/` manifest ＋ `.ukma/index.db` 快照；索引仍標記為 dirty snapshot |
 | `codegraph sync`（增量、只重解析變更檔） | `ukma sync [--force] [--verify]`（stat 預篩 ＋ content hash，只讀變更檔；parse 結果以內容雜湊為鍵持久化） | 多根專案同樣走快取；`--verify` 逐檔驗內容；`ukma status` 顯示 pending |
 | `codegraph status`（節點/邊/檔案數、pending） | `ukma status [--verify]`（revision、scope、parse 條目數、`### Pending sync:`、daemon 狀態） | daemon 端的 pending 以 `ukma daemon status` 的 revision／syncs 呈現，不逐檔列出 |

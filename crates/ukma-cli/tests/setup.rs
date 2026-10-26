@@ -125,6 +125,122 @@ fn install_wires_every_detected_agent_and_is_idempotent() {
 }
 
 #[test]
+fn install_wires_hermes_into_its_yaml_config_and_uninstall_takes_it_out() {
+    let scratch = Scratch::new("install-hermes");
+    scratch.touch_dir(".hermes");
+    let ctx = scratch.context();
+    let config = scratch.home().join(".hermes/config.yaml");
+    fs::write(
+        &config,
+        "model: hermes-3\nmcp_servers:\n  other:\n    command: other\n",
+    )
+    .expect("seed");
+
+    let report = install::install(
+        &ctx,
+        &InstallRequest {
+            targets: targets(&["hermes"]),
+            ..InstallRequest::default()
+        },
+    )
+    .expect("install");
+    assert_eq!(report.count(Action::Updated), 1, "{}", report.text());
+    let text = scratch.read(&config);
+    assert!(text.starts_with("model: hermes-3\n"), "{text}");
+    assert!(text.contains("  other:\n    command: other\n"), "{text}");
+    assert!(text.contains("  ukma:\n"), "{text}");
+    assert!(text.contains("      - '--mcp'\n"), "{text}");
+
+    // Idempotent: a second run changes nothing.
+    let again = install::install(
+        &ctx,
+        &InstallRequest {
+            targets: targets(&["hermes"]),
+            ..InstallRequest::default()
+        },
+    )
+    .expect("install twice");
+    assert_eq!(again.count(Action::Unchanged), 1, "{}", again.text());
+
+    let removed = install::uninstall(
+        &ctx,
+        &UninstallRequest {
+            targets: targets(&["hermes"]),
+            yes: true,
+            ..UninstallRequest::default()
+        },
+    )
+    .expect("uninstall");
+    assert_eq!(removed.count(Action::Removed), 1, "{}", removed.text());
+    assert_eq!(
+        scratch.read(&config),
+        "model: hermes-3\nmcp_servers:\n  other:\n    command: other\n"
+    );
+}
+
+#[test]
+fn install_wires_antigravity_and_uninstall_sweeps_both_config_paths() {
+    let scratch = Scratch::new("install-antigravity");
+    // A migrated Antigravity: the unified path is preferred, and an entry left
+    // at the legacy path by an older install must still be swept.
+    std::fs::create_dir_all(scratch.home().join(".gemini/config")).expect("config dir");
+    fs::write(scratch.home().join(".gemini/config/.migrated"), b"").expect("marker");
+    let unified = scratch.home().join(".gemini/config/mcp_config.json");
+    let legacy = scratch.home().join(".gemini/antigravity/mcp_config.json");
+    std::fs::create_dir_all(legacy.parent().expect("legacy dir")).expect("legacy");
+    fs::write(
+        &legacy,
+        r#"{"mcpServers":{"ukma":{"command":"old-ukma","args":["--mcp"]},"keep":{"command":"k"}}}"#,
+    )
+    .expect("seed legacy");
+    let ctx = scratch.context();
+
+    let report = install::install(
+        &ctx,
+        &InstallRequest {
+            targets: targets(&["antigravity"]),
+            ..InstallRequest::default()
+        },
+    )
+    .expect("install");
+    assert_eq!(report.count(Action::Configured), 1, "{}", report.text());
+    let entry = scratch.json(&unified);
+    assert_eq!(
+        entry["mcpServers"]["ukma"]["command"],
+        json!(ctx.binary.display().to_string())
+    );
+    assert!(
+        entry["mcpServers"]["ukma"].get("type").is_none(),
+        "Antigravity rejects a `type` field: {entry}"
+    );
+
+    let removed = install::uninstall(
+        &ctx,
+        &UninstallRequest {
+            targets: targets(&["antigravity"]),
+            yes: true,
+            ..UninstallRequest::default()
+        },
+    )
+    .expect("uninstall");
+    assert_eq!(removed.count(Action::Removed), 1, "{}", removed.text());
+    assert!(
+        scratch.json(&unified)["mcpServers"].get("ukma").is_none(),
+        "the preferred path is cleaned"
+    );
+    let legacy_after = scratch.json(&legacy);
+    assert!(
+        legacy_after["mcpServers"].get("ukma").is_none(),
+        "the legacy path is swept too: {legacy_after}"
+    );
+    assert_eq!(
+        legacy_after["mcpServers"]["keep"]["command"],
+        json!("k"),
+        "an unrelated server survives"
+    );
+}
+
+#[test]
 fn install_preserves_every_unrelated_key() {
     let scratch = Scratch::new("install-merge");
     scratch.touch_dir(".claude");

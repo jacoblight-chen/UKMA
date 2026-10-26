@@ -4,10 +4,14 @@ name: release
 #
 #   ukma-<target-triple>.zip          the binary at the archive root
 #   ukma-<target-triple>.zip.sha256   `sha256  <file>`
+#   ukma-<target-triple>[.exe]        the bare binary (the npm launcher's asset)
+#   ukma-<target-triple>[.exe].sha256
 #   latest.json                       {"version": "...", "assets": {"<triple>": {"url", "sha256"}}}
 #
 # `scripts/install.ps1` / `scripts/install.sh` download the zip and verify the
-# SHA-256; `ukma upgrade` reads latest.json.
+# SHA-256; `ukma upgrade` reads latest.json; `npm/bin/ukma.js` downloads the bare
+# binary. The npm package is published when the repository has an `NPM_TOKEN`
+# secret.
 
 on:
   push:
@@ -71,6 +75,9 @@ jobs:
           "$bin" --version
           zip -j "$archive" "$bin"
           sha256sum "$archive" | tee "$archive.sha256"
+          # The bare binary is what `npm/bin/ukma.js` downloads.
+          cp "$bin" "ukma-${{ matrix.target }}"
+          sha256sum "ukma-${{ matrix.target }}" > "ukma-${{ matrix.target }}.sha256"
 
       - name: Package (windows)
         if: runner.os == 'Windows'
@@ -82,7 +89,12 @@ jobs:
           Compress-Archive -Path $bin -DestinationPath $archive -Force
           $hash = (Get-FileHash -Path $archive -Algorithm SHA256).Hash.ToLower()
           "$hash  $archive" | Out-File -Encoding ascii "$archive.sha256"
-          Write-Host "$archive $hash"
+          # The bare binary is what `npm/bin/ukma.js` downloads.
+          $raw = "ukma-${{ matrix.target }}.exe"
+          Copy-Item $bin $raw -Force
+          $rawHash = (Get-FileHash -Path $raw -Algorithm SHA256).Hash.ToLower()
+          "$rawHash  $raw" | Out-File -Encoding ascii "$raw.sha256"
+          Write-Host "$archive $hash / $raw $rawHash"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -90,6 +102,10 @@ jobs:
           path: |
             ukma-${{ matrix.target }}.zip
             ukma-${{ matrix.target }}.zip.sha256
+            ukma-${{ matrix.target }}
+            ukma-${{ matrix.target }}.exe
+            ukma-${{ matrix.target }}.sha256
+            ukma-${{ matrix.target }}.exe.sha256
           if-no-files-found: error
 
   publish:
@@ -139,4 +155,39 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "$TAG" artifacts/ukma-*.zip artifacts/ukma-*.zip.sha256 --clobber
+          gh release upload "$TAG" artifacts/ukma-* --clobber
           gh release upload "$TAG" latest.json --clobber
+
+  npm:
+    name: publish the npm launcher
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check whether npm publishing is configured
+        id: token
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -n "$NPM_TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::NPM_TOKEN is not configured; skipping the npm publish"
+          fi
+
+      - name: Publish `ukma-cli`
+        if: steps.token.outputs.enabled == 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        working-directory: npm
+        run: |
+          printf '//registry.npmjs.org/:_authToken=%s\n' "$NODE_AUTH_TOKEN" > .npmrc
+          npm version "${TAG#v}" --no-git-tag-version --allow-same-version
+          npm publish --access public
+          rm -f .npmrc
