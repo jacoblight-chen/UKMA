@@ -8,8 +8,8 @@ Rust binary 裡；所以 **npm 發佈永遠要等 GitHub Release 先產生資產
 
 | 路徑 | 觸發 | 認證 | provenance |
 | --- | --- | --- | --- |
-| CI（建議） | push `v*` tag → `.github/workflows/release.yml` 的 `npm` job | trusted publishing（OIDC，無需任何長期憑證） | ✅ 有 |
-| CI fallback | 同上，但 repo 設定了 `NPM_TOKEN` secret | granular access token（需勾 **Bypass 2FA**） | ❌ 無 |
+| CI fallback（**目前使用中**） | push `v*` tag → `.github/workflows/release.yml` 的 `npm` job，repo 設定了 `NPM_TOKEN` secret | granular access token（需勾 **Bypass 2FA**） | ❌ 無 |
+| CI（OIDC，**暫未啟用**） | 同上，但 npm 頁面已設 trusted publisher（需帳號有 2FA） | trusted publishing（OIDC，無需任何長期憑證） | ✅ 有 |
 | 手動 | `scripts/publish_npm.ps1` / `scripts/publish_npm.sh` | 本機 `npm whoami` 的登入憑證或 `NPM_TOKEN` | ❌ 無 |
 
 > `npm` job 的 `needs: publish`：四個平台的資產先上傳完成，npm 才會發布。這是必要的，
@@ -36,13 +36,27 @@ sh scripts/publish_npm.sh --tag v0.1.0 --publish    # 真正上傳
 
 ## 3. CI：trusted publishing（OIDC）
 
+> **目前狀態（2026-10）：OIDC 尚未啟用。** 設定 trusted publisher 需要帳號有 2FA，
+> 而 `jacoblightchen` 目前沒有 2FA，因此本次選擇「暫不啟用 2FA、繼續用 bypass-2FA token」。
+> **現在實際走的是 `NPM_TOKEN` fallback 路徑**——要讓 CI 發佈，請先在 GitHub repo 設定
+> `NPM_TOKEN` secret（Settings → Secrets and variables → Actions → New repository secret →
+> `NPM_TOKEN`，值為一顆勾了 **Bypass 2FA** 的 granular token）。之後想切 OIDC 時，
+> 先啟用 2FA（security key / authenticator app），再回頭做下面的設定即可。
+
 npm 已公告 **2027-01** 起，「Bypass 2FA」的 granular token 將不能再直接發佈，官方遷移目標
 就是 trusted publishing。設定一次即可，之後完全不需要 `NPM_TOKEN`：
 
-1. npm 套件頁 → `ukma-cli` → **Settings** → **Trusted publishing** → **Add**。
-2. 填：publisher = **GitHub Actions**、owner = `jacoblight-chen`、repository = `UKMA`、
-   workflow filename = `release.yml`、environment 留空（未使用 environment）。
+1. npm 套件頁 → `ukma-cli` → **Settings** → **Trusted publishing** → **Add**
+   （在 `/access` 頁面頂部的「Trusted Publisher」區塊，點 **Add Trusted Publisher connection
+   for GitHub Actions**）。
+2. 填：publisher = **GitHub Actions**、Organization or user = `jacoblight-chen`、
+   Repository = `UKMA`、Workflow filename = `release.yml`、Environment 留空，
+   並勾選 **Allow npm publish**（直接發佈；不勾則要求 staged publishing）。
 3. 存檔。之後 push `v*` tag，`release.yml` 的 `npm` job 就會用 OIDC 發佈並附 provenance。
+
+⚠️ **設定 trusted publisher 需要 2FA**：點「Set up connection」後，若帳號沒有 2FA，
+npm 會轉到 2FA 設定精靈（`/settings/<user>/tfa`），必須先完成 2FA（security key 或
+authenticator app）才能存下這筆 trusted publisher。這是設定 OIDC 的前置門檻。
 
 workflow 這邊的必要條件（已寫在 `.github/workflows/release.yml`）：
 
@@ -130,6 +144,21 @@ SHA-256 mismatch: expected 49
 ```
 
 （`49` 是字元 `'1'` 的 ASCII 值。）已修正為先以 UTF-8 解碼、驗證 64 位十六進位再比對。
+
+### 坑 6：設定 trusted publisher 需要先有 2FA
+
+在 npm 頁面填好 trusted publisher 表單、點「Set up connection」後，若帳號**沒有** 2FA，
+npm 不會直接存檔，而是轉到 2FA 設定精靈（`/settings/<user>/tfa`），要求先完成 2FA
+（security key 或 authenticator app）才能存下這筆 trusted publisher。
+
+```
+（點擊 Set up connection 後）
+→ Confirm Password to Continue
+→ Two-Factor Authentication 精靈（Login → 2FA Method → Configure）
+```
+
+正解（本次選擇）：暫不啟用 2FA，改走 `NPM_TOKEN` fallback（§3 的「目前狀態」）。
+要切 OIDC 時，先啟用 2FA 再回來設定即可。
 
 ## 5. 驗證
 
