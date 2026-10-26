@@ -10,8 +10,8 @@ name: release
 #
 # `scripts/install.ps1` / `scripts/install.sh` download the zip and verify the
 # SHA-256; `ukma upgrade` reads latest.json; `npm/bin/ukma.js` downloads the bare
-# binary. The npm package is published when the repository has an `NPM_TOKEN`
-# secret.
+# binary. The npm package is published with trusted publishing (OIDC), falling
+# back to an `NPM_TOKEN` secret when one is configured. See docs/publishing.md.
 
 on:
   push:
@@ -167,32 +167,68 @@ jobs:
     name: publish the npm launcher
     needs: publish
     runs-on: ubuntu-latest
+    # Trusted publishing (OIDC) needs an id token; `contents: read` is all the
+    # checkout step requires, and it supersedes the workflow-level `contents: write`
+    # which only the release job needs.
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # Trusted publishing needs npm >= 11.5.1; Node 20 ships npm 10.
+          # `registry-url` is deliberately NOT set: it writes an `.npmrc` with an
+          # empty `_authToken`, which makes npm skip the OIDC exchange.
+          node-version: '24'
 
-      - name: Check whether npm publishing is configured
-        id: token
+      - name: Check the npm CLI supports trusted publishing
+        run: |
+          current=$(npm --version)
+          oldest=11.5.1
+          if [ "$(printf '%s\n%s\n' "$oldest" "$current" | sort -V | head -1)" != "$oldest" ]; then
+            echo "::error::npm $current cannot use trusted publishing; $oldest or newer is required"
+            exit 1
+          fi
+          echo "npm $current supports trusted publishing"
+
+      # Two ways to publish, in order of preference:
+      #   1. trusted publishing - the package's npm "Trusted publisher" entry names
+      #      this workflow, npm verifies the OIDC token, and provenance is attached.
+      #      No long-lived credential exists anywhere.
+      #   2. NPM_TOKEN - a granular token created with "Bypass 2FA", kept only as a
+      #      fallback; npm is retiring it for direct publishing in January 2027.
+      - name: Publish `ukma-cli`
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -n "$NPM_TOKEN" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::NPM_TOKEN is not configured; skipping the npm publish"
-          fi
-
-      - name: Publish `ukma-cli`
-        if: steps.token.outputs.enabled == 'true'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         working-directory: npm
         run: |
-          printf '//registry.npmjs.org/:_authToken=%s\n' "$NODE_AUTH_TOKEN" > .npmrc
           npm version "${TAG#v}" --no-git-tag-version --allow-same-version
-          npm publish --access public
-          rm -f .npmrc
+          if [ -n "$NPM_TOKEN" ]; then
+            echo "::notice::publishing with the NPM_TOKEN fallback (no provenance attached)"
+            printf '//registry.npmjs.org/:_authToken=%s\n' "$NPM_TOKEN" > .npmrc
+            npm publish --access public
+            rm -f .npmrc
+          else
+            echo "::notice::publishing with trusted publishing (OIDC) and provenance"
+            npm publish --access public --provenance
+          fi
+
+      # The registry can serve a `0.0.0-stage` placeholder for a couple of minutes
+      # after the upload, so poll instead of asserting once.
+      - name: Confirm the published version
+        working-directory: npm
+        run: |
+          wanted="${TAG#v}"
+          for attempt in $(seq 1 20); do
+            published=$(npm view "ukma-cli@$wanted" version 2>/dev/null || true)
+            if [ "$published" = "$wanted" ]; then
+              echo "npm reports ukma-cli@$published"
+              exit 0
+            fi
+            echo "attempt $attempt: registry has '${published:-nothing}' for ukma-cli@$wanted"
+            sleep 30
+          done
+          echo "::error::ukma-cli@$wanted is not resolvable after 10 minutes"
+          exit 1

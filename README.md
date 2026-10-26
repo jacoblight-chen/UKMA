@@ -60,7 +60,7 @@ npx ukma-cli init              # 其他子命令一樣轉發
 
 用管線執行時**不能帶旗標**（`iex` 與 `sh` 都不傳參數）；需要 `-FromFile`／`--dir`／`-WhatIf` 等就從 checkout 跑。安裝目錄預設 Windows `%LOCALAPPDATA%\UKMA\bin`、其他 `~/.local/bin`（`-Dir` / `--dir` 可覆寫），並加入使用者 PATH（`-NoPath` / `--no-path` 可略過）。下載路徑會驗證 release 發佈的 SHA-256；**下載失敗不會在 PATH 或磁碟留下任何東西**（安裝目錄若由本次建立且仍為空會一併移除），目標位置若有損壞的舊檔會被視為「未安裝」而不是讓安裝器崩潰。
 
-`npx` 啟動器（[npm/](F:/UKMA/npm)）**只有下載與 exec**，沒有任何 code-graph 邏輯：`$UKMA_BIN` 可直接指定現成二進位（不下載），`$UKMA_BIN_DIR`（預設 `~/.ukma/bin`）放快取；SHA-256 不符或下載失敗會清掉半成品並回報。發佈由 release workflow 在設定 `NPM_TOKEN` 時執行，否則明確跳過。
+`npx` 啟動器（[npm/](F:/UKMA/npm)）**只有下載與 exec**，沒有任何 code-graph 邏輯：`$UKMA_BIN` 可直接指定現成二進位（不下載），`$UKMA_BIN_DIR`（預設 `~/.ukma/bin`）放快取；SHA-256 不符或下載失敗會清掉半成品並回報。npm 發佈由 release workflow 以 trusted publishing（OIDC，附 provenance）執行，設定了 `NPM_TOKEN` 時退回 token 路徑；細節見 [docs/publishing.md](docs/publishing.md)。
 
 升級：`ukma upgrade`（`--check` 只看有無新版；`--from <file> [--sha256 <hex>]` 離線更換；`--dry-run` 只顯示）。固定版本：`ukma upgrade --manifest https://github.com/jacoblight-chen/UKMA/releases/download/v0.2.0/latest.json`。下載走**進程內 HTTP 客戶端**（`ureq`，10s 連線／300s 總逾時），**不需要系統 `curl`**。release 版面契約：`ukma-<triple>.zip`（內含 `ukma` / `ukma.exe`）＋ `ukma-<triple>.zip.sha256`、裸二進位 `ukma-<triple>[.exe]` ＋ `.sha256`（給 `npx` 用），以及 `latest.json`（`{"version": "...", "assets": {"<triple>": {"url": ..., "sha256": ...}}}`），`ukma upgrade` 讀取後者；`.github/workflows/release.yml` 在推送 `v*` tag 時產出這些資產。
 
@@ -330,7 +330,7 @@ UKMA 實作了 CodeGraph 的核心執行路徑（Tier 0–3）、16 個 CodeGrap
 
 | CodeGraph | UKMA | 差異（誠實邊界） |
 |---|---|---|
-| `install.sh` / `install.ps1` / npm | `scripts/install.sh` / `scripts/install.ps1`（含 SHA-256 驗證、`--from-file` 離線安裝、PATH 設定）＋ `npm/`（`npx ukma-cli`） | 一行安裝與 `npx` 啟動器都有；`npx` 只是下載＋exec 同一個二進位，發佈需 repo 設定 `NPM_TOKEN` |
+| `install.sh` / `install.ps1` / npm | `scripts/install.sh` / `scripts/install.ps1`（含 SHA-256 驗證、`--from-file` 離線安裝、PATH 設定）＋ `npm/`（`npx ukma-cli`） | 一行安裝與 `npx` 啟動器都有；`npx` 只是下載＋exec 同一個二進位，npm 發佈走 trusted publishing（OIDC，`NPM_TOKEN` 為 fallback，見 `docs/publishing.md`） |
 | `codegraph upgrade` | `ukma upgrade [--check] [--from <file>] [--sha256 <hex>]` | 下載在進程內完成（`ureq`），**不需要 `curl`**；`--from` 供完全離線的環境 |
 | `codegraph install`（自動偵測 9+ agent） | `ukma install [--target <id>\|all] [--dry-run] [--no-rules]` | 12 個可設定目標（含 `hermes`、`antigravity`）；`jetbrains` 標記 skipped（REST client） |
 | `codegraph init`（建 `.codegraph/` 並建圖） | `ukma init [dir] [--workspace/--exclude/--max-files]` | 建 `.ukma/` manifest ＋ `.ukma/index.db` 快照；索引仍標記為 dirty snapshot |
@@ -408,6 +408,7 @@ cargo run -p ukma-release-evidence -- --check        # SBOM/inventory 派生文�
 - `docs/UKMA_v1.2.3_IMPLEMENTATION_PLAN.md` — 計畫、缺口分析與 Gate 對照（§7.1 全綠）
 - `docs/implementation-status.yaml` — 聲明層級與 gate（由 `claim_level` gate 機器校驗）
 - `docs/adr/`（ADR-001…063）、`docs/testing/`（覆蓋矩陣）、`docs/performance/`（基線）、`docs/migration/`（S2 ledger + 狀態）
+- `docs/publishing.md` — 發佈 runbook（npm `ukma-cli` + GitHub Release、trusted publishing、首發踩坑、回滾、版本升級與 tag）
 - `.github/copilot-instructions.md` — 項目級 Copilot 指引；`.vscode/` — tasks、debugger、擴充建議
 - VS Code：開啟 `UKMA-Phase6R.code-workspace`（或 **File → Open Folder** 開工作區根），**Terminal → Run Task → Cargo: Check / Cargo: Test / Cargo: Run Example**；用 Copilot Chat 搭配 `.github/copilot-instructions.md` 做 scoped 變更
 

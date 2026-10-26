@@ -9,6 +9,9 @@
 #   sh scripts/publish_npm.sh                     # dry run
 #   sh scripts/publish_npm.sh --publish           # upload
 #   sh scripts/publish_npm.sh --tag v0.1.0 --publish
+#
+# Full runbook (CI trusted publishing, first-publish pitfalls, rollback):
+# docs/publishing.md
 set -eu
 
 PUBLISH=0
@@ -110,6 +113,14 @@ Two cases, and only one of them needs a code:
     "Bypass 2FA": no code exists to type. Either recreate the token with
     "Bypass 2FA" checked (Automation tokens always bypass), or `npm logout` and
     `npm login` so the web session credential is used instead of the token.
+EOF
+            ;;
+        *"cannot publish over the previously published"*)
+            current=$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' package.json | head -1)
+            cat >&2 <<EOF
+ukma-cli@$current is already on the registry, so npm refuses this publish
+(it checks on dry runs too). Bump crates/ukma-cli/Cargo.toml, or pass
+--tag v<new-version> to align npm/package.json from the tag.
 EOF
             ;;
     esac

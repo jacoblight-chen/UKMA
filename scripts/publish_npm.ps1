@@ -13,6 +13,10 @@ the tarball first, and publishes only when `-Publish` is passed.
 
 .EXAMPLE
 .\scripts\publish_npm.ps1 -Tag v0.1.0 -Publish
+
+.NOTES
+Full runbook (CI trusted publishing, first-publish pitfalls, rollback):
+docs/publishing.md
 #>
 [CmdletBinding()]
 param(
@@ -135,6 +139,14 @@ Two cases, and only one of them needs a code:
     "Bypass 2FA" checked (Automation tokens always bypass), or `npm logout` and
     `npm login` so the web session credential is used instead of the token.
 '@
+        }
+        if ($output -match 'cannot publish over the previously published') {
+            $packedVersion = (Get-Content package.json -Raw | ConvertFrom-Json).version
+            throw @"
+ukma-cli@$packedVersion is already on the registry, so npm refuses this publish
+(it checks on dry runs too). Bump crates/ukma-cli/Cargo.toml, or pass
+-Tag v<new-version> to align npm/package.json from the tag.
+"@
         }
         throw "npm publish failed with exit code $LASTEXITCODE"
     }
