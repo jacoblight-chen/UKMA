@@ -238,7 +238,9 @@ pub fn sync_snapshot_roots(
                 }
                 // `--verify`: the stat says "same", so read the file and let the
                 // content hash decide.
-                let content = read_file(&file.absolute)?;
+                let Some(content) = read_file(&file.absolute)? else {
+                    continue; // not text: leave the cached row alone
+                };
                 read += 1;
                 verified += 1;
                 let sha256 = sha256_hex(&content);
@@ -259,7 +261,9 @@ pub fn sync_snapshot_roots(
                 upserts.push(row);
             }
             previous => {
-                let content = read_file(&file.absolute)?;
+                let Some(content) = read_file(&file.absolute)? else {
+                    continue; // not text: skip the file, leave any cached row
+                };
                 read += 1;
                 let sha256 = sha256_hex(&content);
                 match &previous {
@@ -406,7 +410,9 @@ pub fn status_roots(
                 // The stat moved (or `--verify` asked): hash the file so
                 // "modified" means the content actually differs, not that a
                 // formatter rewrote it verbatim.
-                let content = read_file(&file.absolute)?;
+                let Some(content) = read_file(&file.absolute)? else {
+                    continue; // not text: no drift can be computed
+                };
                 if verify {
                     verified += 1;
                 }
@@ -504,8 +510,15 @@ fn now_rfc3339() -> String {
     ukma_mcp::instant::format_rfc3339(seconds)
 }
 
-fn read_file(path: &Path) -> Result<String, CacheError> {
-    fs::read_to_string(path).map_err(|error| cache_io_error("read", path, &error))
+/// Read a file as text. A file that is not valid UTF-8 is not code, so it
+/// yields `None` and the caller skips it instead of failing the whole scan
+/// (an unrecognized binary such as a test fixture must not break `init`).
+/// A text file that was binary in the cache (or the reverse) is then not
+/// reported as changed: the cached row is left untouched and the file stays
+/// out of the snapshot.
+fn read_file(path: &Path) -> Result<Option<String>, CacheError> {
+    let bytes = fs::read(path).map_err(|error| cache_io_error("read", path, &error))?;
+    Ok(String::from_utf8(bytes).ok())
 }
 
 /// Walk the tree **without reading any file**, applying the scanner's own skip
@@ -690,6 +703,30 @@ mod tests {
         assert_eq!(second.unchanged, 2);
         assert!(!second.changed());
         assert_eq!(second.revision, first.revision);
+
+        fs::remove_dir_all(&root).expect("cleanup");
+    }
+
+    #[test]
+    fn a_non_utf8_file_is_skipped_rather_than_failing_the_scan() {
+        let root = tree("binary");
+        fs::write(root.join("a.rs"), "fn a() {}\n").expect("write");
+        // A non-UTF-8 file (an unrecognized binary such as a `.onnx` test
+        // fixture) must not break `init` / `sync`.
+        fs::write(root.join("model.onnx"), [0x89, 0x00, 0x00, 0x01, 0xFF]).expect("write");
+        let store = MemoryStore::default();
+        let options = IndexOptions::default();
+
+        let first = sync(&root, &options, &store).expect("first sync");
+        assert_eq!(first.read, 1, "only the text file is read");
+        assert_eq!(first.added, 1, "only the text file is indexed");
+        assert_eq!(first.files, 1);
+
+        let second = sync(&root, &options, &store).expect("second sync");
+        assert_eq!(second.read, 0, "the binary is skipped again");
+        assert_eq!(second.unchanged, 1);
+        assert!(!second.changed());
+        assert_eq!(second.revision, first.revision, "the revision is stable");
 
         fs::remove_dir_all(&root).expect("cleanup");
     }

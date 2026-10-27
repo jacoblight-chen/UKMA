@@ -206,6 +206,15 @@ pub fn start_with(
     if let Some(handle) = running(root) {
         return Ok(handle);
     }
+    if !root.join(PROJECT_DIR).exists() {
+        // Fail before touching the log file so the message points at the
+        // actual cause (an uninitialized project) instead of the missing
+        // `.ukma/` directory.
+        return Err(SetupError::Missing(format!(
+            "no {PROJECT_DIR} in {}: run `ukma init` there first (the daemon writes its handle and log into it)",
+            root.display()
+        )));
+    }
     let mut command = std::process::Command::new(executable);
     command.args(["daemon", "serve"]).arg(root);
     if let Some(max_files) = options.max_files {
@@ -799,6 +808,27 @@ mod tests {
         .expect("write");
         assert!(running(&root).is_none(), "a dead port is not a daemon");
         assert!(!handle_path(&root).exists(), "the stale handle is removed");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn starting_in_an_uninitialized_project_says_to_init_first() {
+        let root = std::env::temp_dir().join(format!("ukma-daemon-uninit-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).expect("mkdir");
+        let error = start_with(
+            &std::env::current_exe().expect("the running test binary"),
+            &root,
+            &IndexOptions::default(),
+        )
+        .expect_err("no .ukma/ yet");
+        assert!(matches!(error, SetupError::Missing(_)), "{error}");
+        let text = format!("{error}");
+        assert!(text.contains("ukma init"), "{text}");
+        assert!(
+            !root.join(PROJECT_DIR).join(DAEMON_LOG).exists(),
+            "no half-open log file is left behind"
+        );
         let _ = std::fs::remove_dir_all(&root);
     }
 

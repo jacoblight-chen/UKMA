@@ -136,6 +136,7 @@ flowchart TB
   - **HTTP server**：Profile A 開發預設——無 async runtime、單執行緒、`Connection: close`；REST 面 `POST /api/v1/{domain}/{operation}`（讀取也是 POST）＋ `GET /api/v1/health`、`GET /api/v1/jobs/{job_id}`。
   - **VS Code 擴充** 與 **GitHub Action**（另見 `jetbrains/` 完整、可建置結構；Gradle / IntelliJ build 未納入本倉庫驗收 gate）。
 - **12 個 agent 接線目標**：`claude-code`、`cursor`、`windsurf`、`codex`、`cline`、`copilot-vscode`、`copilot-cli`、`gemini-cli`、`opencode`、`kiro`、`hermes`、`antigravity`——merge 寫入、重跑 no-op。
+- **DeepSeek Harness（dsh）plugin**：[dsh-ukma/](dsh-ukma/)（仿照 `dsh-codegraph`）把 UKMA 的 65 操作暴露為原生 dsh 工具（curated 13 工具＋`full` 再加 17 個結構性直通＋`ukma_call` 逃生艙）。因 UKMA 的 code parse index 是 **per-process**（只有 parse cache 落盤），plugin 對每個專案持有一份**長命 `ukma --mcp --index-cwd` 子進程**並以 MCP JSON-RPC 對話（首次 `code.*` 時在同一進程跑 `analyze_repository` 建立 index），而非 per-call `--run-tool`。見 [dsh-ukma/README.md](dsh-ukma/README.md)。
 - **共享 daemon**：每專案一份 warm index，跨 session 共用；只委派 `tools/call`（stdio 仍由各自 session 擁有），失敗必回退、身份驗證（loopback＋bearer token）、事件偵測（Windows `ReadDirectoryChangesW`、其他平台 poll）。
 - **契約閉合**：37 個封閉錯誤碼、24 個 scope、36 個事件；`ukma-contract-check` 在 Rust 中驗證（目前 9404 checks / 0 failed）；wire schema 由 Rust 類型生成並 `--check` 驗證。
 - **可重現效能量測**：`ukma-bench`（FM-010）走公開 API 存 episodes、做查詢；報告明寫量測了什麼（RSS、磁碟、1M episodes benchmark）**與沒有**量測什麼（VRAM、第二個後端、embedding 模型）。
@@ -310,22 +311,40 @@ REST 面（spec §31.2）：
 
 - 所有 domain 操作都是 `POST /api/v1/{domain}/{operation}`（讀取也是 POST）
 - `GET /api/v1/health`、`GET /api/v1/jobs/{job_id}`
-- 請求頭：`x-ukma-tenant-id`、`x-ukma-project-id`、`x-ukma-principal-id`、`x-ukma-scopes`（逗號分隔）、`x-ukma-trace-id`
+- 請求體是**完整的請求封包**（完整欄位契約以 `contracts/schema/v1/wire.schema.json` 與 `contracts/fixtures/v1/` 的 fixture 為準）：`api_version`（即 `"1"`）＋ `operation`（registry 的 operation id，必須與路由相符）＋ `context`（`request_id`／`trace_id`／`scope`／`principal_id`／`scopes`／`consistency`；manifest 標記 `idempotency_key_required` 的 operation 還要有 `idempotency_key`）＋ `input`
+- operation 的 POST 以封包 `context` 的分身與 scope 為準（dev 檔案 gateway 信任封包的 `scopes`）；`x-ukma-tenant-id`、`x-ukma-project-id`、`x-ukma-principal-id`、`x-ukma-scopes`（逗號分隔）、`x-ukma-trace-id` 這些請求頭**只有 `GET /api/v1/jobs/{job_id}` 會讀取**
 - 完整的真實路由以 `cargo run -p ukma-cli -- routes` 輸出為準；每個操作的路徑、方法、scope 都由 registry 派生，伺服器不另行聲明
 
-示例（`memory.store_episode`，MAPI-06；完整欄位契約以 `contracts/schema/v1/wire.schema.json` 為準）：
+示例（`memory.store_episode`，MAPI-06；列舉值用 snake_case；此操作要求 `context.idempotency_key`）。`input` **就是該 operation 的輸入類型本身**（封包不再多包一層）；少數 operation 的輸入類型內部自帶 `input` 欄位（例如 `StoreEpisode` 就有 `input` 欄位，所以此處是 `input.input`）：
 
 ```shell
 curl -s -X POST http://127.0.0.1:8080/api/v1/memory/store_episode \
-  -H "x-ukma-tenant-id: tenant-dev" -H "x-ukma-project-id: project-dev" \
-  -H "x-ukma-principal-id: principal-dev" \
   -H "content-type: application/json" \
-  -d '{"input":{"session_id":"s-1","agent_id":"agent-dev","agent_depth":0,
-       "episode_type":"ConversationTurn","summary":"hello ukma",
-       "full_text_ref":null,"key_facts":["ukma is rust-first"],
-       "outcome":"Success","source_refs":[],"importance_score":0.8,
-       "language":"en","evidence":[]}}'
+  -d '{
+    "api_version": "1",
+    "operation": "memory.store_episode",
+    "context": {
+      "request_id": "curl-1",
+      "trace_id": "trace-curl",
+      "scope": { "tenant_id": "tenant-dev", "project_id": "project-dev" },
+      "principal_id": "principal-dev",
+      "scopes": ["memory:write"],
+      "consistency": "eventual",
+      "idempotency_key": "episode-1"
+    },
+    "input": {
+      "input": {
+        "session_id": "s-1", "agent_id": "agent-dev", "agent_depth": 0,
+        "episode_type": "conversation_turn", "summary": "hello ukma",
+        "full_text_ref": null, "key_facts": ["ukma is rust-first"],
+        "outcome": "success", "source_refs": [], "importance_score": 0.8,
+        "language": "en", "evidence": []
+      }
+    }
+  }'
 ```
+
+首次呼叫回 `changed: true` 與 `events: ["memory.episode.committed"]`；重放同一請求回 `changed: false`、`events: []`（冪等）。
 
 ### 2. CLI（與伺服器走同一個 gateway）
 
@@ -406,7 +425,7 @@ UKMA 實作了 CodeGraph 的核心執行路徑（Tier 0–3）、16 個 CodeGrap
 | `--exclude` | 可重複 glob | 附加在內建排除集之上 |
 | `--max-files` | 檔案上限（預設 5000） | 索引上限（多根時每個 root 各自計算） |
 | `--watch` | mtime 輪詢重索引 | 2s 輪詢、重索引；`--mcp --watch`（含根）→ 從快照快取起跑並 live hot-swap |
-| `--profile` | **工具表面過濾**（all/core/graph/memory/security） | 同一語意：過濾 MCP 工具表面（core=8、graph=17、memory=45、security=空） |
+| `--profile` | **工具表面過濾**（all/core/graph/memory/security） | 同一語意：過濾 MCP 工具表面（core=8、graph=17、memory=45、security=19） |
 | `--split-identifiers` | camelCase 切分（預設 on） | `tokenize`（切分）vs `tokenize_raw`（不切分） |
 | `--full-body-embedding` | 函式體嵌入（CodeGraph 預設 on） | 依 `definition` 行範圍自來源擷取函式體納入語料庫（UKMA 預設 off，保留既有行為） |
 | `--graph-only` | 僅結構、無嵌入 | 僅 keyword/BM25 通道排序 |
@@ -442,6 +461,7 @@ UKMA 以 `pro` domain 提供 29 個 read-only 的 CodeGraph Pro 相容 operation
 - **不需要新增 crate**：本倉庫的 SBOM 以 Ed25519 簽章固定，私鑰不入庫，因此不能為了「更漂亮的實作」新增套件（例如跨平台 watcher crate）。這正是 daemon 用 Win32 `ReadDirectoryChangesW`（Windows）＋可調輪詢（其他平台）而不是 `notify` 的原因；HTTP 下載則重用已在 workspace 內的 `ureq`。
 - **`--watch`（非 MCP）**：沒有活著的 session 可熱切換，因此就是落盤重索引；`--mcp --watch` 才是熱切換，且現在**從快照快取起跑**。
 - **耐久性/跨進程**：in-memory 索引是當前樹的 dirty snapshot（無耐久性聲明）；持久化走 Profile B（SQLite）或 Profile C（PostgreSQL＋Qdrant＋Neo4j）。
+- **Profile A 的 document source 是 in-memory（dev-only）**：dev gateway 的 `DocumentSourcePort` 是 `InMemoryDocuments`——**不會**從 `source_uri` 拉取內容；artifact 必須先存在於記憶體 store（例如測試透過 `put` 預先灌入）。因此 dev profile 下 `document.ingest` 對未預先灌入的 artifact 會回 `SOURCE_UNAVAILABLE`（registry 未宣告此 code，依 closed-set 契約以 `INTERNAL`＋warning 上報）；要端到端跑 document 域，請接真實的 `DocumentSourcePort` 實作（Profile B/C 部署）或以測試注入 artifact。
 
 ## 儲存 Profile
 

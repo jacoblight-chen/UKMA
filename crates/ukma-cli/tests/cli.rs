@@ -280,8 +280,14 @@ fn install_and_uninstall_run_end_to_end_against_a_scratch_home() {
     )
     .expect("uninstall prints a report");
     assert!(report.contains("removed"), "{report}");
-    let config = std::fs::read_to_string(home.join(".claude.json")).expect("config");
-    assert!(!config.contains("ukma"), "the MCP entry is gone: {config}");
+    let config = home.join(".claude.json");
+    assert!(
+        !config.exists()
+            || !std::fs::read_to_string(&config)
+                .expect("config")
+                .contains("ukma"),
+        "the MCP entry is gone (an emptied installer file is removed)"
+    );
 
     let _ = std::fs::remove_dir_all(&base);
 }

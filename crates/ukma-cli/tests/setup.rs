@@ -225,8 +225,8 @@ fn install_wires_antigravity_and_uninstall_sweeps_both_config_paths() {
     .expect("uninstall");
     assert_eq!(removed.count(Action::Removed), 1, "{}", removed.text());
     assert!(
-        scratch.json(&unified)["mcpServers"].get("ukma").is_none(),
-        "the preferred path is cleaned"
+        !unified.exists(),
+        "the installer-created preferred path is removed once its only entry goes"
     );
     let legacy_after = scratch.json(&legacy);
     assert!(
@@ -534,10 +534,10 @@ fn uninstall_drops_the_container_when_ukma_was_its_only_entry() {
     )
     .expect("uninstall");
 
-    let document = scratch.json(&scratch.home().join(".claude.json"));
+    let path = scratch.home().join(".claude.json");
     assert!(
-        document.get("mcpServers").is_none(),
-        "an emptied container is removed: {document}"
+        !path.exists(),
+        "an installer file emptied of its only entry is removed (previously left as `{{}}`)"
     );
 }
 

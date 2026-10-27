@@ -1,0 +1,61 @@
+# CI for the dsh-ukma DSH plugin (dsh-ukma/).
+#
+# Builds the `ukma` release binary, then runs the plugin test harness
+# (dsh-ukma/test/run-plugin-test.mjs) against it across the supported dsh
+# peer-package versions — the same dual-version gate dsh-codegraph uses.
+# The harness exercises the real `execute` paths against the real `ukma`
+# binary, so this is a genuine cross-version integration gate, not a lint.
+name: dsh-ukma-test
+
+on:
+  push:
+    paths:
+      - 'dsh-ukma/**'
+      - 'crates/**'
+      - '.github/workflows/dsh-ukma-test.yml'
+  pull_request:
+    paths:
+      - 'dsh-ukma/**'
+      - 'crates/**'
+      - '.github/workflows/dsh-ukma-test.yml'
+
+jobs:
+  plugin-test:
+    name: dsh-ukma harness (dsh ${{ matrix.dsh }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The dsh peer versions the plugin's peerDependencies gate covers.
+        dsh: ['0.1.5-rc.3', '0.2.0-rc.2']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build ukma (release)
+        run: cargo build -p ukma-cli --release
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Install the dsh peer packages the plugin imports, at the matrix
+      # version, so the harness runs against the real ToolDefinition /
+      # createUserMessage contract for that dsh release.
+      - name: Install dsh peer packages
+        working-directory: dsh-ukma
+        run: |
+          npm init -y >/dev/null
+          npm install --no-save \
+            "@deepseek-ai/dsh-tools@${{ matrix.dsh }}" \
+            "@deepseek-ai/dsh-llm@${{ matrix.dsh }}" \
+            "@deepseek-ai/schemastery@3"
+
+      - name: Run the plugin harness
+        working-directory: dsh-ukma
+        env:
+          UKMA_BIN: ${{ github.workspace }}/target/release/ukma
+        run: node test/run-plugin-test.mjs

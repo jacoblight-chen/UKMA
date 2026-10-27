@@ -205,10 +205,12 @@ fn capi01_invalid_schema_is_rejected() {
 
     let mut request = analyze_request(COMMIT_A);
     request.asynchronous = false;
-    assert_eq!(
-        svc.analyze_repository(&ctx, &request).unwrap_err().code(),
-        "INVALID_ARGUMENT"
-    );
+    let error = svc.analyze_repository(&ctx, &request).unwrap_err();
+    assert_eq!(error.code(), "INVALID_ARGUMENT");
+    // The wire field is `asynchronous`; the hint must name it exactly.
+    let message = error.to_string();
+    assert!(message.contains("`asynchronous: true`"), "{message}");
+    assert!(!message.contains("`async: true`"), "{message}");
 
     let mut request = analyze_request(COMMIT_A);
     request.parser_profile = "  ".to_string();

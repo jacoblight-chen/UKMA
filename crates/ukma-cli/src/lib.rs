@@ -758,9 +758,9 @@ pub fn run(
     // --run-tool: run one tool and exit (CodeGraph `--run-tool` style).
     if let Some(name) = &parsed.run_tool {
         let operation = resolve_tool(name).ok_or_else(|| {
-            CliError::UnknownOperation(format!(
-                "`{name}` is neither a tool name nor an operation id"
-            ))
+            // `CliError::UnknownOperation` renders its own backticks, so the
+            // message is supplied without them (no doubled `` ` `` marks).
+            CliError::UnknownOperation(format!("{name} is neither a tool name nor an operation id"))
         })?;
         let body = parsed.tool_args.clone().unwrap_or_else(|| "{}".to_string());
         let mut input: Value =
@@ -1302,6 +1302,18 @@ mod tests {
             1
         );
         assert_eq!(exit_code(&CliError::Unhandled("x".into())), 3);
+    }
+
+    #[test]
+    fn the_unknown_operation_error_renders_single_backticks() {
+        let error = CliError::UnknownOperation(
+            "bogus is neither a tool name nor an operation id".to_string(),
+        );
+        let text = format!("{error}");
+        assert_eq!(
+            text, "unknown operation `bogus is neither a tool name nor an operation id`",
+            "no doubled or unbalanced backticks"
+        );
     }
 
     #[test]

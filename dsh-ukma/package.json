@@ -1,0 +1,45 @@
+{
+  "name": "@jacoblight-chen/dsh-ukma",
+  "version": "0.1.0",
+  "description": "UKMA for DSH — registers native `ukma_*` tools over a long-lived `ukma --mcp` child process (the UKMA code parse index is per-process, so per-call `--run-tool` cannot serve code queries). Setup commands (init/sync/status/uninit) run as one-shot `ukma` spawns; code / memory / system operations go through the persistent MCP child so the index is built once (code.analyze_repository) and reused. A system-prompt section makes the tools the preferred route for code search and memory recall.",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "ukma",
+    "code-search",
+    "code-index",
+    "memory",
+    "tools",
+    "deepseek",
+    "harness"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml"
+  ],
+  "peerDependencies": {
+    "@deepseek-ai/dsh-llm": ">=0.0.1-rc.1 <0.1.0 || >=0.1.0-rc.1 <0.3.0-0",
+    "@deepseek-ai/dsh-tools": ">=0.0.1-rc.1 <0.1.0 || >=0.1.0-rc.1 <0.3.0-0",
+    "@deepseek-ai/schemastery": ">=3.0.0 <4.0.0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jacoblight-chen/UKMA.git"
+  },
+  "homepage": "https://github.com/jacoblight-chen/UKMA/tree/main/dsh-ukma",
+  "bugs": {
+    "url": "https://github.com/jacoblight-chen/UKMA/issues"
+  }
+}

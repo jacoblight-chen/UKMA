@@ -967,21 +967,22 @@ fn tapi12_revalidation_revalidates_a_reverted_source_and_keeps_true_staleness() 
         .unwrap();
     assert_eq!(stale.state, TraceState::Stale);
 
-    assert_eq!(
-        fixture
-            .service
-            .revalidate_stale(
-                &ctx,
-                &RevalidateStale {
-                    link_refs: vec![accepted.reference.clone()],
-                    policy_id: "policy:default".into(),
-                    asynchronous: false,
-                }
-            )
-            .unwrap_err()
-            .code(),
-        "INVALID_ARGUMENT"
-    );
+    let error = fixture
+        .service
+        .revalidate_stale(
+            &ctx,
+            &RevalidateStale {
+                link_refs: vec![accepted.reference.clone()],
+                policy_id: "policy:default".into(),
+                asynchronous: false,
+            },
+        )
+        .unwrap_err();
+    assert_eq!(error.code(), "INVALID_ARGUMENT");
+    // The wire field is `asynchronous`; the hint must name it exactly.
+    let message = error.to_string();
+    assert!(message.contains("`asynchronous: true`"), "{message}");
+    assert!(!message.contains("`async: true`"), "{message}");
 
     let partial = fixture
         .service

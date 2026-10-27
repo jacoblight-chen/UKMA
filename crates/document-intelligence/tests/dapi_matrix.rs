@@ -217,10 +217,12 @@ fn dapi01_rejects_unsupported_media_types_and_sync_requests() {
 
     let mut request = ingest_request("artifact:rev-1", "rev-1");
     request.asynchronous = false;
-    assert_eq!(
-        svc.ingest(&ctx, &request).unwrap_err().code(),
-        "INVALID_ARGUMENT"
-    );
+    let error = svc.ingest(&ctx, &request).unwrap_err();
+    assert_eq!(error.code(), "INVALID_ARGUMENT");
+    // The wire field is `asynchronous`; the hint must name it exactly.
+    let message = error.to_string();
+    assert!(message.contains("`asynchronous: true`"), "{message}");
+    assert!(!message.contains("`async: true`"), "{message}");
 
     let mut request = ingest_request("artifact:rev-1", "rev-1");
     request.parser_profile = "  ".to_string();

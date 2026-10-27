@@ -2834,8 +2834,8 @@ impl MemoryService {
         self.authorizer.require_scope(ctx, SCOPE_CONSOLIDATE)?;
         if !request.asynchronous {
             return Err(MemoryError::InvalidArgument {
-                field: "async".to_string(),
-                reason: "memory.consolidate is asynchronous; pass `async: true` (§34.2)"
+                field: "asynchronous".to_string(),
+                reason: "memory.consolidate is asynchronous; pass `asynchronous: true` (§34.2)"
                     .to_string(),
             });
         }

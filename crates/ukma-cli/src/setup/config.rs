@@ -158,6 +158,23 @@ pub fn remove_json(path: &Path, format: ConfigFormat, dry_run: bool) -> Result<P
             map.remove(key);
         }
     }
+    if changed && map.is_empty() {
+        // The file held nothing but the managed entry; remove it rather
+        // than leaving an empty `{}` document behind.
+        if !dry_run {
+            fs::remove_file(path).map_err(|error| io_error("remove", path, &error))?;
+        }
+        return Ok(Plan {
+            path: path.to_path_buf(),
+            changed: true,
+            created: false,
+            detail: if dry_run {
+                "the file is now empty; it would be removed".to_string()
+            } else {
+                "the file is now empty; it was removed".to_string()
+            },
+        });
+    }
     if changed {
         write_object(path, &map, dry_run)?;
     }
@@ -762,6 +779,51 @@ mod tests {
 
     fn yaml_args() -> Vec<String> {
         vec!["--mcp".to_string(), "--index-cwd".to_string(), ".".into()]
+    }
+
+    #[test]
+    fn a_json_removal_of_the_only_entry_removes_the_file() {
+        let dir = scratch("json-remove-empty");
+        let path = dir.join("mcp.json");
+        fs::write(
+            &path,
+            r#"{"servers": {"ukma": {"command": "ukma", "args": ["--mcp"]}}}"#,
+        )
+        .expect("seed");
+        let removed = remove_json(&path, ConfigFormat::JsonVsCodeServers, false).expect("remove");
+        assert!(removed.changed);
+        assert!(
+            !path.exists(),
+            "an emptied file is removed, not left as `{{}}`"
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_json_remoal_keeps_a_file_with_user_entries() {
+        let dir = scratch("json-remove-keep");
+        let path = dir.join("mcp.json");
+        let seed = r#"{"servers": {"other": {"command": "other"}, "ukma": {"command": "ukma"}}}"#;
+        fs::write(&path, seed).expect("seed");
+        let removed = remove_json(&path, ConfigFormat::JsonVsCodeServers, false).expect("remove");
+        assert!(removed.changed);
+        assert!(path.exists(), "a file with user entries is kept");
+        let value: Value =
+            serde_json::from_str(&fs::read_to_string(&path).expect("read")).expect("json");
+        assert_eq!(value["servers"]["other"]["command"], "other");
+        assert!(value["servers"].get("ukma").is_none());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_json_removal_is_a_no_op_when_the_entry_is_absent() {
+        let dir = scratch("json-remove-none");
+        let path = dir.join("mcp.json");
+        fs::write(&path, r#"{"servers": {}}"#).expect("seed");
+        let removed = remove_json(&path, ConfigFormat::JsonVsCodeServers, false).expect("remove");
+        assert!(!removed.changed);
+        assert!(path.exists(), "an absent entry does not remove the file");
+        let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]

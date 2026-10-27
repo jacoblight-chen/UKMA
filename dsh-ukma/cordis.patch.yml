@@ -1,0 +1,20 @@
+# dsh-ukma bundle patch
+#
+# Makes `dsh plugin --profile <name> add <path-to-dsh-ukma>` (or the published
+# `@jacoblight-chen/dsh-ukma` npm package) install as a one-click profile
+# layer: pnpm resolves this package, the dsh plugin manager detects
+# `dsh.profile.bundles` support via package.json's `dsh.bundle.patch`, and
+# this patch inserts the `dsh-ukma` application (node half, lib/index.js)
+# into the host cordis composition. No manual dependency or patch edits are
+# needed after install.
+#
+# The node half registers the model-visible `ukma_*` tools and talks to a
+# long-lived `ukma --mcp` child process. There is no browser/client half.
+#
+# NOTE: this package lives in a subdirectory of the UKMA repository. The
+# `github:` install form points at a repo root, so use a local path
+# (`dsh plugin --profile web add ./dsh-ukma`) or the published npm package
+# until dsh-ukma is a standalone repo.
+- insert:
+    - id: dsh-ukma
+      name: '@jacoblight-chen/dsh-ukma'

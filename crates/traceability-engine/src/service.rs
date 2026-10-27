@@ -878,8 +878,9 @@ impl TraceabilityService {
         self.authorizer.require_scope(ctx, SCOPE_VERIFY)?;
         if !request.asynchronous {
             return Err(TraceError::InvalidArgument {
-                field: "async".to_string(),
-                reason: "revalidation is asynchronous; pass `async: true` (§35.2)".to_string(),
+                field: "asynchronous".to_string(),
+                reason: "revalidation is asynchronous; pass `asynchronous: true` (§35.2)"
+                    .to_string(),
             });
         }
         if request.link_refs.is_empty() {

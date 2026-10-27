@@ -233,7 +233,13 @@ fn walk(
             if metadata.len() > MAX_FILE_BYTES {
                 continue;
             }
-            let content = fs::read_to_string(&path)?;
+            let bytes = fs::read(&path)?;
+            // A file that is not valid UTF-8 is not a source file; skip it
+            // instead of failing the whole scan (an unrecognized binary such
+            // as a `.onnx` test fixture must not break `--index-cwd`).
+            let Ok(content) = String::from_utf8(bytes) else {
+                continue;
+            };
             let relative = path
                 .strip_prefix(root)
                 .expect("walked path is under the root")
@@ -491,6 +497,21 @@ mod tests {
         let files = scan_directory(&root).unwrap();
         assert_eq!(files.len(), 1);
         assert_eq!(files[0].path, "small.txt");
+        fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn a_non_utf8_file_is_skipped_rather_than_failing_the_scan() {
+        let root = temp_dir("binary");
+        fs::write(root.join("main.rs"), "fn main() {}\n").unwrap();
+        // An unrecognized binary (a `.onnx` test fixture) must not break the
+        // scan: it is not a source file, so it is skipped.
+        fs::write(root.join("model.onnx"), [0x89, 0x00, 0x00, 0x01, 0xFF]).unwrap();
+        let files = scan_directory(&root).unwrap();
+        assert_eq!(files.len(), 1, "only the text file is indexed");
+        assert_eq!(files[0].path, "main.rs");
+        let indexed = index_directory(&root).unwrap();
+        assert_eq!(indexed.index.files, 1);
         fs::remove_dir_all(&root).unwrap();
     }
 

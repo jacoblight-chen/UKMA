@@ -504,7 +504,7 @@ impl CodeIntelligenceService {
         })
     }
 
-    /// Accept an analysis job without running it (`async: true` semantics).
+    /// Accept an analysis job without running it (`asynchronous: true` semantics).
     pub fn submit_analysis(
         &self,
         ctx: &RequestContext,
@@ -521,9 +521,10 @@ impl CodeIntelligenceService {
         request.revision.validate()?;
         if !request.asynchronous {
             return Err(CodeError::InvalidArgument {
-                field: "async",
-                reason: "code.analyze_repository is asynchronous; pass `async: true` (§32.2)"
-                    .into(),
+                field: "asynchronous",
+                reason:
+                    "code.analyze_repository is asynchronous; pass `asynchronous: true` (§32.2)"
+                        .into(),
             });
         }
         if request.parser_profile.trim().is_empty() {

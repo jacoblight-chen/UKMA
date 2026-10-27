@@ -330,8 +330,8 @@ impl DocumentService {
         }
         if !request.asynchronous {
             return Err(DocumentError::InvalidArgument {
-                field: "async",
-                reason: "document.ingest is asynchronous; pass `async: true` (§33.2)".into(),
+                field: "asynchronous",
+                reason: "document.ingest is asynchronous; pass `asynchronous: true` (§33.2)".into(),
             });
         }
         if request.parser_profile.trim().is_empty() {

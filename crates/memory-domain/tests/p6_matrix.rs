@@ -493,19 +493,20 @@ fn mapi18_consolidate_validates_its_inputs() {
         asynchronous: true,
     };
 
-    assert_eq!(
-        service
-            .consolidate(
-                &ctx,
-                &Consolidate {
-                    asynchronous: false,
-                    ..base.clone()
-                }
-            )
-            .unwrap_err()
-            .code(),
-        "INVALID_ARGUMENT"
-    );
+    let error = service
+        .consolidate(
+            &ctx,
+            &Consolidate {
+                asynchronous: false,
+                ..base.clone()
+            },
+        )
+        .unwrap_err();
+    assert_eq!(error.code(), "INVALID_ARGUMENT");
+    // The wire field is `asynchronous`; the hint must name it exactly.
+    let message = error.to_string();
+    assert!(message.contains("`asynchronous: true`"), "{message}");
+    assert!(!message.contains("`async: true`"), "{message}");
     assert_eq!(
         service
             .consolidate(
